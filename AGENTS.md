@@ -41,11 +41,11 @@
 
 ```
 node tools/check.js                                  # 语法检查 + 改动范围检查
-node tools/playtest.js docs/tasks/shots/T-xx         # 机器人打通整章，结尾输出 ERRORS none
+node tools/playtest.js /tmp/pt-T-xx                  # 机器人打通整章，结尾输出 ERRORS none（截图输出到仓库外的临时目录）
 ```
 - 第一次运行前需要安装依赖：`npm install && npx playwright install chromium`。
 - `playtest.js` 的输出以 `ERRORS none` 结尾，并且退出码为 0，才算通过。
-- 卡片要求截图时，把截图放在 `docs/tasks/shots/T-xx/`，并在执行记录里写上文件名。
+- 卡片要求截图时，只把**卡片点名的那几张**从临时目录复制到 `docs/tasks/shots/T-xx/`，并在执行记录里写上文件名。不要提交其他截图，避免仓库膨胀。
 
 ## 4. 项目结构
 
