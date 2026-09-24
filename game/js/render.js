@@ -380,8 +380,8 @@ function drawUnit(u, t) {
     const on = actionOrder(u);
     if (on) {
       const bw = on >= 10 ? txtW(on, 2) + 6 : 14, bx = hx - 6 - bw, by = hy - 5;
-      R(bx, by, bw, 14, '#ff4a2b'); R(bx + 1, by + 1, bw - 2, 12, '#3a0e06');
-      txt(on, bx + (bw - txtW(on, 2)) / 2, by + 2, '#ffe0d6', 2);
+      R(bx, by, bw, 14, '#c9d2d8'); R(bx + 1, by + 1, bw - 2, 12, '#0f1821');
+      txt(on, bx + (bw - txtW(on, 2)) / 2, by + 2, '#ffffff', 2);
     }
   }
   g.globalAlpha = 1;
