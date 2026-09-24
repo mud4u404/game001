@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
 <title>向日葵防线</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,6 +36,8 @@ h1 small{display:block;font-family:var(--f-px);font-size:clamp(13px,2vw,16px);co
 .brief{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--dim)}
 .brief b{color:var(--text);font-weight:500}
 .brief .tag{font-family:var(--f-px);font-size:11px;color:#0c131a;background:var(--sun);padding:1px 6px}
+.brief .spacer{flex:1}
+.brief .btn{padding:3px 10px;font-size:12px}
 .topbar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
 .meter{display:flex;align-items:center;gap:10px}
 .lbl{font-size:12px;color:var(--dim);letter-spacing:.1em}
@@ -177,18 +181,13 @@ footer code{font-family:ui-monospace,Menlo,monospace;color:var(--text)}
 
 <div class="wrap">
   <header class="hero">
-    <div class="eyebrow"><span class="flag" aria-hidden="true"></span><span>回合制战棋 · 概念原型</span><span class="px">v0.1</span></div>
+    <div class="eyebrow"><span class="flag" aria-hidden="true"></span><span>回合制战棋 · 概念原型</span><span class="px">v0.2</span></div>
     <h1>向日葵防线<small>SUNFLOWER LINE</small></h1>
-    <p class="lede">2022 年 2 月，基辅西北郊。情报会提前一回合标出敌人的每一次攻击。你手上有三支小分队，任务是守住这座城市的电网。下面是任务 1-1「伊尔平河」的可玩原型。</p>
+    <p class="lede">2022 年 2 月，基辅西北郊。情报会提前一回合标出敌人的每一次攻击。你手上有三支小分队，任务是守住这座城市的电网。原型包含战区一的前两关：1-1「伊尔平河」与 1-2「安东诺夫机场」。</p>
   </header>
 
   <div class="game" id="game">
-    <div class="brief">
-      <span class="tag">1-1</span>
-      <span>战区一 <b>基辅之冬</b></span>
-      <span>任务 <b>伊尔平河</b></span>
-      <span>环境 <b>滑翔炸弹</b>：每回合一处落点，4 点伤害</span>
-    </div>
+    <div class="brief" id="briefBar"></div>
     <div class="topbar">
       <div class="meter"><span class="lbl">电网</span><div class="cells" id="gridCells"></div><span class="num" id="gridNum">7</span></div>
       <div class="meter turn"><span class="lbl">回合</span><span class="num" id="turnNum">1/4</span></div>
@@ -235,7 +234,7 @@ footer code{font-family:ui-monospace,Menlo,monospace;color:var(--text)}
         <div class="tip red"><b>红格是敌人的下一步</b><span>敌人的攻击方向和它当前的位置绑定。把一辆坦克推开一格，它瞄准居民楼的那一发就会打偏。</span></div>
         <div class="tip wat"><b>河是你的武器</b><span>HIMARS 的火箭弹会把落点四周的单位向外推。打在坦克身后，就能把它推进伊尔平河，俄军地面单位落水直接沉没。</span></div>
         <div class="tip blu"><b>用身体挡子弹</b><span>坦克的直射只打直线上的第一个目标。装甲车站在河岸公路上，就能替背后那栋住着 160 人的楼挨这一炮。</span></div>
-        <div class="tip yel"><b>堵住增援点</b><span>站在黄黑斜纹格上，下回合敌人就出不来，代价是自己掉 1 点 HP。红圈感叹号是滑翔炸弹的落点，别站在上面。</span></div>
+        <div class="tip yel"><b>堵住增援点</b><span>站在黄黑斜纹格上，下回合敌人就出不来，代价是自己掉 1 点 HP。黄黑斜纹格是敌军增援点，红圈感叹号是滑翔炸弹落点或伞兵空投点——炸弹要躲开，空投站上去就能挡下，代价是自己掉 1 HP。</span></div>
       </div>
     </section>
 
@@ -393,22 +392,109 @@ const ag = artC.getContext('2d'), lg = layC.getContext('2d'), tg = tintC.getCont
 let g = ag;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const MAP = [
-  'fb.h.w.f',
-  'h...rw..',
-  '.bSbrw.f',
-  '....rw..',
-  'fh.b.w..',
-  '.c..rw.f',
-  'rrrrrdrr',
-  'ff.h.w..',
-];
+const MISSIONS = {
+  '1-1': {
+    tag: '1-1', name: '伊尔平河', env: '滑翔炸弹', envDesc: '每回合一处落点，4 点伤害',
+    maxTurn: 4, gridMax: 7,
+    map: [
+      'fb.h.w.f',
+      'h...rw..',
+      '.bSbrw.f',
+      '....rw..',
+      'fh.b.w..',
+      '.c..rw.f',
+      'rrrrrdrr',
+      'ff.h.w..',
+    ],
+    ua: [['kozak', 4, 5], ['javelin', 4, 1], ['himars', 2, 3]],
+    ru: [['tank', 6, 3], ['bmp', 6, 6], ['grad', 7, 1], ['lancet', 7, 4]],
+    spawnCols: [6, 7],
+    spawns: t => (t === 2 ? 2 : 1),
+    markEnv: () => markBomb(),
+    brief: '情报：俄军装甲部队正在伊尔平河东岸集结。',
+    instantWin: false,
+    winCheck: S => S.turn >= S.maxTurn,
+    timeoutText: '',
+    obj: S => {
+      const sub = subAlive();
+      return `
+    <li class="${S.phase === 'win' ? 'ok' : S.phase === 'lose' ? 'bad' : ''}"><span class="box"></span><span>守住防线</span><span class="prog">${Math.min(S.turn, S.maxTurn)}/${S.maxTurn}</span></li>
+    <li class="${sub ? (S.phase === 'win' ? 'ok' : '') : 'bad'}"><span class="box"></span><span>保护变电站</span><span class="prog">${sub ? '完好' : '被毁'}</span><span class="reward">奖励：国际援助 +1</span></li>
+    <li class="${S.kills >= 4 ? 'ok' : ''}"><span class="box"></span><span>击毁 4 个敌军</span><span class="prog">${Math.min(S.kills, 4)}/4</span><span class="reward">奖励：国际援助 +1</span></li>`;
+    },
+    aid: S => 1 + (subAlive() ? 1 : 0) + (S.kills >= 4 ? 1 : 0),
+    ovWin: (S, aid) => `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>伊尔平河防线守住了</h3>
+       <div class="row"><span>守护平民</span><b>${civilians()} 人</b></div>
+       <div class="row"><span>电网剩余</span><b>${S.grid}/${S.gridMax}</b></div>
+       <div class="row"><span>变电站</span><b>${subAlive() ? '完好' : '被毁'}</b></div>
+       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
+       <div class="row"><span>国际援助</span><b>+${aid}</b></div>
+       <p>俄军的先头部队退回了东岸。在完整版里，接下来你会进入战区地图，选择下一个任务。</p>
+       <button class="btn" type="button" data-next="1-2">下一个任务 →</button>
+       <button class="btn primary" type="button" data-restart>再推演一次</button></div>`,
+    ovLose: (S, why) => `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>${why}</h3>
+       <div class="row"><span>坚持到</span><b>第 ${S.turn} 回合</b></div>
+       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
+       <p>这一轮推演失败了。在完整版里，你可以带一名指挥官回到战争开始，重新推演。</p>
+       <button class="btn primary" type="button" data-restart>重新推演</button></div>`,
+  },
+  '1-2': {
+    tag: '1-2', name: '安东诺夫机场', env: '空降威胁', envDesc: '运输机隔轮空投突击队，站上标记格可挡下',
+    maxTurn: 5, gridMax: 6,
+    map: [
+      'f..h...f',
+      '..H.....',
+      '......T.',
+      'f.......',
+      '.....h..',
+      '.h.....f',
+      'rrrrrrrr',
+      '..H....f',
+    ],
+    ua: [['kozak', 4, 7], ['javelin', 5, 7], ['himars', 3, 7]],
+    ru: [['il76', 0, 0], ['il76', 7, 1], ['il76', 3, 0], ['bmp', 1, 6]],
+    spawnCols: [],
+    spawns: () => 0,
+    markEnv: null,
+    brief: '情报：3 架伊尔-76 在机场上空盘旋，准备投下 VDV 突击队。击落它们，别让伞兵落地。',
+    instantWin: true,
+    winCheck: S => !S.units.some(u => u.type === 'il76'),
+    timeoutText: '运输机群完成空投，机场失守',
+    obj: S => {
+      const down = 3 - S.units.filter(u => u.type === 'il76').length;
+      const tower = tileAlive('T');
+      return `
+    <li class="${S.phase === 'win' ? 'ok' : S.phase === 'lose' ? 'bad' : ''}"><span class="box"></span><span>击落 3 架运输机</span><span class="prog">${down}/3</span></li>
+    <li class="${S.drops === 0 ? (S.phase === 'win' ? 'ok' : '') : 'bad'}"><span class="box"></span><span>别让伞兵落地</span><span class="prog">${S.drops === 0 ? '无空降' : '×' + S.drops}</span><span class="reward">奖励：国际援助 +1</span></li>
+    <li class="${tower ? (S.phase === 'win' ? 'ok' : '') : 'bad'}"><span class="box"></span><span>保护塔台</span><span class="prog">${tower ? '完好' : '被毁'}</span><span class="reward">奖励：国际援助 +1</span></li>`;
+    },
+    aid: S => 1 + (S.drops === 0 ? 1 : 0) + (tileAlive('T') ? 1 : 0),
+    ovWin: (S, aid) => `<div class="card"><span class="lbl">任务 1-2 · 推演结果</span><h3>运输机被击落在跑道上</h3>
+       <div class="row"><span>击落运输机</span><b>3/3</b></div>
+       <div class="row"><span>伞兵机降</span><b>${S.drops} 次</b></div>
+       <div class="row"><span>守护平民</span><b>${civilians()} 人</b></div>
+       <div class="row"><span>电网剩余</span><b>${S.grid}/${S.gridMax}</b></div>
+       <div class="row"><span>国际援助</span><b>+${aid}</b></div>
+       <p>机场保住了，跑道上的火光指引着下一支增援部队。完整版里，下一站是 64 公里车队。</p>
+       <button class="btn" type="button" data-next="1-1">回到 1-1</button>
+       <button class="btn primary" type="button" data-restart>再推演一次</button></div>`,
+    ovLose: (S, why) => `<div class="card"><span class="lbl">任务 1-2 · 推演结果</span><h3>${why}</h3>
+       <div class="row"><span>坚持到</span><b>第 ${S.turn} 回合</b></div>
+       <div class="row"><span>击落运输机</span><b>${3 - S.units.filter(u => u.type === 'il76').length}/3</b></div>
+       <div class="row"><span>伞兵机降</span><b>${S.drops} 次</b></div>
+       <p>伞兵控制了跑道。这一轮推演失败了，重新部署再来。</p>
+       <button class="btn primary" type="button" data-restart>重新推演</button></div>`,
+  },
+};
+let M = '1-1';
 const TERRAIN = { '.': '解冻的麦田', r: '公路', w: '伊尔平河', d: '炸断的桥（可通行）', f: '松林（阻挡）' };
 const BLD = {
   b: { name: '赫鲁晓夫楼', hp: 2, pop: 160 },
   h: { name: '民房', hp: 1, pop: 5 },
   c: { name: '教堂', hp: 1, pop: 30 },
   S: { name: '变电站', hp: 2, pop: 0, obj: true },
+  H: { name: '机库', hp: 2, pop: 0 },
+  T: { name: '塔台', hp: 2, pop: 0, obj: true },
 };
 const UT = {
   kozak:   { name: '科扎克装甲车', team: 'ua', hp: 3, move: 3, weapon: 'ram',    role: '近战 · 推击' },
@@ -418,6 +504,8 @@ const UT = {
   bmp:     { name: 'BMP 步战车',  team: 'ru', hp: 2, move: 3, atk: 'melee', dmg: 1, atkName: '近战：攻击相邻格' },
   grad:    { name: '冰雹火箭炮',  team: 'ru', hp: 2, move: 2, atk: 'art',   dmg: 1, atkName: '曲射：落点和后一格' },
   lancet:  { name: '柳叶刀巡飞弹', team: 'ru', hp: 1, move: 4, atk: 'melee', dmg: 2, fly: true, suicide: true, atkName: '自爆：攻击相邻格，随后消失' },
+  il76:    { name: '伊尔-76 运输机', team: 'ru', hp: 2, move: 4, atk: 'drop', dmg: 0, fly: true, atkName: '空投：在标记格投下 VDV 突击队' },
+  vdv:     { name: 'VDV 突击队', team: 'ru', hp: 1, move: 3, atk: 'melee', dmg: 1, atkName: '近战：攻击相邻格' },
 };
 const WP = {
   ram:    { name: '撞击冲锋', desc: '相邻格 2 伤害，并把目标推开 1 格' },
@@ -436,26 +524,28 @@ function mk(type, x, y) {
   const d = UT[type];
   return { id: S.nextId++, type, team: d.team, x, y, rx: x, ry: y, hp: d.hp, max: d.hp, moved: false, acted: false, aim: null, prev: null, flash: 0 };
 }
-function init() {
-  S = { turn: 1, maxTurn: 4, grid: 7, gridMax: 7, phase: 'player', tiles: [], units: [], spawns: [], bombs: [], kills: 0, resetLeft: 1, nextId: 1, log: [] };
+function init(mid) {
+  if (MISSIONS[mid]) M = mid;
+  const def = MISSIONS[M];
+  S = { turn: 1, maxTurn: def.maxTurn, grid: def.gridMax, gridMax: def.gridMax, phase: 'player', tiles: [], units: [], spawns: [], bombs: [], kills: 0, drops: 0, resetLeft: 1, nextId: 1, log: [] };
   for (let y = 0; y < 8; y++) {
     const row = [];
     for (let x = 0; x < 8; x++) {
-      const t = MAP[y][x];
+      const t = def.map[y][x];
       row.push(BLD[t] ? { t, hp: BLD[t].hp, max: BLD[t].hp } : { t });
     }
     S.tiles.push(row);
   }
-  S.units.push(mk('kozak', 4, 5), mk('javelin', 4, 1), mk('himars', 2, 3));
-  S.units.push(mk('tank', 6, 3), mk('bmp', 6, 6), mk('grad', 7, 1), mk('lancet', 7, 4));
+  for (const [type, x, y] of def.ua) S.units.push(mk(type, x, y));
+  for (const [type, x, y] of def.ru) S.units.push(mk(type, x, y));
   aiPlan();
   S.units.forEach(u => { u.rx = u.x; u.ry = u.y; });
-  markSpawns(1); markBomb();
+  markSpawns(def.spawns(1)); if (def.markEnv) def.markEnv();
   sel = null; mode = null; busy = false;
-  log('情报：俄军装甲部队正在伊尔平河东岸集结。', '');
+  log(def.brief, '');
   snapStr = JSON.stringify(S);
   document.getElementById('overlay').hidden = true;
-  renderUI();
+  renderBrief(); renderUI();
   banner('第 1 回合', false);
 }
 
@@ -495,7 +585,9 @@ const sleep = ms => new Promise(r => setTimeout(r, reduced ? ms * 0.5 : ms));
 // ---------- enemy attacks ----------
 function attackTiles(e) {
   if (!e.aim) return [];
-  const d = UT[e.type], [dx, dy] = e.aim.dir;
+  const d = UT[e.type];
+  if (d.atk === 'drop') return e.aim.drop ? [{ x: e.aim.drop.x, y: e.aim.drop.y, dmg: 0, drop: true }] : [];
+  const [dx, dy] = e.aim.dir;
   if (d.atk === 'line') {
     let x = e.x + dx, y = e.y + dy;
     while (inB(x, y)) { if (blocker(x, y)) return [{ x, y, dmg: d.dmg }]; x += dx; y += dy; }
@@ -521,6 +613,33 @@ function aiPlan() {
   const ens = S.units.filter(u => u.team === 'ru').sort((a, b) => a.id - b.id);
   for (const e of ens) {
     const d = UT[e.type];
+    if (d.atk === 'drop') {
+      // transports keep their distance and mark a drop tile every other turn
+      const ua = S.units.filter(u => u.team === 'ua');
+      const sx0 = e.x, sy0 = e.y;
+      const armed = (S.turn + e.id) % 2 === 0;
+      let best = null, bs = -1e9;
+      for (const p of reachable(e)) {
+        e.x = p.x; e.y = p.y;
+        let s = (ua.length ? Math.min(...ua.map(u => Math.abs(u.x - p.x) + Math.abs(u.y - p.y))) : 0) * 2 + Math.random() * 2;
+        if (armed) {
+          for (let ddy = -3; ddy <= 3; ddy++) for (let ddx = -3; ddx <= 3; ddx++) {
+            const tx = p.x + ddx, ty = p.y + ddy;
+            if (!inB(tx, ty) || (ddx === 0 && ddy === 0)) continue;
+            const t = T(tx, ty);
+            if (t.t === 'w' || t.t === 'f' || bldAlive(t) || unitAt(tx, ty)) continue;
+            let ds = Math.random() * 3;
+            for (const [ax, ay] of DIRS) if (inB(tx + ax, ty + ay) && bldAlive(T(tx + ax, ty + ay))) ds += 4.5;
+            if (ua.some(u => Math.abs(u.x - tx) + Math.abs(u.y - ty) <= 1)) ds -= 2.5;
+            if (S.units.some(v => v !== e && v.team === 'ru' && v.aim && v.aim.drop && v.aim.drop.x === tx && v.aim.drop.y === ty)) ds -= 4;
+            if (s + ds > bs) { bs = s + ds; best = { x: p.x, y: p.y, aim: { drop: { x: tx, y: ty } } }; }
+          }
+        } else if (s > bs) { bs = s; best = { x: p.x, y: p.y, aim: null }; }
+      }
+      e.x = sx0; e.y = sy0; e.aim = null;
+      if (best) { e.x = best.x; e.y = best.y; e.aim = best.aim; }
+      continue;
+    }
     const opts = [];
     for (const dir of DIRS) {
       if (d.atk === 'art') for (let k = 2; k <= 4; k++) opts.push({ dir, dist: k });
@@ -547,8 +666,9 @@ function aiPlan() {
   }
 }
 function markSpawns(n) {
+  const cols = MISSIONS[M].spawnCols;
   const c = [];
-  for (let y = 0; y < 8; y++) for (let x = 6; x < 8; x++) {
+  for (let y = 0; y < 8; y++) for (const x of cols) {
     const t = T(x, y);
     if (t.t !== 'w' && t.t !== 'f' && !bldAlive(t) && !unitAt(x, y) && !S.spawns.some(s => s.x === x && s.y === y)) c.push({ x, y });
   }
@@ -611,6 +731,18 @@ function applyEffects(list) {
     if (e.push) { const v = unitAt(e.x, e.y); if (v) push(v, e.push); }
   }
 }
+function dropVdv(x, y) {
+  log(`伊尔-76 在 ${coord(x, y)} 空投`, '');
+  const o = unitAt(x, y);
+  if (o) {
+    log(`${UT[o.type].name} 挡住了空投`, o.team === 'ua' ? 'good' : '');
+    hurt(o, 1);
+  } else {
+    S.drops++;
+    S.units.push(mk('vdv', x, y));
+    splash(x, y, true);
+  }
+}
 
 // ---------- player weapons ----------
 function wTargets(u) {
@@ -657,6 +789,8 @@ function checkEnd() {
   if (S.phase === 'win' || S.phase === 'lose') return true;
   if (S.grid <= 0) { endGame(false, '电网崩溃'); return true; }
   if (!S.units.some(u => u.team === 'ua')) { endGame(false, '小队全灭'); return true; }
+  const def = MISSIONS[M];
+  if (def.instantWin && def.winCheck(S)) { endGame(true); return true; }
   return false;
 }
 async function enemyPhase() {
@@ -685,10 +819,13 @@ async function enemyPhase() {
     const d = UT[e.type];
     for (const t of tiles) {
       const [x1, y1] = center(t.x, t.y);
-      FX.push({ x0, y0: y0 - 16, x1, y1: y1 - 8, t0: performance.now(), dur: 280, arc: d.atk === 'art' ? 90 : 0, c: '#ff7a55' });
+      FX.push({ x0, y0: y0 - 16, x1, y1: y1 - 8, t0: performance.now(), dur: 280, arc: d.atk === 'art' ? 90 : d.atk === 'drop' ? 110 : 0, c: '#ff7a55' });
     }
     await sleep(tiles.length ? 300 : 120);
-    for (const t of tiles) damageAt(t.x, t.y, t.dmg);
+    for (const t of tiles) {
+      if (t.drop) dropVdv(t.x, t.y);
+      else damageAt(t.x, t.y, t.dmg);
+    }
     if (d.suicide && S.units.includes(e)) { log('柳叶刀巡飞弹自爆', ''); S.units = S.units.filter(u => u !== e); }
     e.aim = null;
     renderUI();
@@ -712,12 +849,16 @@ async function enemyPhase() {
     if (checkEnd()) return;
   }
   S.spawns = [];
-  if (S.turn >= S.maxTurn) { endGame(true); return; }
+  const def = MISSIONS[M];
+  if (S.turn >= S.maxTurn) {
+    if (def.winCheck(S)) endGame(true); else endGame(false, def.timeoutText);
+    return;
+  }
   aiPlan();
   renderUI();
   await sleep(450);
-  if (S.turn + 1 < S.maxTurn) markSpawns(S.turn + 1 === 2 ? 2 : 1);
-  markBomb();
+  if (S.turn + 1 < S.maxTurn) markSpawns(def.spawns(S.turn + 1));
+  if (def.markEnv) def.markEnv();
   S.turn++;
   for (const u of S.units) if (u.team === 'ua') { u.moved = false; u.acted = false; u.prev = null; }
   S.phase = 'player'; busy = false;
@@ -731,24 +872,13 @@ function civilians() {
   return n;
 }
 function subAlive() { for (const row of S.tiles) for (const t of row) if (t.t === 'S') return t.hp > 0; return false; }
+function tileAlive(ch) { for (const row of S.tiles) for (const t of row) if (t.t === ch) return t.hp > 0; return false; }
 function endGame(win, why) {
+  const def = MISSIONS[M];
   S.phase = win ? 'win' : 'lose'; busy = false; sel = null; mode = null;
   const ov = document.getElementById('overlay');
-  const aid = win ? 1 + (subAlive() ? 1 : 0) + (S.kills >= 4 ? 1 : 0) : 0;
-  ov.innerHTML = win
-    ? `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>伊尔平河防线守住了</h3>
-       <div class="row"><span>守护平民</span><b>${civilians()} 人</b></div>
-       <div class="row"><span>电网剩余</span><b>${S.grid}/${S.gridMax}</b></div>
-       <div class="row"><span>变电站</span><b>${subAlive() ? '完好' : '被毁'}</b></div>
-       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
-       <div class="row"><span>国际援助</span><b>+${aid}</b></div>
-       <p>俄军的先头部队退回了东岸。在完整版里，接下来你会进入战区地图，选择下一个任务。</p>
-       <button class="btn primary" type="button" data-restart>再推演一次</button></div>`
-    : `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>${why}</h3>
-       <div class="row"><span>坚持到</span><b>第 ${S.turn} 回合</b></div>
-       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
-       <p>这一轮推演失败了。在完整版里，你可以带一名指挥官回到战争开始，重新推演。</p>
-       <button class="btn primary" type="button" data-restart>重新推演</button></div>`;
+  const aid = win ? def.aid(S) : 0;
+  ov.innerHTML = win ? def.ovWin(S, aid) : def.ovLose(S, why);
   ov.hidden = false;
   renderUI();
 }
@@ -818,7 +948,13 @@ document.getElementById('unitPanel').addEventListener('click', ev => {
   if (b.dataset.act === 'undo' && u.prev && !u.acted) { u.x = u.prev.x; u.y = u.prev.y; u.prev = null; u.moved = false; mode = 'move'; }
   renderUI();
 });
-document.getElementById('overlay').addEventListener('click', ev => { if (ev.target.closest('[data-restart]')) init(); });
+document.getElementById('briefBar').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-msn]'); if (b) init(b.dataset.msn);
+});
+document.getElementById('overlay').addEventListener('click', ev => {
+  const n = ev.target.closest('[data-next]'); if (n) { init(n.dataset.next); return; }
+  if (ev.target.closest('[data-restart]')) init();
+});
 
 // ---------- UI ----------
 const $ = id => document.getElementById(id);
@@ -834,11 +970,7 @@ function renderUI() {
   rb.disabled = S.phase !== 'player' || busy || S.resetLeft <= 0;
   $('btnEnd').disabled = S.phase !== 'player' || busy;
 
-  const sub = subAlive();
-  $('objList').innerHTML = `
-    <li class="${S.phase === 'win' ? 'ok' : S.phase === 'lose' ? 'bad' : ''}"><span class="box"></span><span>守住防线</span><span class="prog">${Math.min(S.turn, S.maxTurn)}/${S.maxTurn}</span></li>
-    <li class="${sub ? (S.phase === 'win' ? 'ok' : '') : 'bad'}"><span class="box"></span><span>保护变电站</span><span class="prog">${sub ? '完好' : '被毁'}</span><span class="reward">奖励：国际援助 +1</span></li>
-    <li class="${S.kills >= 4 ? 'ok' : ''}"><span class="box"></span><span>击毁 4 个敌军</span><span class="prog">${Math.min(S.kills, 4)}/4</span><span class="reward">奖励：国际援助 +1</span></li>`;
+  $('objList').innerHTML = MISSIONS[M].obj(S);
 
   const ros = ['kozak', 'javelin', 'himars'].map(type => {
     const u = S.units.find(v => v.type === type);
@@ -879,10 +1011,23 @@ function renderTile() {
     if (u.team === 'ru') rows += `<dt>攻击</dt><dd>${UT[u.type].atkName}，${UT[u.type].dmg} 伤害</dd>`;
   }
   const th = threats().filter(a => a.x === x && a.y === y);
-  for (const a of th) rows += `<dt class="threat">威胁</dt><dd class="threat">${UT[a.e.type].name} 下回合 ${a.dmg} 伤害</dd>`;
+  for (const a of th) rows += a.drop
+    ? `<dt class="threat">空投</dt><dd class="threat">VDV 突击队将在此机降，站上去可挡住（掉 1 HP）</dd>`
+    : `<dt class="threat">威胁</dt><dd class="threat">${UT[a.e.type].name} 下回合 ${a.dmg} 伤害</dd>`;
   if (S.bombs.some(b => b.x === x && b.y === y)) rows += `<dt class="threat">空袭</dt><dd class="threat">滑翔炸弹落点，4 伤害</dd>`;
   if (S.spawns.some(s => s.x === x && s.y === y)) rows += `<dt>增援</dt><dd>敌军将从这里突入</dd>`;
   el.innerHTML = `<h4>地块情报 · ${coord(x, y)}</h4><dl class="kv">${rows}</dl>`;
+}
+function renderBrief() {
+  const d = MISSIONS[M];
+  $('briefBar').innerHTML = `
+    <span class="tag">${d.tag}</span>
+    <span>战区一 <b>基辅之冬</b></span>
+    <span>任务 <b>${d.name}</b></span>
+    <span>威胁 <b>${d.env}</b>：${d.envDesc}</span>
+    <span class="spacer"></span>
+    <button class="btn${M === '1-1' ? ' primary' : ''}" type="button" data-msn="1-1">1-1</button>
+    <button class="btn${M === '1-2' ? ' primary' : ''}" type="button" data-msn="1-2">1-2</button>`;
 }
 let banTimer;
 function banner(text, enemy) {
@@ -1107,7 +1252,41 @@ function mLancet() {
   v.set(4, 0, 0, '#1a1c1e');
   return v;
 }
-const UNIT_MODEL = { kozak: mKozak, javelin: mJav, himars: mHimars, tank: mTank, bmp: mBmp, grad: mGrad, lancet: mLancet };
+function mIl76() {
+  const v = new Vox(), B1 = '#b6babd', B2 = '#989ea2', DK = '#565b5f', GL = '#2a3d52';
+  v.box(-10, 12, -2, 2, 2, 5, B1);
+  v.box(11, 13, -1, 1, 3, 4, B1);
+  v.box(12, 12, -1, 1, 4, 4, GL);
+  v.set(13, 0, 3, GL);
+  v.box(-2, 4, -16, 16, 4, 5, B2);
+  for (const y of [-13, -9, 9, 13]) {
+    v.box(0, 3, y, y, 3, 4, '#cdd1d4');
+    v.set(4, y, 3, DK); v.set(4, y, 4, DK);
+  }
+  v.box(-10, -10, 0, 0, 5, 12, B2);
+  v.box(-10, -8, -8, 8, 5, 5, B2);
+  v.set(-10, 0, 13, C.white);
+  v.box(-6, -5, -2, 2, 2, 5, C.white);
+  v.box(5, 6, -2, 2, 2, 5, '#4a4f3a');
+  return v;
+}
+function mVdv() {
+  const v = new Vox(), CO = '#565b47', VE = '#666b52', SK = '#d8b08a', HM = '#454a39', BLU = '#8fb6d9';
+  const man = (ox, oy, kneel) => {
+    if (kneel) { v.box(ox - 1, ox, oy, oy + 1, 0, 0, CO); v.box(ox, ox, oy, oy + 1, 1, 1, CO); }
+    else v.box(ox, ox, oy, oy + 1, 0, 2, CO);
+    const b = kneel ? 2 : 3;
+    v.box(ox, ox + 1, oy, oy + 1, b, b + 3, VE);
+    v.set(ox + 1, oy + 1, b + 2, BLU);
+    v.box(ox - 1, ox - 1, oy, oy + 1, b + 1, b + 3, '#3f4432');
+    v.box(ox, ox + 1, oy, oy + 1, b + 4, b + 4, SK);
+    v.box(ox, ox + 1, oy, oy + 1, b + 5, b + 5, HM);
+    v.box(ox + 2, ox + 3, oy + 1, oy + 1, b + 2, b + 2, '#2b2e2a');
+  };
+  man(-4, -4, false); man(0, 1, true); man(4, 3, false);
+  return v;
+}
+const UNIT_MODEL = { kozak: mKozak, javelin: mJav, himars: mHimars, tank: mTank, bmp: mBmp, grad: mGrad, lancet: mLancet, il76: mIl76, vdv: mVdv };
 
 function mApt(seed, dmg) {
   const v = new Vox(), W1 = '#cbc5b5', P = '#b2ac9c', RF = '#7d796f';
@@ -1314,7 +1493,7 @@ function drawBuilding(x, y, t) {
 
 // ---------- units ----------
 function screenDir(dir) { const vx = (dir[0] - dir[1]) * 40, vy = (dir[0] + dir[1]) * 20, l = Math.hypot(vx, vy); return [vx / l, vy / l]; }
-function facing(u) { return u.aim ? u.aim.dir : u.face || (u.team === 'ua' ? [1, 0] : [-1, 0]); }
+function facing(u) { return (u.aim && u.aim.dir) ? u.aim.dir : u.face || (u.team === 'ua' ? [1, 0] : [-1, 0]); }
 function drawUnitBase(u, t) {
   const [cx0, cy] = center(u.rx, u.ry), cx = Math.round(cx0), ua = u.team === 'ua';
   fillDia(cx, cy, UT[u.type].fly ? 20 : 32, 'rgba(0,0,0,.35)');
@@ -1416,7 +1595,9 @@ function frame(now) {
     const [ex, ey] = center(e.rx, e.ry);
     for (const a of tiles) {
       const [tx, ty] = center(a.x, a.y);
-      if (d.atk === 'art') {
+      if (d.atk === 'drop') {
+        // the drop tile is already ringed red and badged below; no trail
+      } else if (d.atk === 'art') {
         for (let i = 1; i < 20; i++) { const k = i / 20, x = ex + (tx - ex) * k, y = ey - 20 + (ty - ey + 12) * k - Math.sin(k * Math.PI) * 70; if (i % 2) { R(x - 1, y - 1, 5, 5, '#0a0f14'); R(x, y, 3, 3, '#ff6a4a'); } }
       } else if (d.atk === 'line') {
         const n = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
@@ -1425,7 +1606,7 @@ function frame(now) {
         const [vx, vy] = screenDir(e.aim.dir), lift = d.fly ? 24 : 8;
         line(ex + vx * 14, ey - lift + vy * 14, ex + vx * 32, ey - lift / 2 + vy * 32, '#ff4a2b', 3);
       }
-      badge(tx, ty - 4, a.dmg, '#3a0e06', '#ff4a2b', '#ffe0d6');
+      badge(tx, ty - 4, a.dmg || '!', '#3a0e06', '#ff4a2b', '#ffe0d6');
     }
   }
   for (const b of S.bombs) { const [cx, cy] = center(b.x, b.y); badge(cx, cy - 4, '!', '#3a0e06', pulse > 0.5 ? '#ffb199' : '#ff4a2b', '#ffffff'); }
@@ -1472,6 +1653,8 @@ function fit() {
   dg.imageSmoothingEnabled = k < 1;
 }
 addEventListener('resize', fit);
+// debug hook: window.__S exposes live game state for testing
+Object.defineProperty(window, '__S', { get: () => S });
 init();
 fit();
 requestAnimationFrame(frame);
