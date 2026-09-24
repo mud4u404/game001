@@ -330,6 +330,8 @@ function renderTip() {
     else if (d.atk === 'land') html += `<p class="threat">下回合：在此降落，放下空降兵</p>`;
     else if (d.spotter) html += `<p class="threat">为俄军炮兵校射：敌方炮火 +1，并瞄准你的单位</p>`;
     else if (d.atk) { const w = WEAPONS[d.atk]; html += `<p>${esc(w.name)}</p>`; if (o.aim) { const tl = enemyAttackTiles(o); html += tl.length ? `<p class="threat">下回合攻击 ${tl.map(a => coord(a.x, a.y)).join('、')}</p>` : '<p>下回合没有可攻击的目标</p>'; } }
+    const on = actionOrder(o);
+    if (on) html += `<p>行动顺序：第 ${on} 个${B.barrage.length ? '（场外炮火最先落下）' : ''}</p>`;
   }
   const bl = BLD[t.t];
   if (bl) html += bldAlive(t) ? `<h5>${esc(bl.name)} ${pipsHtml(t.hp, t.max)}</h5><p>${bl.pop ? `约 ${bl.pop} 名居民。` : ''}${bl.grid ? '被击中一次，电网 -1。' : '军事设施。'}</p>` : `<h5>废墟</h5>`;

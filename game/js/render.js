@@ -350,6 +350,13 @@ function drawRotor(cx, cy, r, ang, blades, c) {
     line(cx, cy, cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.5, c, 2);
   }
 }
+// 1-based rank among aiming enemies (id ascending) — the order they act in enemyPhase.
+function actionOrder(u) {
+  if (!B || B.phase !== 'player' || u.team !== 'ru' || u.dead || !u.aim) return 0;
+  let n = 0;
+  for (const e of ru()) if (e.aim && e.id <= u.id) n++;
+  return n;
+}
 function drawUnit(u, t) {
   if (u.alpha < 0.05) return;
   const s = unitSprite(u);
@@ -369,6 +376,12 @@ function drawUnit(u, t) {
     for (let i = 0; i < u.max; i++) {
       R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
       if (i < u.hp) R(hx + i * 8, hy, 6, 1, u.team === 'ua' ? '#b8f59a' : '#ffb3a3');
+    }
+    const on = actionOrder(u);
+    if (on) {
+      const bw = on >= 10 ? txtW(on, 2) + 6 : 14, bx = hx - 6 - bw, by = hy - 5;
+      R(bx, by, bw, 14, '#ff4a2b'); R(bx + 1, by + 1, bw - 2, 12, '#3a0e06');
+      txt(on, bx + (bw - txtW(on, 2)) / 2, by + 2, '#ffe0d6', 2);
     }
   }
   g.globalAlpha = 1;
