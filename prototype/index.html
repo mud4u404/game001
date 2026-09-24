@@ -13,6 +13,7 @@
   --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
   --f-px:"Silkscreen",ui-monospace,Menlo,monospace;
 }
+[hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--text)}
 body{font-family:var(--f-body);font-size:15px;line-height:1.65;padding-inline:16px;padding-block:0 56px}
 .wrap{max-width:1180px;margin:0 auto}
@@ -385,9 +386,11 @@ footer code{font-family:ui-monospace,Menlo,monospace;color:var(--text)}
 // ---------- constants ----------
 const W = 400, H = 250, OX = 200, OY = 52, DEPTH = 8;
 const cv = document.getElementById('cv');
-const g = cv.getContext('2d');
-cv.width = W; cv.height = H;
-g.imageSmoothingEnabled = false;
+const dg = cv.getContext('2d');
+const mkCanvas = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+const artC = mkCanvas(), layC = mkCanvas(), tintC = mkCanvas();
+const ag = artC.getContext('2d'), lg = layC.getContext('2d'), tg = tintC.getContext('2d');
+let g = ag;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const MAP = [
@@ -937,11 +940,11 @@ function badge(cx, cy, n, bg, border, fg) {
 
 // ---------- terrain ----------
 const TCOL = {
-  '.': ['#7b6b4d', '#4a3d2d', '#5c4b37'],
-  r:   ['#6c6a64', '#4a3d2d', '#5c4b37'],
+  '.': ['#8c7a55', '#4a3d2d', '#5c4b37'],
+  r:   ['#7a7872', '#4a3d2d', '#5c4b37'],
   f:   ['#5b5a40', '#4a3d2d', '#5c4b37'],
-  B:   ['#77746c', '#4a3d2d', '#5c4b37'],
-  w:   ['#2e5f80', '#1a3a50', '#224860'],
+  B:   ['#85827a', '#4a3d2d', '#5c4b37'],
+  w:   ['#2f6a92', '#1a3a50', '#224860'],
 };
 function drawTile(x, y, t) {
   const sx = OX + (x - y) * 20, sy = OY + (x + y) * 10, cx = sx, cy = sy + 10;
@@ -1075,14 +1078,18 @@ function soldier(x, y, tube) {
   if (tube) { R(x - 5, y - 10, 9, 2, '#9aa39a'); R(x - 6, y - 10, 1, 2, '#555c55'); }
 }
 function screenDir(dir) { const vx = (dir[0] - dir[1]) * 20, vy = (dir[0] + dir[1]) * 10, l = Math.hypot(vx, vy); return [vx / l, vy / l]; }
+function drawUnitBase(u, t) {
+  const [cx0, cy] = center(u.rx, u.ry), cx = Math.round(cx0), ua = u.team === 'ua';
+  fillDia(cx, cy, 16, 'rgba(0,0,0,.35)');
+  const ring = sel === u.id ? (Math.floor(t * 4) % 2 ? '#fff1b0' : '#f2c230') : ua ? (u.acted ? '#7d8c99' : '#4aa3ff') : '#ff4a2b';
+  outlineDia(cx, cy, 16, ring);
+  outlineDia(cx, cy, 14, ring);
+}
 function drawUnit(u, t) {
   const d = UT[u.type];
   const [cx0, cy] = center(u.rx, u.ry), cx = Math.round(cx0);
   const ua = u.team === 'ua';
   const selNow = sel === u.id;
-  fillDia(cx, cy, 16, 'rgba(0,0,0,.28)');
-  const ring = selNow ? (Math.floor(t * 4) % 2 ? '#fff1b0' : '#f2c230') : ua ? (u.acted ? '#6a7a88' : '#4aa3ff') : '#ff4a2b';
-  outlineDia(cx, cy, 16, ring);
   if (u.flash > 0) { g.globalAlpha = 0.6; g.globalCompositeOperation = 'lighter'; }
   const fly = d.fly ? 13 + (reduced ? 0 : Math.round(Math.sin(t * 4 + u.id) * 2)) : 0;
   const y = cy - fly;
@@ -1121,7 +1128,6 @@ function drawUnit(u, t) {
     for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) R(cx - 2 + i * 2, y - 8 + j * 2 + Math.floor(i / 2), 1, 1, '#141612');
     R(cx - 7, y - 4, 3, 1, '#e8e8e0');
   } else if (u.type === 'lancet') {
-    fillDia(cx, cy, 8, 'rgba(0,0,0,.35)');
     R(cx - 6, y - 1, 12, 2, '#8b9094'); R(cx + 5, y - 1, 2, 1, '#c5c9cc');
     for (let k = -3; k <= 3; k++) { R(cx - 3 + k, y + Math.round(k / 2), 1, 1, '#6d7276'); R(cx - 3 + k, y - Math.round(k / 2), 1, 1, '#6d7276'); R(cx + 3 + k, y + Math.round(k / 2), 1, 1, '#6d7276'); R(cx + 3 + k, y - Math.round(k / 2), 1, 1, '#6d7276'); }
     if (Math.floor(t * 3) % 2) R(cx - 6, y - 1, 1, 1, '#ff4a2b');
@@ -1151,7 +1157,7 @@ const flakes = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math
 
 // ---------- frame ----------
 const bg = g.createLinearGradient(0, 0, 0, H);
-bg.addColorStop(0, '#1a2733'); bg.addColorStop(0.6, '#101a23'); bg.addColorStop(1, '#0b1117');
+bg.addColorStop(0, '#24384a'); bg.addColorStop(0.6, '#15222e'); bg.addColorStop(1, '#0e161e');
 function frame(now) {
   const t = now / 1000;
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
@@ -1192,7 +1198,17 @@ function frame(now) {
     else if (BLD[tl.t]) dr.push({ d: x + y, f: () => drawBuilding(x, y, t) });
   }
   for (const u of S.units) dr.push({ d: u.rx + u.ry + 0.1, f: () => drawUnit(u, t) });
+  for (const u of S.units) drawUnitBase(u, t);
+  lg.clearRect(0, 0, W, H);
+  g = lg;
   dr.sort((a, b) => a.d - b.d).forEach(o => o.f());
+  g = ag;
+  tg.globalCompositeOperation = 'source-over';
+  tg.clearRect(0, 0, W, H); tg.drawImage(layC, 0, 0);
+  tg.globalCompositeOperation = 'source-in';
+  tg.fillStyle = '#0a0f14'; tg.fillRect(0, 0, W, H);
+  for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) ag.drawImage(tintC, ox, oy);
+  ag.drawImage(layC, 0, 0);
 
   // threat trails & numbers
   for (const e of S.units) {
@@ -1241,15 +1257,21 @@ function frame(now) {
   }
   g.globalAlpha = 1;
   if (!reduced) for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.12; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } R(f.x, f.y, 1, 1, 'rgba(235,242,248,.75)'); }
+  dg.imageSmoothingEnabled = false;
+  dg.drawImage(artC, 0, 0, cv.width, cv.height);
   requestAnimationFrame(frame);
 }
 
 // ---------- sizing ----------
 function fit() {
-  const box = document.getElementById('board').clientWidth;
-  const s = Math.min(box / W, 2.6);
-  cv.style.width = Math.floor(W * s) + 'px';
-  cv.style.height = Math.floor(H * s) + 'px';
+  // Render at device resolution with a whole-number pixel scale so every art pixel is a crisp square.
+  const dpr = window.devicePixelRatio || 1;
+  const box = document.getElementById('board').clientWidth * dpr;
+  let k = Math.min(box / W, 3 * dpr);
+  if (k >= 2) k = Math.floor(k);
+  cv.width = Math.round(W * k); cv.height = Math.round(H * k);
+  cv.style.width = cv.width / dpr + 'px';
+  cv.style.height = cv.height / dpr + 'px';
 }
 addEventListener('resize', fit);
 init();
