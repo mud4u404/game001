@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>模型陈列室</title>
+<style>
+:root{ color-scheme: dark; }
+body{ background:#15202a; color:#c9d2d8; margin:24px; font:14px/1.6 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+h1{ font-size:20px; margin:0 0 4px; }
+h2{ font-size:15px; color:#8ea3b4; margin:28px 0 10px; font-weight:500; letter-spacing:.08em; }
+.note{ font-size:12px; color:#5f7485; margin:0 0 8px; }
+.row{ display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+.row .name{ width:110px; flex:none; font-family:ui-monospace,Menlo,monospace; font-size:13px; color:#e3ebf1; padding-top:34px; }
+.row .cells{ display:flex; gap:14px; flex-wrap:wrap; }
+.grid{ display:flex; gap:14px; flex-wrap:wrap; }
+.cell{ border:1px solid #2e404f; background:#111a22; padding:10px; display:grid; gap:8px; justify-items:center; align-content:start; }
+.cell canvas{ image-rendering:pixelated; display:block; }
+.cell .cap{ font-size:11px; color:#7d8c99; font-family:ui-monospace,Menlo,monospace; text-align:center; white-space:nowrap; }
+</style>
+<canvas id="stage" hidden></canvas>
+<h1>模型陈列室 · Sunflower Line</h1>
+<p class="note">所有体素模型按朝向烘焙的像素精灵；尺寸为精灵的原始像素数，页面放大 3 倍显示。</p>
+<h2>单位 · UNIT_MODEL</h2>
+<div id="units"></div>
+<h2>建筑与道具</h2>
+<div class="grid" id="props"></div>
+<script src="../game/js/util.js"></script>
+<script src="../game/js/gfx.js"></script>
+<script src="../game/js/models.js"></script>
+<script>
+(() => {
+'use strict';
+const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+const SCALE = 3;
+function makeCell(s, cap) {
+  const d = document.createElement('div'); d.className = 'cell';
+  const c = s.c;
+  c.style.width = (c.width * SCALE) + 'px';
+  c.style.height = (c.height * SCALE) + 'px';
+  d.appendChild(c);
+  const t = document.createElement('span'); t.className = 'cap'; t.textContent = `${cap} ${s.w}×${s.h}`;
+  d.appendChild(t);
+  return d;
+}
+// one row per unit: four facings plus a wreck, key name up front
+const units = document.getElementById('units');
+for (const key of Object.keys(UNIT_MODEL)) {
+  const row = document.createElement('div'); row.className = 'row';
+  const name = document.createElement('div'); name.className = 'name'; name.textContent = key;
+  row.appendChild(name);
+  const cells = document.createElement('div'); cells.className = 'cells';
+  for (const dir of DIRS) cells.appendChild(makeCell(sprite(key, UNIT_MODEL[key], dir, 1), ''));
+  const build = key === 't72' || key === 't64'
+    ? () => wreckify(hullOf(UNIT_MODEL[key]()), 7)
+    : () => wreckify(UNIT_MODEL[key](), 7);
+  cells.appendChild(makeCell(sprite(key + ':wreck', build, [1, 0], 1), '残骸'));
+  row.appendChild(cells);
+  units.appendChild(row);
+}
+// buildings and props, baked once facing right
+const PROPS = [
+  ['mApt(1,false)', () => mApt(1, false)],
+  ['mApt(1,true)', () => mApt(1, true)],
+  ['mHouse(3,false)', () => mHouse(3, false)],
+  ['mHouse(3,true)', () => mHouse(3, true)],
+  ['mChurch()', () => mChurch()],
+  ['mSub()', () => mSub()],
+  ['mHangar(1,false)', () => mHangar(1, false)],
+  ['mRubble(1)', () => mRubble(1)],
+  ['mForest(5)', () => mForest(5)],
+  ['mBridgeRuin(true)', () => mBridgeRuin(true)],
+  ['mTB2()', () => mTB2()],
+  ['mCrate(1)', () => mCrate(1)],
+];
+const props = document.getElementById('props');
+for (const [label, build] of PROPS) props.appendChild(makeCell(sprite('prop:' + label, build, [1, 0], 1), label));
+})();
+</script>
