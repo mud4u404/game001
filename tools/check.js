@@ -6,7 +6,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
-const sh = cmd => execSync(cmd, { cwd: root, encoding: 'utf8' }).trim();
+// core.quotepath=off keeps non-ASCII paths (the Chinese task card names) unescaped.
+const sh = cmd => execSync(cmd.replace(/^git /, 'git -c core.quotepath=off '), { cwd: root, encoding: 'utf8' }).trim();
 let failed = false;
 const fail = msg => { console.error('✗ ' + msg); failed = true; };
 
