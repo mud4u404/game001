@@ -1,0 +1,1259 @@
+<title>向日葵防线</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0c131a; --bg2:#101a23; --panel:#142029; --panel2:#18262f;
+  --line:#26394a; --line2:#39546a;
+  --text:#e3ebf1; --dim:#8ea3b4; --faint:#5f7485;
+  --sun:#f2c230; --blue:#4aa3ff; --red:#ff4a2b; --ok:#7bd650;
+  --f-display:"ZCOOL QingKe HuangYou","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --f-px:"Silkscreen",ui-monospace,Menlo,monospace;
+}
+html,body{background:var(--bg);color:var(--text)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.65;padding-inline:16px;padding-block:0 56px}
+.wrap{max-width:1180px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.chip:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.px{font-family:var(--f-px);letter-spacing:.06em}
+
+/* hero */
+.hero{padding-block:40px 20px;display:grid;gap:10px}
+.eyebrow{font-size:12px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.eyebrow .flag{display:inline-block;width:18px;height:12px;background:linear-gradient(var(--blue) 50%,var(--sun) 50%)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(44px,8vw,84px);line-height:1;margin:0;text-wrap:balance;letter-spacing:.02em}
+h1 small{display:block;font-family:var(--f-px);font-size:clamp(13px,2vw,16px);color:var(--sun);letter-spacing:.35em;margin-top:12px}
+.lede{max-width:62ch;color:#c4d1dc;margin:4px 0 0}
+
+/* game frame */
+.game{border:1px solid var(--line2);background:var(--bg2);box-shadow:0 0 0 4px #081018,0 20px 60px rgba(0,0,0,.5)}
+.brief{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--dim)}
+.brief b{color:var(--text);font-weight:500}
+.brief .tag{font-family:var(--f-px);font-size:11px;color:#0c131a;background:var(--sun);padding:1px 6px}
+.topbar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.meter{display:flex;align-items:center;gap:10px}
+.lbl{font-size:12px;color:var(--dim);letter-spacing:.1em}
+.cells{display:flex;gap:3px}
+.cells i{width:16px;height:22px;background:#1d2b36;border:1px solid #33495a;display:block}
+.cells i.on{background:var(--sun);border-color:#ffe07a;box-shadow:inset 0 -4px 0 #c99a1b}
+.cells.warn i.on{background:#ff8a3a;border-color:#ffc08a;box-shadow:inset 0 -4px 0 #c55a1d}
+.num{font-family:var(--f-px);font-size:16px;font-variant-numeric:tabular-nums}
+.turn .num{font-size:22px;color:var(--sun)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line2);background:#1b2a36;padding:8px 14px;font-size:14px;transition:background .15s,border-color .15s}
+.btn:hover:not(:disabled){background:#233645;border-color:#5a7c96}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--sun);color:#1a1405;border-color:#ffe07a;font-weight:700}
+.btn.primary:hover:not(:disabled){background:#ffd24a}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 300px}
+.board{position:relative;display:flex;justify-content:center;align-items:flex-start;padding-top:8px;background:#0e1820;min-height:240px;overflow:hidden}
+#cv{display:block;image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%;touch-action:manipulation}
+.banner{position:absolute;left:0;right:0;top:40%;text-align:center;pointer-events:none;opacity:0}
+.banner span{display:inline-block;font-family:var(--f-display);font-size:clamp(26px,4vw,40px);padding:6px 28px;background:rgba(8,14,20,.86);border-top:2px solid var(--sun);border-bottom:2px solid var(--sun)}
+.banner.enemy span{border-color:var(--red)}
+.banner.show{animation:ban 1.3s ease both}
+@keyframes ban{0%{opacity:0;transform:translateY(8px)}15%,75%{opacity:1;transform:none}100%{opacity:0}}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,10,14,.78);padding:16px}
+.overlay .card{max-width:420px;width:100%;background:var(--panel);border:1px solid var(--line2);padding:22px 24px;display:grid;gap:12px}
+.overlay h3{font-family:var(--f-display);font-weight:400;font-size:32px;margin:0;line-height:1.1}
+.overlay .row{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:6px;font-size:14px}
+.overlay .row b{font-family:var(--f-px);font-weight:400;font-variant-numeric:tabular-nums}
+.overlay p{margin:0;color:var(--dim);font-size:13px}
+
+.side{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-width:0}
+.panel{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.panel h4{margin:0;font-size:12px;font-weight:500;color:var(--dim);letter-spacing:.14em}
+.roster{display:grid;gap:6px}
+.chip{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;border:1px solid var(--line);background:#111c25;padding:6px 8px}
+.chip:hover{border-color:var(--line2)}
+.chip.sel{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue)}
+.chip.done{opacity:.55}
+.chip.dead{opacity:.35;text-decoration:line-through}
+.chip .n{font-size:14px;font-weight:500}
+.chip .s{font-size:12px;color:var(--dim)}
+.pips{display:inline-flex;gap:2px;align-items:center}
+.pips i{width:8px;height:10px;background:#2a3a33;border:1px solid #0b1210;display:block}
+.pips i.on{background:var(--ok)}
+.pips.ru i.on{background:#ff6b4f}
+.unit h5{margin:0;font-size:17px;font-weight:700}
+.unit .meta{font-size:12px;color:var(--dim)}
+.weapon{display:grid;gap:2px;text-align:left;border:1px solid var(--line2);background:#1a2833;padding:8px 10px}
+.weapon.on{border-color:var(--sun);background:#2a2610}
+.weapon .wn{font-weight:700}
+.weapon .wd{font-size:12px;color:var(--dim)}
+.hint{font-size:13px;color:var(--dim);margin:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.kv dt{color:var(--dim)}
+.kv dd{margin:0}
+.threat{color:#ff8b73}
+.obj{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.obj li{display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center}
+.obj .box{width:12px;height:12px;border:1px solid var(--line2)}
+.obj .ok .box{background:var(--ok);border-color:var(--ok)}
+.obj .bad .box{background:var(--red);border-color:var(--red)}
+.obj .prog{font-family:var(--f-px);font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.obj .reward{grid-column:2/4;font-size:12px;color:var(--sun);margin-top:-4px}
+.log{flex:1;min-height:120px}
+.log ol{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:12px;max-height:190px;overflow:auto}
+.log li{color:var(--dim)}
+.log li.good{color:#9fe07e}
+.log li.bad{color:#ff8b73}
+.help{display:flex;flex-wrap:wrap;gap:6px 20px;padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+.key{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:12px;height:12px;border:1px solid rgba(255,255,255,.35)}
+
+/* doc sections */
+main{display:grid;gap:56px;margin-top:56px}
+section.doc{display:grid;gap:18px}
+section.doc > header{display:grid;gap:4px;max-width:70ch}
+section.doc h2{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,4vw,38px);margin:0;line-height:1.15}
+section.doc h2 .px{font-size:12px;color:var(--sun);display:block;letter-spacing:.3em;margin-bottom:6px;font-family:var(--f-px)}
+section.doc p{margin:0;max-width:68ch;color:#c4d1dc}
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tip{border-top:2px solid var(--line2);padding-top:10px;display:grid;gap:6px}
+.tip b{font-size:15px}
+.tip span{font-size:14px;color:#b5c3cf}
+.tip.red{border-color:var(--red)}.tip.yel{border-color:var(--sun)}.tip.blu{border-color:var(--blue)}.tip.wat{border-color:#3f86b3}
+
+.tbl{overflow-x:auto;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--dim);font-weight:500;letter-spacing:.1em;background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--dim)}
+td b{color:var(--text)}
+
+.squads{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.squad{background:var(--panel);border:1px solid var(--line);display:grid;align-content:start}
+.squad > div{padding:14px 16px;border-bottom:1px solid var(--line)}
+.squad > div:last-child{border-bottom:0}
+.squad h3{margin:0;font-size:18px}
+.squad .st{font-size:12px;color:var(--dim)}
+.squad .u{display:grid;gap:2px}
+.squad .u b{font-size:14px}
+.squad .u span{font-size:13px;color:#b5c3cf}
+.role{font-family:var(--f-px);font-size:10px;padding:1px 5px;border:1px solid var(--line2);color:var(--dim);margin-left:6px;vertical-align:2px}
+
+.theaters{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.th{background:var(--panel);border:1px solid var(--line);display:grid;align-content:start}
+.th .band{height:10px}
+.th .body{padding:14px 16px;display:grid;gap:8px}
+.th .no{font-family:var(--f-px);font-size:11px;color:var(--dim)}
+.th h3{margin:0;font-size:20px;font-family:var(--f-display);font-weight:400}
+.th .date{font-size:12px;color:var(--dim)}
+.th .env{font-size:13px;background:#0f1a22;border-left:2px solid var(--sun);padding:6px 10px}
+.th ol{margin:0;padding-left:18px;font-size:13px;display:grid;gap:3px;color:#c4d1dc}
+.th .boss{font-size:13px;color:#ff8b73}
+.th.final{grid-column:1/-1;border-color:#4a3a1a}
+.th.final .body{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));column-gap:28px}
+
+.palette{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.swatch{display:grid;gap:4px;font-size:12px}
+.swatch i{display:block;height:56px;border:1px solid rgba(255,255,255,.12)}
+.swatch code{font-family:var(--f-px);font-size:11px;color:var(--dim)}
+.art{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 28px}
+.art div{display:grid;gap:4px}
+.art b{font-size:15px}
+.art span{font-size:14px;color:#b5c3cf}
+
+.lines{display:grid;gap:10px;counter-reset:l;max-width:78ch;margin:0;padding:0;list-style:none}
+.lines li{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14px;color:#c4d1dc}
+.lines li::before{counter-increment:l;content:counter(l);font-family:var(--f-px);color:var(--sun);font-size:13px;padding-top:2px}
+.lines b{color:var(--text)}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--dim);display:flex;flex-wrap:wrap;gap:8px 24px}
+footer code{font-family:ui-monospace,Menlo,monospace;color:var(--text)}
+
+@media (max-width:920px){
+  .stage{grid-template-columns:1fr}
+  .side{border-left:0;border-top:1px solid var(--line)}
+}
+@media (prefers-reduced-motion:reduce){.banner.show{animation:none;opacity:1}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><span class="flag" aria-hidden="true"></span><span>回合制战棋 · 概念原型</span><span class="px">v0.1</span></div>
+    <h1>向日葵防线<small>SUNFLOWER LINE</small></h1>
+    <p class="lede">2022 年 2 月，基辅西北郊。情报会提前一回合标出敌人的每一次攻击。你手上有三支小分队，任务是守住这座城市的电网。下面是任务 1-1「伊尔平河」的可玩原型。</p>
+  </header>
+
+  <div class="game" id="game">
+    <div class="brief">
+      <span class="tag">1-1</span>
+      <span>战区一 <b>基辅之冬</b></span>
+      <span>任务 <b>伊尔平河</b></span>
+      <span>环境 <b>滑翔炸弹</b>：每回合一处落点，4 点伤害</span>
+    </div>
+    <div class="topbar">
+      <div class="meter"><span class="lbl">电网</span><div class="cells" id="gridCells"></div><span class="num" id="gridNum">7</span></div>
+      <div class="meter turn"><span class="lbl">回合</span><span class="num" id="turnNum">1/4</span></div>
+      <div class="spacer"></div>
+      <button class="btn" id="btnReset" type="button">作战预案 ×1</button>
+      <button class="btn primary" id="btnEnd" type="button">结束回合</button>
+    </div>
+    <div class="stage">
+      <div class="board" id="board">
+        <canvas id="cv" aria-label="战场：8×8 等轴地图"></canvas>
+        <div class="banner" id="banner"><span></span></div>
+        <div class="overlay" id="overlay" hidden></div>
+      </div>
+      <aside class="side">
+        <div class="panel">
+          <h4>任务目标</h4>
+          <ul class="obj" id="objList"></ul>
+        </div>
+        <div class="panel">
+          <h4>基辅本土防卫队</h4>
+          <div class="roster" id="roster"></div>
+        </div>
+        <div class="panel unit" id="unitPanel"></div>
+        <div class="panel" id="tilePanel"></div>
+        <div class="panel log"><h4>战报</h4><ol id="log"></ol></div>
+      </aside>
+    </div>
+    <div class="help">
+      <span class="key"><i class="sw" style="background:#4aa3ff"></i>可移动</span>
+      <span class="key"><i class="sw" style="background:#f2c230"></i>武器目标</span>
+      <span class="key"><i class="sw" style="background:#ff4a2b"></i>敌方下回合攻击</span>
+      <span class="key"><i class="sw" style="background:repeating-linear-gradient(45deg,#f2c230 0 3px,#1a1a1a 3px 6px)"></i>敌军增援点</span>
+      <span>点单位 → 点蓝格移动 → 点黄格开火 · Esc 取消</span>
+    </div>
+  </div>
+
+  <main>
+    <section class="doc">
+      <header>
+        <h2><span class="px">HOW IT PLAYS</span>第一关要教会玩家的四件事</h2>
+        <p>这些规则直接来自《Into the Breach》：信息完全公开，没有命中率，每一回合都是一道有最优解的谜题。</p>
+      </header>
+      <div class="tips">
+        <div class="tip red"><b>红格是敌人的下一步</b><span>敌人的攻击方向和它当前的位置绑定。把一辆坦克推开一格，它瞄准居民楼的那一发就会打偏。</span></div>
+        <div class="tip wat"><b>河是你的武器</b><span>HIMARS 的火箭弹会把落点四周的单位向外推。打在坦克身后，就能把它推进伊尔平河，俄军地面单位落水直接沉没。</span></div>
+        <div class="tip blu"><b>用身体挡子弹</b><span>坦克的直射只打直线上的第一个目标。装甲车站在河岸公路上，就能替背后那栋住着 160 人的楼挨这一炮。</span></div>
+        <div class="tip yel"><b>堵住增援点</b><span>站在黄黑斜纹格上，下回合敌人就出不来，代价是自己掉 1 点 HP。红圈感叹号是滑翔炸弹的落点，别站在上面。</span></div>
+      </div>
+    </section>
+
+    <section class="doc">
+      <header>
+        <h2><span class="px">SYSTEMS</span>把 ITB 的骨架换成这场战争的肌肉</h2>
+        <p>每一个机制都要能用战争里的真实元素讲通，这样规则本身就能讲故事。</p>
+      </header>
+      <div class="tbl"><table>
+        <thead><tr><th>ITB 原机制</th><th>本作</th><th>叙事解释</th></tr></thead>
+        <tbody>
+          <tr><td>Vek 攻击预告</td><td><b>敌情预判</b></td><td>来自西方 ISR 情报、无线电截获，以及平民在 єВорог（eVorog）App 上报的敌军动向</td></tr>
+          <tr><td>Power Grid</td><td><b>电网</b></td><td>俄军从 2022 年冬天起持续打击乌克兰能源设施，这个资源直接沿用字面意思</td></tr>
+          <tr><td>时间旅行重开</td><td><b>兵棋推演</b></td><td>总参谋部反复推演整场战争，推演失败时保留一名最出色的指挥官进入下一轮</td></tr>
+          <tr><td>Reputation / Core</td><td><b>国际援助 / 装备模块</b></td><td>完成额外目标换取援助，在“援助清单”里兑换武器和升级</td></tr>
+          <tr><td>Time Pulse</td><td><b>作战预案</b></td><td>每场战斗可以撤回一次本回合的全部操作</td></tr>
+          <tr><td>Vek 钻出地面</td><td><b>敌军突入点</b></td><td>地图边缘和渡河点，可以用单位堵住</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="doc">
+      <header>
+        <h2><span class="px">SQUADS</span>小队：每队三个单位，三种定位</h2>
+        <p>沿用 ITB 的近战推击、直射、曲射三分法，但每支小队围绕一种乌克兰军队真实使用的作战方式来设计。</p>
+      </header>
+      <div class="squads">
+        <div class="squad">
+          <div><h3>基辅本土防卫队</h3><span class="st">初始小队 · 平衡型 · 原型中可玩</span></div>
+          <div class="u"><b>科扎克装甲车<span class="role">PRIME</span></b><span>撞击冲锋：相邻格 2 伤害，推开 1 格</span></div>
+          <div class="u"><b>标枪反坦克组<span class="role">BRUTE</span></b><span>攻顶打击：直线第一个目标 2 伤害，对坦克再 +1</span></div>
+          <div class="u"><b>海马斯 HIMARS<span class="role">RANGED</span></b><span>制导火箭：落点 1 伤害，四周单位向外推开</span></div>
+        </div>
+        <div class="squad">
+          <div><h3>无人机集群</h3><span class="st">机动型 · 飞越地形</span></div>
+          <div class="u"><b>FPV 操作组<span class="role">BRUTE</span></b><span>FPV 撞击：飞越障碍，1 伤害并推开</span></div>
+          <div class="u"><b>“雅加婆婆”重型无人机<span class="role">RANGED</span></b><span>夜间投弹：只能轰炸上回合标记过的格子，2 伤害</span></div>
+          <div class="u"><b>电子战车<span class="role">SUPPORT</span></b><span>干扰：2 格内的敌方无人机坠毁，敌方炮兵落点偏移</span></div>
+        </div>
+        <div class="squad">
+          <div><h3>黑海海防</h3><span class="st">控场型 · 黑海战区解锁</span></div>
+          <div class="u"><b>“海马”无人艇<span class="role">PRIME</span></b><span>在水面移动，自爆撞击 3 伤害，冷却 1 回合</span></div>
+          <div class="u"><b>“海王星”岸防导弹<span class="role">RANGED</span></b><span>只打水面和海岸，对舰船伤害翻倍</span></div>
+          <div class="u"><b>海军陆战队<span class="role">PRIME</span></b><span>抢滩：跳跃落地时推开相邻的所有敌人</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc">
+      <header>
+        <h2><span class="px">CAMPAIGN</span>四个战区自由选择顺序，最后是终局战</h2>
+        <p>每个战区有一种专属环境机制和一个季节色调。攻克顺序越靠后，敌人越强。哈尔科夫是唯一一个由玩家发起进攻的战区。</p>
+      </header>
+      <div class="theaters">
+        <article class="th">
+          <div class="band" style="background:linear-gradient(90deg,#dfe4e8,#6b5a45)"></div>
+          <div class="body">
+            <span class="no">THEATER 01</span><h3>基辅之冬</h3><span class="date">2022 年 2–3 月 · 残雪与泥</span>
+            <div class="env"><b>泥泞季</b>：非道路格上履带车辆的移动力 -1，被推进泥地的敌车下回合无法移动</div>
+            <ol><li>伊尔平河：守住 4 回合，保护变电站</li><li>安东诺夫机场：击落运输机，阻止伞兵落地</li><li>64 公里车队：击毁领头车，让整列车队堵死</li><li>平民撤离：护送大巴穿过地图</li></ol>
+            <span class="boss">Boss：装甲指挥车，每回合给周围敌人 +1 HP</span>
+          </div>
+        </article>
+        <article class="th">
+          <div class="band" style="background:linear-gradient(90deg,#1f6f9a,#e8dcb8)"></div>
+          <div class="body">
+            <span class="no">THEATER 02</span><h3>黑海</h3><span class="date">2022 年 4–6 月 · 碧蓝与白沙</span>
+            <div class="env"><b>海浪</b>：每回合有 2 列水面把上面的单位推向同一方向，有预告</div>
+            <ol><li>敖德萨港：保护粮食出口码头</li><li>蛇岛：夺回灯塔，清除防空阵地</li><li>夜袭：视野只有友军周围 2 格</li></ol>
+            <span class="boss">Boss：巡洋舰，占 3 格，先打掉它的雷达</span>
+          </div>
+        </article>
+        <article class="th">
+          <div class="band" style="background:linear-gradient(90deg,#e0a82a,#5b4a2a)"></div>
+          <div class="body">
+            <span class="no">THEATER 03</span><h3>哈尔科夫闪击</h3><span class="date">2022 年 9 月 · 秋天的向日葵田</span>
+            <div class="env"><b>雷场</b>：隐藏的地雷格，把敌人推上去就会引爆</div>
+            <ol><li>巴拉克利亚突破：5 回合内推进到地图右缘</li><li>伊久姆森林：火势每回合蔓延</li><li>奥斯基尔河：工兵架设浮桥并守住桥头</li></ol>
+            <span class="boss">Boss：铁路弹药库，被击中会连锁爆炸</span>
+          </div>
+        </article>
+        <article class="th">
+          <div class="band" style="background:linear-gradient(90deg,#6c7a80,#2e4a5c)"></div>
+          <div class="body">
+            <span class="no">THEATER 04</span><h3>第聂伯河</h3><span class="date">2022 年 11 月 – 2023 年 · 灰色洪水</span>
+            <div class="env"><b>泄洪</b>：每回合水位上涨一排，淹没前要接走建筑里的平民</div>
+            <ol><li>赫尔松入城：不能误伤任何建筑</li><li>洪水之后：3 回合内救出 6 户平民</li><li>克林基桥头堡：补给只能靠小艇运来</li></ol>
+            <span class="boss">Boss：滑翔炸弹机场，每回合落下 3 枚</span>
+          </div>
+        </article>
+        <article class="th final">
+          <div class="band" style="background:linear-gradient(90deg,#0b1117,#f2c230 50%,#0b1117)"></div>
+          <div class="body">
+            <div style="display:grid;gap:6px;align-content:start"><span class="no">FINAL</span><h3>能源之冬 · 基辅</h3><span class="date">黑夜里的雪</span></div>
+            <div style="display:grid;gap:6px;align-content:start"><div class="env"><b>阶段一</b>：保护热电厂，对抗每回合 4 架“见证者”无人机和整列落下的巡航导弹</div><div class="env"><b>阶段二</b>：电网只剩最后几格，为全城电力枢纽布防，守住 4 回合</div></div>
+            <p style="font-size:14px">结局不渲染胜利游行。天亮时城里的灯一盏盏亮起，然后显示这一轮推演守护住的平民人数。战争仍在继续，所以结局是象征性的，不对真实的战争结果做预设。</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="doc">
+      <header>
+        <h2><span class="px">ART</span>画面：像一块浮在空中的兵棋沙盘</h2>
+        <p>ITB 的视觉语言可以学：等轴网格、厚度分明的地块、全场唯一的红色用于攻击预告。但精灵图、图标、UI 布局和字体全部要原创。上面原型里的每一个像素都是代码实时画出来的。</p>
+      </header>
+      <div class="palette">
+        <div class="swatch"><i style="background:#7b6b4d"></i>解冻麦田<code>#7B6B4D</code></div>
+        <div class="swatch"><i style="background:#dfe4e8"></i>残雪<code>#DFE4E8</code></div>
+        <div class="swatch"><i style="background:#2e5f80"></i>伊尔平河<code>#2E5F80</code></div>
+        <div class="swatch"><i style="background:#f2c230"></i>向日葵黄<code>#F2C230</code></div>
+        <div class="swatch"><i style="background:#4aa3ff"></i>我方选中<code>#4AA3FF</code></div>
+        <div class="swatch"><i style="background:#ff4a2b"></i>威胁预告<code>#FF4A2B</code></div>
+      </div>
+      <div class="art">
+        <div><b>我方</b><span>军绿车体配一条亮黄识别条，脚下是蓝色选中环。</span></div>
+        <div><b>敌方</b><span>灰绿车体配白色识别条，脚下是红色威胁环。坦克炮管会实时转向它瞄准的方向。</span></div>
+        <div><b>建筑</b><span>赫鲁晓夫面板楼亮着暖黄色窗户，受损后窗户熄灭、冒出黑烟。还有金顶教堂和变电站线塔。</span></div>
+        <div><b>音乐</b><span>合成器加班杜拉琴和复调合唱，用东欧调式代替 ITB 的配乐风格。</span></div>
+      </div>
+    </section>
+
+    <section class="doc">
+      <header>
+        <h2><span class="px">RED LINES</span>题材底线</h2>
+        <p>这是一场仍在进行、造成大量真实伤亡的战争。下面这些原则决定了这款游戏会被当成严肃作品，还是被当成消费苦难。</p>
+      </header>
+      <ol class="lines">
+        <li><span><b>不把暴行做成玩法。</b>布恰、马里乌波尔剧院这类事件不做成关卡目标。如果要提及，只放在战区之间的档案文本里，语气克制。</span></li>
+        <li><span><b>不出现真实在世人物。</b>指挥官全部虚构，敌方也不出现有名有姓的真实人物。</span></li>
+        <li><span><b>平民永远是被保护者。</b>不设计任何“牺牲平民换收益”的最优解。结算界面先展示保护的平民数，不做击杀排行榜。</span></li>
+        <li><span><b>找乌克兰人参与。</b>请乌克兰老兵和社区做顾问，并考虑捐出部分收入。《这是我的战争》的慈善 DLC 可以作为先例。</span></li>
+        <li><span><b>想清楚发行区域。</b>Steam 全球发行问题不大，但中国大陆无法过审，俄语区可能遇到封禁和舆论攻击，要提前准备社区管理方案。</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <span>完整设计文档：<code>docs/GDD.md</code></span>
+    <span>原型源码：<code>prototype/index.html</code></span>
+    <span>玩法和画面语言参考 Subset Games《Into the Breach》，本页所有素材均为原创。</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ---------- constants ----------
+const W = 400, H = 250, OX = 200, OY = 52, DEPTH = 8;
+const cv = document.getElementById('cv');
+const g = cv.getContext('2d');
+cv.width = W; cv.height = H;
+g.imageSmoothingEnabled = false;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const MAP = [
+  'fb.h.w.f',
+  'h...rw..',
+  '.bSbrw.f',
+  '....rw..',
+  'fh.b.w..',
+  '.c..rw.f',
+  'rrrrrdrr',
+  'ff.h.w..',
+];
+const TERRAIN = { '.': '解冻的麦田', r: '公路', w: '伊尔平河', d: '炸断的桥（可通行）', f: '松林（阻挡）' };
+const BLD = {
+  b: { name: '赫鲁晓夫楼', hp: 2, pop: 160 },
+  h: { name: '民房', hp: 1, pop: 5 },
+  c: { name: '教堂', hp: 1, pop: 30 },
+  S: { name: '变电站', hp: 2, pop: 0, obj: true },
+};
+const UT = {
+  kozak:   { name: '科扎克装甲车', team: 'ua', hp: 3, move: 3, weapon: 'ram',    role: '近战 · 推击' },
+  javelin: { name: '标枪反坦克组', team: 'ua', hp: 2, move: 3, weapon: 'jav',    role: '直射' },
+  himars:  { name: '海马斯 HIMARS', team: 'ua', hp: 2, move: 3, weapon: 'rocket', role: '曲射 · 推击' },
+  tank:    { name: 'T-72 坦克',   team: 'ru', hp: 3, move: 3, atk: 'line',  dmg: 2, armored: true, atkName: '直射：打直线上第一个目标' },
+  bmp:     { name: 'BMP 步战车',  team: 'ru', hp: 2, move: 3, atk: 'melee', dmg: 1, atkName: '近战：攻击相邻格' },
+  grad:    { name: '冰雹火箭炮',  team: 'ru', hp: 2, move: 2, atk: 'art',   dmg: 1, atkName: '曲射：落点和后一格' },
+  lancet:  { name: '柳叶刀巡飞弹', team: 'ru', hp: 1, move: 4, atk: 'melee', dmg: 2, fly: true, suicide: true, atkName: '自爆：攻击相邻格，随后消失' },
+};
+const WP = {
+  ram:    { name: '撞击冲锋', desc: '相邻格 2 伤害，并把目标推开 1 格' },
+  jav:    { name: '攻顶打击', desc: '直线上第一个目标 2 伤害，对坦克再 +1' },
+  rocket: { name: '制导火箭', desc: '射程 ≥ 2。落点 1 伤害，四周单位向外推 1 格' },
+};
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const COLS = 'ABCDEFGH';
+const coord = (x, y) => COLS[x] + (y + 1);
+
+// ---------- state ----------
+let S, snapStr = null, sel = null, mode = null, hover = null, busy = false;
+const P = [], FX = [];
+
+function mk(type, x, y) {
+  const d = UT[type];
+  return { id: S.nextId++, type, team: d.team, x, y, rx: x, ry: y, hp: d.hp, max: d.hp, moved: false, acted: false, aim: null, prev: null, flash: 0 };
+}
+function init() {
+  S = { turn: 1, maxTurn: 4, grid: 7, gridMax: 7, phase: 'player', tiles: [], units: [], spawns: [], bombs: [], kills: 0, resetLeft: 1, nextId: 1, log: [] };
+  for (let y = 0; y < 8; y++) {
+    const row = [];
+    for (let x = 0; x < 8; x++) {
+      const t = MAP[y][x];
+      row.push(BLD[t] ? { t, hp: BLD[t].hp, max: BLD[t].hp } : { t });
+    }
+    S.tiles.push(row);
+  }
+  S.units.push(mk('kozak', 4, 5), mk('javelin', 4, 1), mk('himars', 2, 3));
+  S.units.push(mk('tank', 6, 3), mk('bmp', 6, 6), mk('grad', 7, 1), mk('lancet', 7, 4));
+  aiPlan();
+  S.units.forEach(u => { u.rx = u.x; u.ry = u.y; });
+  markSpawns(1); markBomb();
+  sel = null; mode = null; busy = false;
+  log('情报：俄军装甲部队正在伊尔平河东岸集结。', '');
+  snapStr = JSON.stringify(S);
+  document.getElementById('overlay').hidden = true;
+  renderUI();
+  banner('第 1 回合', false);
+}
+
+// ---------- helpers ----------
+const inB = (x, y) => x >= 0 && y >= 0 && x < 8 && y < 8;
+const T = (x, y) => S.tiles[y][x];
+const bldAlive = t => !!BLD[t.t] && t.hp > 0;
+const unitAt = (x, y) => S.units.find(u => u.x === x && u.y === y && u.hp > 0);
+const blocker = (x, y) => !!unitAt(x, y) || bldAlive(T(x, y)) || T(x, y).t === 'f';
+const byId = id => S.units.find(u => u.id === id);
+function passable(x, y, u) {
+  if (!inB(x, y)) return false;
+  const t = T(x, y);
+  if (bldAlive(t) || t.t === 'f') return false;
+  if (t.t === 'w' && !UT[u.type].fly) return false;
+  return true;
+}
+function reachable(u) {
+  const out = [{ x: u.x, y: u.y }], seen = new Set([u.x + ',' + u.y]);
+  let front = [{ x: u.x, y: u.y }];
+  for (let s = 0; s < UT[u.type].move; s++) {
+    const nx = [];
+    for (const p of front) for (const [dx, dy] of DIRS) {
+      const x = p.x + dx, y = p.y + dy, k = x + ',' + y;
+      if (seen.has(k) || !passable(x, y, u)) continue;
+      const o = unitAt(x, y);
+      if (o && o !== u) continue;
+      seen.add(k); nx.push({ x, y }); out.push({ x, y });
+    }
+    front = nx;
+  }
+  return out;
+}
+function log(m, c) { S.log.push({ m, c }); if (S.log.length > 60) S.log.shift(); }
+const sleep = ms => new Promise(r => setTimeout(r, reduced ? ms * 0.5 : ms));
+
+// ---------- enemy attacks ----------
+function attackTiles(e) {
+  if (!e.aim) return [];
+  const d = UT[e.type], [dx, dy] = e.aim.dir;
+  if (d.atk === 'line') {
+    let x = e.x + dx, y = e.y + dy;
+    while (inB(x, y)) { if (blocker(x, y)) return [{ x, y, dmg: d.dmg }]; x += dx; y += dy; }
+    return [];
+  }
+  if (d.atk === 'melee') {
+    const x = e.x + dx, y = e.y + dy;
+    return inB(x, y) ? [{ x, y, dmg: d.dmg }] : [];
+  }
+  const out = [];
+  for (const k of [e.aim.dist, e.aim.dist + 1]) {
+    const x = e.x + dx * k, y = e.y + dy * k;
+    if (inB(x, y)) out.push({ x, y, dmg: d.dmg });
+  }
+  return out;
+}
+function threats() {
+  const out = [];
+  for (const e of S.units) if (e.team === 'ru' && e.aim) for (const t of attackTiles(e)) out.push({ ...t, e });
+  return out;
+}
+function aiPlan() {
+  const ens = S.units.filter(u => u.team === 'ru').sort((a, b) => a.id - b.id);
+  for (const e of ens) {
+    const d = UT[e.type];
+    const opts = [];
+    for (const dir of DIRS) {
+      if (d.atk === 'art') for (let k = 2; k <= 4; k++) opts.push({ dir, dist: k });
+      else opts.push({ dir });
+    }
+    const ox = e.x, oy = e.y;
+    let best = null, bs = -1e9;
+    for (const p of reachable(e)) {
+      e.x = p.x; e.y = p.y;
+      let pen = S.bombs.some(b => b.x === p.x && b.y === p.y) ? -6 : 0;
+      for (const o of opts) {
+        e.aim = o;
+        let s = pen + Math.random() * 2.5;
+        for (const t of attackTiles(e)) {
+          const v = unitAt(t.x, t.y), tl = T(t.x, t.y);
+          if (v && v !== e) s += v.team === 'ua' ? 7 : -8;
+          else if (bldAlive(tl)) s += BLD[tl.t].obj ? 14 : 10;
+        }
+        if (s > bs) { bs = s; best = { x: p.x, y: p.y, aim: o }; }
+      }
+    }
+    e.x = ox; e.y = oy; e.aim = null;
+    if (best) { e.x = best.x; e.y = best.y; e.aim = best.aim; }
+  }
+}
+function markSpawns(n) {
+  const c = [];
+  for (let y = 0; y < 8; y++) for (let x = 6; x < 8; x++) {
+    const t = T(x, y);
+    if (t.t !== 'w' && t.t !== 'f' && !bldAlive(t) && !unitAt(x, y) && !S.spawns.some(s => s.x === x && s.y === y)) c.push({ x, y });
+  }
+  for (let i = 0; i < n && c.length; i++) S.spawns.push(c.splice(Math.floor(Math.random() * c.length), 1)[0]);
+}
+function markBomb() {
+  const c = [], near = [];
+  const ua = S.units.filter(u => u.team === 'ua');
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const t = T(x, y);
+    if (t.t === 'w' || t.t === 'f' || bldAlive(t) || S.spawns.some(s => s.x === x && s.y === y)) continue;
+    c.push({ x, y });
+    if (ua.some(u => Math.abs(u.x - x) + Math.abs(u.y - y) <= 1)) near.push({ x, y });
+  }
+  const pool = near.length && Math.random() < 0.6 ? near : c;
+  if (pool.length) S.bombs = [pool[Math.floor(Math.random() * pool.length)]];
+}
+
+// ---------- damage & push ----------
+function center(x, y) { return [OX + (x - y) * 20, OY + (x + y) * 10 + 10]; }
+function damageAt(x, y, d) {
+  boom(x, y);
+  const v = unitAt(x, y);
+  if (v) { hurt(v, d); return; }
+  const t = T(x, y);
+  if (bldAlive(t)) {
+    t.hp -= Math.min(d, t.hp); S.grid = Math.max(0, S.grid - 1);
+    log(`${BLD[t.t].name} ${coord(x, y)} 受损，电网 -1`, 'bad');
+    if (t.hp === 0) log(`${BLD[t.t].name} ${coord(x, y)} 被摧毁`, 'bad');
+  }
+}
+function hurt(v, d) {
+  v.hp -= d; v.flash = 1;
+  if (v.hp <= 0) die(v, false);
+}
+function die(v, drowned) {
+  v.hp = 0;
+  S.units = S.units.filter(u => u !== v);
+  if (v.team === 'ru') { S.kills++; if (!drowned) log(`${UT[v.type].name} 被击毁`, 'good'); }
+  else if (!drowned) log(`${UT[v.type].name} 损毁`, 'bad');
+  if (sel === v.id) { sel = null; mode = null; }
+}
+function push(v, [dx, dy]) {
+  const nx = v.x + dx, ny = v.y + dy;
+  if (!inB(nx, ny)) return;
+  const o = unitAt(nx, ny), t = T(nx, ny);
+  if (o) { log(`${UT[v.type].name} 撞上了 ${UT[o.type].name}`, ''); boom(nx, ny, true); hurt(o, 1); hurt(v, 1); return; }
+  if (bldAlive(t)) { damageAt(nx, ny, 1); hurt(v, 1); return; }
+  if (t.t === 'f') { boom(nx, ny, true); hurt(v, 1); return; }
+  v.x = nx; v.y = ny;
+  if (t.t === 'w' && !UT[v.type].fly) {
+    log(`${UT[v.type].name} 被推进伊尔平河，沉没`, v.team === 'ru' ? 'good' : 'bad');
+    splash(nx, ny);
+    die(v, true);
+  }
+}
+function applyEffects(list) {
+  for (const e of list) {
+    if (e.dmg > 0) damageAt(e.x, e.y, e.dmg);
+    if (e.push) { const v = unitAt(e.x, e.y); if (v) push(v, e.push); }
+  }
+}
+
+// ---------- player weapons ----------
+function wTargets(u) {
+  const w = UT[u.type].weapon, out = [];
+  if (w === 'ram') for (const dir of DIRS) { const x = u.x + dir[0], y = u.y + dir[1]; if (inB(x, y)) out.push({ x, y, dir }); }
+  if (w === 'jav') for (const dir of DIRS) {
+    let x = u.x + dir[0], y = u.y + dir[1], last = null;
+    while (inB(x, y)) { last = { x, y, dir }; if (blocker(x, y)) break; x += dir[0]; y += dir[1]; }
+    if (last) out.push(last);
+  }
+  if (w === 'rocket') for (const dir of DIRS) for (let k = 2; k < 8; k++) {
+    const x = u.x + dir[0] * k, y = u.y + dir[1] * k;
+    if (!inB(x, y)) break;
+    out.push({ x, y, dir });
+  }
+  return out;
+}
+function wEffects(u, t) {
+  const w = UT[u.type].weapon;
+  if (w === 'ram') return [{ x: t.x, y: t.y, dmg: 2, push: t.dir }];
+  if (w === 'jav') { const v = unitAt(t.x, t.y); return [{ x: t.x, y: t.y, dmg: 2 + (v && UT[v.type].armored ? 1 : 0) }]; }
+  const e = [{ x: t.x, y: t.y, dmg: 1 }];
+  for (const dir of DIRS) { const x = t.x + dir[0], y = t.y + dir[1]; if (inB(x, y)) e.push({ x, y, dmg: 0, push: dir }); }
+  return e;
+}
+function fire(u, t) {
+  const [x0, y0] = center(u.x, u.y), [x1, y1] = center(t.x, t.y);
+  const w = UT[u.type].weapon;
+  FX.push({ x0, y0: y0 - 8, x1, y1: y1 - 4, t0: performance.now(), dur: 260, arc: w === 'rocket' ? 50 : 0, c: '#ffe07a' });
+  log(`${UT[u.type].name} 使用${WP[w].name} → ${coord(t.x, t.y)}`, '');
+  u.acted = true; u.moved = true; mode = null;
+  busy = true;
+  setTimeout(() => {
+    applyEffects(wEffects(u, t));
+    busy = false;
+    checkEnd();
+    renderUI();
+  }, reduced ? 60 : 260);
+  renderUI();
+}
+
+// ---------- turn flow ----------
+function checkEnd() {
+  if (S.phase === 'win' || S.phase === 'lose') return true;
+  if (S.grid <= 0) { endGame(false, '电网崩溃'); return true; }
+  if (!S.units.some(u => u.team === 'ua')) { endGame(false, '小队全灭'); return true; }
+  return false;
+}
+async function enemyPhase() {
+  if (S.phase !== 'player' || busy) return;
+  S.phase = 'enemy'; sel = null; mode = null; busy = true;
+  renderUI();
+  banner('敌方行动', true);
+  await sleep(700);
+  for (const b of S.bombs) {
+    const [cx, cy] = center(b.x, b.y);
+    FX.push({ x0: cx + 30, y0: cy - 140, x1: cx, y1: cy - 2, t0: performance.now(), dur: 380, arc: 0, c: '#ffffff' });
+    await sleep(380);
+    log(`滑翔炸弹落在 ${coord(b.x, b.y)}`, 'bad');
+    damageAt(b.x, b.y, 4);
+    renderUI();
+    await sleep(300);
+    if (checkEnd()) return;
+  }
+  S.bombs = [];
+  const ens = S.units.filter(u => u.team === 'ru').sort((a, b) => a.id - b.id);
+  for (const e of ens) {
+    if (e.hp <= 0 || !S.units.includes(e) || !e.aim) continue;
+    const tiles = attackTiles(e);
+    e.flash = 1;
+    const [x0, y0] = center(e.rx, e.ry);
+    const d = UT[e.type];
+    for (const t of tiles) {
+      const [x1, y1] = center(t.x, t.y);
+      FX.push({ x0, y0: y0 - 8, x1, y1: y1 - 4, t0: performance.now(), dur: 280, arc: d.atk === 'art' ? 45 : 0, c: '#ff7a55' });
+    }
+    await sleep(tiles.length ? 300 : 120);
+    for (const t of tiles) damageAt(t.x, t.y, t.dmg);
+    if (d.suicide && S.units.includes(e)) { log('柳叶刀巡飞弹自爆', ''); S.units = S.units.filter(u => u !== e); }
+    e.aim = null;
+    renderUI();
+    await sleep(320);
+    if (checkEnd()) return;
+  }
+  for (const s of S.spawns) {
+    const o = unitAt(s.x, s.y);
+    if (o) {
+      log(`${UT[o.type].name} 堵住了 ${coord(s.x, s.y)} 的增援`, o.team === 'ua' ? 'good' : '');
+      hurt(o, 1);
+    } else {
+      const r = Math.random();
+      const type = r < 0.3 ? 'tank' : r < 0.6 ? 'bmp' : r < 0.8 ? 'grad' : 'lancet';
+      S.units.push(mk(type, s.x, s.y));
+      log(`${UT[type].name} 从 ${coord(s.x, s.y)} 突入`, '');
+      splash(s.x, s.y, true);
+    }
+    renderUI();
+    await sleep(260);
+    if (checkEnd()) return;
+  }
+  S.spawns = [];
+  if (S.turn >= S.maxTurn) { endGame(true); return; }
+  aiPlan();
+  renderUI();
+  await sleep(450);
+  if (S.turn + 1 < S.maxTurn) markSpawns(S.turn + 1 === 2 ? 2 : 1);
+  markBomb();
+  S.turn++;
+  for (const u of S.units) if (u.team === 'ua') { u.moved = false; u.acted = false; u.prev = null; }
+  S.phase = 'player'; busy = false;
+  snapStr = JSON.stringify(S);
+  renderUI();
+  banner(`第 ${S.turn} 回合`, false);
+}
+function civilians() {
+  let n = 0;
+  for (const row of S.tiles) for (const t of row) if (bldAlive(t)) n += BLD[t.t].pop;
+  return n;
+}
+function subAlive() { for (const row of S.tiles) for (const t of row) if (t.t === 'S') return t.hp > 0; return false; }
+function endGame(win, why) {
+  S.phase = win ? 'win' : 'lose'; busy = false; sel = null; mode = null;
+  const ov = document.getElementById('overlay');
+  const aid = win ? 1 + (subAlive() ? 1 : 0) + (S.kills >= 4 ? 1 : 0) : 0;
+  ov.innerHTML = win
+    ? `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>伊尔平河防线守住了</h3>
+       <div class="row"><span>守护平民</span><b>${civilians()} 人</b></div>
+       <div class="row"><span>电网剩余</span><b>${S.grid}/${S.gridMax}</b></div>
+       <div class="row"><span>变电站</span><b>${subAlive() ? '完好' : '被毁'}</b></div>
+       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
+       <div class="row"><span>国际援助</span><b>+${aid}</b></div>
+       <p>俄军的先头部队退回了东岸。在完整版里，接下来你会进入战区地图，选择下一个任务。</p>
+       <button class="btn primary" type="button" data-restart>再推演一次</button></div>`
+    : `<div class="card"><span class="lbl">任务 1-1 · 推演结果</span><h3>${why}</h3>
+       <div class="row"><span>坚持到</span><b>第 ${S.turn} 回合</b></div>
+       <div class="row"><span>击毁敌军</span><b>${S.kills}</b></div>
+       <p>这一轮推演失败了。在完整版里，你可以带一名指挥官回到战争开始，重新推演。</p>
+       <button class="btn primary" type="button" data-restart>重新推演</button></div>`;
+  ov.hidden = false;
+  renderUI();
+}
+
+// ---------- input ----------
+function pick(ev) {
+  const r = cv.getBoundingClientRect();
+  const mx = (ev.clientX - r.left) * W / r.width, my = (ev.clientY - r.top) * H / r.height;
+  const X = (mx - OX) / 20, Y = (my - OY) / 10;
+  const tx = Math.floor((Y + X) / 2), ty = Math.floor((Y - X) / 2);
+  return inB(tx, ty) ? { x: tx, y: ty } : null;
+}
+function selectUnit(u) {
+  sel = u.id;
+  mode = u.acted ? null : u.moved ? 'target' : 'move';
+}
+cv.addEventListener('mousemove', ev => {
+  const h = pick(ev);
+  if ((h && hover && h.x === hover.x && h.y === hover.y) || (!h && !hover)) return;
+  hover = h; renderTile();
+  const u = h && unitAt(h.x, h.y);
+  cv.style.cursor = h && (u || mode) ? 'pointer' : 'default';
+});
+cv.addEventListener('mouseleave', () => { hover = null; renderTile(); });
+cv.addEventListener('click', ev => {
+  const h = pick(ev);
+  hover = h;
+  if (S.phase !== 'player' || busy) { renderUI(); return; }
+  if (!h) { sel = null; mode = null; renderUI(); return; }
+  const u = unitAt(h.x, h.y), su = sel != null ? byId(sel) : null;
+  if (su && mode === 'target') {
+    const t = wTargets(su).find(t => t.x === h.x && t.y === h.y);
+    if (t) { fire(su, t); return; }
+  }
+  if (u && u.team === 'ua') { selectUnit(u); renderUI(); return; }
+  if (su && mode === 'move' && !(h.x === su.x && h.y === su.y) && reachable(su).some(p => p.x === h.x && p.y === h.y)) {
+    su.prev = { x: su.x, y: su.y };
+    su.x = h.x; su.y = h.y; su.moved = true; mode = 'target';
+    renderUI(); return;
+  }
+  sel = null; mode = null; renderUI();
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { if (mode === 'target') { const su = byId(sel); mode = su && !su.moved ? 'move' : null; } else { sel = null; mode = null; } renderUI(); }
+});
+document.getElementById('btnEnd').addEventListener('click', enemyPhase);
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (S.phase !== 'player' || busy || S.resetLeft <= 0 || !snapStr) return;
+  const left = S.resetLeft - 1;
+  S = JSON.parse(snapStr);
+  S.resetLeft = left;
+  snapStr = JSON.stringify(S);
+  log('启用作战预案：本回合重新部署', '');
+  sel = null; mode = null;
+  renderUI();
+});
+document.getElementById('roster').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-uid]'); if (!b || S.phase !== 'player' || busy) return;
+  const u = byId(+b.dataset.uid); if (u) { selectUnit(u); renderUI(); }
+});
+document.getElementById('unitPanel').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b || S.phase !== 'player' || busy) return;
+  const u = byId(sel); if (!u) return;
+  if (b.dataset.act === 'weapon' && !u.acted) mode = mode === 'target' ? (u.moved ? null : 'move') : 'target';
+  if (b.dataset.act === 'undo' && u.prev && !u.acted) { u.x = u.prev.x; u.y = u.prev.y; u.prev = null; u.moved = false; mode = 'move'; }
+  renderUI();
+});
+document.getElementById('overlay').addEventListener('click', ev => { if (ev.target.closest('[data-restart]')) init(); });
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const pips = (hp, max, ru) => `<span class="pips${ru ? ' ru' : ''}">${'<i class="on"></i>'.repeat(Math.max(0, hp))}${'<i></i>'.repeat(Math.max(0, max - hp))}</span>`;
+function renderUI() {
+  const cells = $('gridCells');
+  cells.innerHTML = Array.from({ length: S.gridMax }, (_, i) => `<i class="${i < S.grid ? 'on' : ''}"></i>`).join('');
+  cells.classList.toggle('warn', S.grid <= 3);
+  $('gridNum').textContent = S.grid;
+  $('turnNum').textContent = `${Math.min(S.turn, S.maxTurn)}/${S.maxTurn}`;
+  const rb = $('btnReset');
+  rb.textContent = `作战预案 ×${S.resetLeft}`;
+  rb.disabled = S.phase !== 'player' || busy || S.resetLeft <= 0;
+  $('btnEnd').disabled = S.phase !== 'player' || busy;
+
+  const sub = subAlive();
+  $('objList').innerHTML = `
+    <li class="${S.phase === 'win' ? 'ok' : S.phase === 'lose' ? 'bad' : ''}"><span class="box"></span><span>守住防线</span><span class="prog">${Math.min(S.turn, S.maxTurn)}/${S.maxTurn}</span></li>
+    <li class="${sub ? (S.phase === 'win' ? 'ok' : '') : 'bad'}"><span class="box"></span><span>保护变电站</span><span class="prog">${sub ? '完好' : '被毁'}</span><span class="reward">奖励：国际援助 +1</span></li>
+    <li class="${S.kills >= 4 ? 'ok' : ''}"><span class="box"></span><span>击毁 4 个敌军</span><span class="prog">${Math.min(S.kills, 4)}/4</span><span class="reward">奖励：国际援助 +1</span></li>`;
+
+  const ros = ['kozak', 'javelin', 'himars'].map(type => {
+    const u = S.units.find(v => v.type === type);
+    if (!u) return `<div class="chip dead"><span class="n">${UT[type].name}</span><span class="s">损毁</span></div>`;
+    const st = u.acted ? '已行动' : u.moved ? '已移动' : '待命';
+    return `<button type="button" class="chip${sel === u.id ? ' sel' : ''}${u.acted ? ' done' : ''}" data-uid="${u.id}"><span class="n">${UT[type].name}</span>${pips(u.hp, u.max)}<span class="s">${UT[type].role}</span><span class="s">${st}</span></button>`;
+  }).join('');
+  $('roster').innerHTML = ros;
+
+  const su = sel != null ? byId(sel) : null;
+  if (su) {
+    const d = UT[su.type], w = WP[d.weapon];
+    $('unitPanel').innerHTML = `<h4>选中单位 · ${coord(su.x, su.y)}</h4>
+      <h5>${d.name}</h5>
+      <div class="meta">HP ${pips(su.hp, su.max)} · 移动 ${d.move}</div>
+      <button type="button" class="weapon${mode === 'target' ? ' on' : ''}" data-act="weapon" ${su.acted ? 'disabled' : ''}><span class="wn">${w.name}</span><span class="wd">${w.desc}</span></button>
+      ${su.prev && !su.acted ? '<button type="button" class="btn" data-act="undo">撤销移动</button>' : ''}
+      <p class="hint">${su.acted ? '本回合已行动。' : mode === 'target' ? '点黄色格子开火，悬停可预览效果。' : '点蓝色格子移动，或点武器原地开火。'}</p>`;
+  } else {
+    $('unitPanel').innerHTML = `<h4>选中单位</h4><p class="hint">${S.phase === 'enemy' ? '敌方正在行动……' : '点击地图上的我方单位（蓝色圈），或从上方名单里选择。'}</p>`;
+  }
+  renderTile();
+  const lg = $('log');
+  lg.innerHTML = S.log.slice(-14).reverse().map(l => `<li class="${l.c}">${l.m}</li>`).join('');
+}
+function renderTile() {
+  const el = $('tilePanel');
+  if (!hover) { el.innerHTML = `<h4>地块情报</h4><p class="hint">把鼠标移到地块上查看详情。</p>`; return; }
+  const { x, y } = hover, t = T(x, y), u = unitAt(x, y);
+  let rows = `<dt>地形</dt><dd>${BLD[t.t] ? (t.hp > 0 ? BLD[t.t].name : '废墟') : TERRAIN[t.t]}</dd>`;
+  if (bldAlive(t)) {
+    rows += `<dt>耐久</dt><dd>${pips(t.hp, t.max)}</dd>`;
+    if (BLD[t.t].pop) rows += `<dt>居民</dt><dd>${BLD[t.t].pop} 人${t.t === 'c' ? '（避难者）' : ''}</dd>`;
+    if (BLD[t.t].obj) rows += `<dt>目标</dt><dd>任务目标，受损扣电网</dd>`;
+  }
+  if (u) {
+    rows += `<dt>单位</dt><dd>${UT[u.type].name} ${pips(u.hp, u.max, u.team === 'ru')}</dd>`;
+    if (u.team === 'ru') rows += `<dt>攻击</dt><dd>${UT[u.type].atkName}，${UT[u.type].dmg} 伤害</dd>`;
+  }
+  const th = threats().filter(a => a.x === x && a.y === y);
+  for (const a of th) rows += `<dt class="threat">威胁</dt><dd class="threat">${UT[a.e.type].name} 下回合 ${a.dmg} 伤害</dd>`;
+  if (S.bombs.some(b => b.x === x && b.y === y)) rows += `<dt class="threat">空袭</dt><dd class="threat">滑翔炸弹落点，4 伤害</dd>`;
+  if (S.spawns.some(s => s.x === x && s.y === y)) rows += `<dt>增援</dt><dd>敌军将从这里突入</dd>`;
+  el.innerHTML = `<h4>地块情报 · ${coord(x, y)}</h4><dl class="kv">${rows}</dl>`;
+}
+let banTimer;
+function banner(text, enemy) {
+  const b = $('banner');
+  b.querySelector('span').textContent = text;
+  b.classList.remove('show'); b.classList.toggle('enemy', enemy);
+  void b.offsetWidth; b.classList.add('show');
+  clearTimeout(banTimer); banTimer = setTimeout(() => b.classList.remove('show'), 1400);
+}
+
+// ---------- pixel drawing ----------
+const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.floor(x), Math.floor(y), w, h); };
+function fillDia(cx, cy, hw, c) {
+  g.fillStyle = c; cx = Math.floor(cx); cy = Math.floor(cy);
+  const top = cy - hw / 2;
+  for (let r = 0; r < hw; r++) { const w = r < hw / 2 ? 2 * (r + 1) : 2 * (hw - r); g.fillRect(cx - w, top + r, 2 * w, 1); }
+}
+function outlineDia(cx, cy, hw, c) {
+  g.fillStyle = c; cx = Math.floor(cx); cy = Math.floor(cy);
+  const top = cy - hw / 2;
+  for (let r = 0; r < hw; r++) { const w = r < hw / 2 ? 2 * (r + 1) : 2 * (hw - r); g.fillRect(cx - w, top + r, 2, 1); g.fillRect(cx + w - 2, top + r, 2, 1); }
+}
+function box(cx, cy, hw, h, top, left, right) {
+  cx = Math.floor(cx); cy = Math.floor(cy);
+  const t0 = cy - hw / 2;
+  g.fillStyle = left;
+  for (let c = 0; c < hw; c++) { const yb = t0 + Math.floor(hw / 2 + c / 2); g.fillRect(cx - hw + c, yb - h + 1, 1, h); }
+  g.fillStyle = right;
+  for (let d = 0; d < hw; d++) { const yb = t0 + Math.floor(hw - (d + 1) / 2); g.fillRect(cx + d, yb - h + 1, 1, h); }
+  fillDia(cx, cy - h, hw, top);
+}
+function hash(a, b, c) {
+  let h = (a * 374761393 + b * 668265263 + c * 1274126177) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function line(x0, y0, x1, y1, c) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy; g.fillStyle = c;
+  for (let i = 0; i < 400; i++) {
+    g.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+const DIG = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111', '!': '010010010000010' };
+function txt(s, x, y, c) {
+  g.fillStyle = c; let ox = Math.floor(x);
+  for (const ch of String(s)) { const b = DIG[ch]; if (b) for (let i = 0; i < 15; i++) if (b[i] === '1') g.fillRect(ox + i % 3, Math.floor(y) + Math.floor(i / 3), 1, 1); ox += 4; }
+}
+function badge(cx, cy, n, bg, border, fg) {
+  R(cx - 4, cy - 5, 9, 9, border); R(cx - 3, cy - 4, 7, 7, bg); txt(n, cx - 1, cy - 3, fg);
+}
+
+// ---------- terrain ----------
+const TCOL = {
+  '.': ['#7b6b4d', '#4a3d2d', '#5c4b37'],
+  r:   ['#6c6a64', '#4a3d2d', '#5c4b37'],
+  f:   ['#5b5a40', '#4a3d2d', '#5c4b37'],
+  B:   ['#77746c', '#4a3d2d', '#5c4b37'],
+  w:   ['#2e5f80', '#1a3a50', '#224860'],
+};
+function drawTile(x, y, t) {
+  const sx = OX + (x - y) * 20, sy = OY + (x + y) * 10, cx = sx, cy = sy + 10;
+  const tile = T(x, y);
+  const key = BLD[tile.t] ? 'B' : tile.t === 'd' ? 'w' : tile.t;
+  const [top, lc, rc] = TCOL[key];
+  // side faces on board edges only
+  if (y === 7) { g.fillStyle = lc; for (let c = 0; c < 20; c++) g.fillRect(sx - 20 + c, sy + 1 + Math.floor(10 + c / 2), 1, DEPTH); }
+  if (x === 7) { g.fillStyle = rc; for (let d = 0; d < 20; d++) g.fillRect(sx + d, sy + 1 + Math.floor(20 - (d + 1) / 2), 1, DEPTH); }
+  fillDia(cx, cy, 20, top);
+  if (key === 'w') {
+    // bank shadow on back edges next to land
+    const landL = inB(x - 1, y) && !['w', 'd'].includes(T(x - 1, y).t);
+    const landU = inB(x, y - 1) && !['w', 'd'].includes(T(x, y - 1).t);
+    g.fillStyle = '#1f4560';
+    if (landU) for (let r = 0; r < 10; r++) g.fillRect(sx - 2 * (r + 1), sy + r, 4, 1);
+    if (landL) for (let r = 0; r < 10; r++) g.fillRect(sx + 2 * (r + 1) - 4, sy + r, 4, 1);
+    for (let i = 0; i < 5; i++) {
+      const a = Math.sin(t * 1.6 + hash(x, y, i) * 6.28);
+      if (a < 0.2) continue;
+      const r = 4 + Math.floor(hash(x, y, i + 9) * 12), w = r < 10 ? 2 * (r + 1) : 2 * (20 - r);
+      const px = cx - w + 3 + Math.floor(hash(y, x, i) * Math.max(1, 2 * w - 8));
+      R(px, sy + r, 3, 1, a > 0.7 ? '#9cc7e0' : '#5f94b6');
+    }
+    if (tile.t === 'd') drawBridge(cx, cy);
+    return;
+  }
+  const n = key === 'r' ? 10 : 16;
+  for (let i = 0; i < n; i++) {
+    const r = 2 + Math.floor(hash(x, y, i) * 16), w = r < 10 ? 2 * (r + 1) : 2 * (20 - r);
+    const px = cx - w + 1 + Math.floor(hash(y, x, i + 3) * Math.max(1, 2 * w - 3));
+    const k = hash(x + 11, y, i);
+    let c;
+    if (key === '.') c = k < 0.34 ? '#d6dde2' : k < 0.7 ? '#a38c5a' : '#5a4b36';
+    else if (key === 'r') c = k < 0.5 ? '#7d7b75' : '#5a5853';
+    else if (key === 'f') c = k < 0.4 ? '#d6dde2' : '#46452f';
+    else c = k < 0.5 ? '#86837a' : '#65625b';
+    R(px, sy + r, key === '.' && k < 0.34 ? 3 : 2, 1, c);
+  }
+}
+function drawBridge(cx, cy) {
+  g.fillStyle = '#6b4d33';
+  const seg = (a, b) => { for (let s = a; s <= b; s++) { const bx = cx + s * 2, by = cy + s; g.fillRect(bx - 5, by - 3, 6, 1); g.fillRect(bx - 5, by - 2, 6, 1); } };
+  seg(-9, -3); seg(3, 9);
+  g.fillStyle = '#8a6a48';
+  for (let s = -9; s <= 9; s += 2) if (Math.abs(s) >= 3) g.fillRect(cx + s * 2 - 5, cy + s - 3, 6, 1);
+  R(cx - 1, cy - 2, 1, 1, '#3a2a1c'); R(cx + 2, cy, 1, 1, '#3a2a1c');
+}
+
+// ---------- props ----------
+function pine(x, y, snowy) {
+  R(x, y - 2, 1, 3, '#4a3526');
+  for (let r = 0; r < 12; r++) {
+    const w = Math.floor(r * 0.42);
+    R(x - w, y - 14 + r, 2 * w + 1, 1, r % 3 === 2 ? '#2a4230' : '#35523a');
+    if (snowy && r % 3 === 0 && r > 0) R(x - w, y - 14 + r, Math.max(1, w), 1, '#dfe6ea');
+  }
+}
+function drawTrees(x, y) {
+  const [cx, cy] = center(x, y);
+  pine(cx - 8, cy - 1, true); pine(cx + 8, cy + 1, false); pine(cx - 1, cy + 5, true);
+}
+function windows(cx, cy, hw, h, lit, seed) {
+  const t0 = cy - hw / 2;
+  for (let c = 2; c < hw - 1; c += 4) {
+    const yb = t0 + Math.floor(hw / 2 + c / 2);
+    for (let j = yb - h + 4; j < yb - 3; j += 5) {
+      const on = lit && hash(seed, c, j) < 0.62;
+      R(cx - hw + c, j, 2, 2, on ? '#f5d67a' : '#2b3038');
+    }
+  }
+  for (let d = 2; d < hw - 1; d += 4) {
+    const yb = t0 + Math.floor(hw - (d + 1) / 2);
+    for (let j = yb - h + 4; j < yb - 3; j += 5) {
+      const on = lit && hash(seed + 5, d, j) < 0.62;
+      R(cx + d, j, 2, 2, on ? '#f1d27a' : '#343a43');
+    }
+  }
+}
+function rubble(cx, cy, seed) {
+  fillDia(cx, cy, 14, '#4f463d');
+  for (let i = 0; i < 7; i++) {
+    const ox = (hash(seed, i, 1) - 0.5) * 18, oy = (hash(seed, i, 2) - 0.5) * 8;
+    box(cx + ox, cy + oy, 4, 1 + Math.floor(hash(seed, i, 3) * 4), '#8a857b', '#5d5850', '#726c63');
+  }
+  R(cx - 3, cy - 1, 2, 1, '#1b1b1b'); R(cx + 4, cy + 2, 3, 1, '#1b1b1b');
+}
+function drawBuilding(x, y, t) {
+  const tile = T(x, y), [cx, cy] = center(x, y), seed = x * 8 + y;
+  if (tile.hp <= 0) { rubble(cx, cy, seed); return; }
+  const dmg = tile.hp < tile.max;
+  if (tile.t === 'b') {
+    box(cx, cy, 14, 28, '#8b877c', '#a9a497', '#cdc8ba');
+    windows(cx, cy, 14, 28, !dmg, seed);
+    if (dmg) { R(cx - 9, cy - 22, 4, 3, '#1c1c1c'); R(cx + 3, cy - 16, 5, 2, '#1c1c1c'); }
+    R(cx - 1, cy - 38, 1, 4, '#3a3f44'); R(cx - 3, cy - 37, 5, 1, '#3a3f44');
+  } else if (tile.t === 'h') {
+    box(cx, cy, 12, 9, '#c9b38a', '#b39c73', '#dcc79c');
+    R(cx - 7, cy - 3, 2, 3, dmg ? '#2b3038' : '#f5d67a'); R(cx + 5, cy - 4, 2, 3, dmg ? '#2b3038' : '#f1d27a');
+    for (let k = 0; k < 6; k++) fillDia(cx, cy - 9 - k, 12 - 2 * k, k % 2 ? '#9a4632' : '#833727');
+    if (dmg) R(cx - 2, cy - 12, 4, 2, '#1c1c1c');
+  } else if (tile.t === 'c') {
+    box(cx, cy, 12, 12, '#bdb9ae', '#d4d0c6', '#ece9e1');
+    box(cx, cy - 12, 6, 10, '#bdb9ae', '#d4d0c6', '#ece9e1');
+    const dy = cy - 25;
+    [[2, 0], [6, 1], [8, 2], [8, 3], [8, 4], [6, 5]].forEach(([w, r]) => R(cx - w / 2, dy - 6 + r, w, 1, r < 2 ? '#ffe28a' : '#e3b341'));
+    R(cx, dy - 11, 1, 5, '#e3b341'); R(cx - 1, dy - 10, 3, 1, '#e3b341');
+    R(cx - 5, cy - 5, 2, 3, '#3b6fb6'); R(cx + 4, cy - 6, 2, 3, '#3b6fb6');
+  } else if (tile.t === 'S') {
+    box(cx, cy, 16, 2, '#8f9493', '#6c7170', '#7d8281');
+    box(cx - 6, cy + 1, 5, 7, '#9aa0a3', '#666c70', '#80868a');
+    box(cx + 6, cy - 1, 5, 7, '#9aa0a3', '#666c70', '#80868a');
+    // pylon
+    const px = cx + 1, py = cy - 4;
+    R(px - 4, py - 22, 1, 22, '#3b3f44'); R(px + 4, py - 22, 1, 22, '#3b3f44');
+    for (let k = 0; k < 4; k++) R(px - 4, py - 20 + k * 5, 9, 1, '#4c5157');
+    R(px - 8, py - 22, 17, 1, '#4c5157');
+    R(px - 8, py - 21, 1, 2, '#9aa0a3'); R(px + 8, py - 21, 1, 2, '#9aa0a3');
+    line(px - 8, py - 19, px - 30, py - 8, '#2b2f33'); line(px + 8, py - 19, px + 30, py - 30, '#2b2f33');
+    // objective flag
+    const b = reduced ? 0 : Math.round(Math.sin(t * 3) * 1.5);
+    fillDia(cx, cy - 36 + b, 6, '#f2c230'); outlineDia(cx, cy - 36 + b, 6, '#fff1b0');
+  }
+}
+
+// ---------- units ----------
+function soldier(x, y, tube) {
+  R(x - 1, y - 3, 1, 3, '#33401f'); R(x + 1, y - 3, 1, 3, '#33401f');
+  R(x - 2, y - 8, 4, 5, '#5f6f3e'); R(x - 2, y - 7, 1, 1, '#f2c230');
+  R(x - 1, y - 11, 3, 3, '#d9b48f'); R(x - 2, y - 12, 4, 2, '#4d5a33');
+  if (tube) { R(x - 5, y - 10, 9, 2, '#9aa39a'); R(x - 6, y - 10, 1, 2, '#555c55'); }
+}
+function screenDir(dir) { const vx = (dir[0] - dir[1]) * 20, vy = (dir[0] + dir[1]) * 10, l = Math.hypot(vx, vy); return [vx / l, vy / l]; }
+function drawUnit(u, t) {
+  const d = UT[u.type];
+  const [cx0, cy] = center(u.rx, u.ry), cx = Math.round(cx0);
+  const ua = u.team === 'ua';
+  const selNow = sel === u.id;
+  fillDia(cx, cy, 16, 'rgba(0,0,0,.28)');
+  const ring = selNow ? (Math.floor(t * 4) % 2 ? '#fff1b0' : '#f2c230') : ua ? (u.acted ? '#6a7a88' : '#4aa3ff') : '#ff4a2b';
+  outlineDia(cx, cy, 16, ring);
+  if (u.flash > 0) { g.globalAlpha = 0.6; g.globalCompositeOperation = 'lighter'; }
+  const fly = d.fly ? 13 + (reduced ? 0 : Math.round(Math.sin(t * 4 + u.id) * 2)) : 0;
+  const y = cy - fly;
+  const aimDir = u.aim ? u.aim.dir : ua ? [1, 0] : [-1, 0];
+  const [bx, by] = screenDir(aimDir);
+  if (u.type === 'kozak') {
+    box(cx, y, 9, 7, '#6f7e45', '#4f5a33', '#626f40');
+    box(cx + 1, y - 7, 4, 3, '#7b8a4e', '#56623a', '#68754a');
+    R(cx - 4, y - 8, 7, 1, '#f2c230');
+    [[-8, 0], [-4, 2], [3, 2], [7, 0]].forEach(([a, b]) => R(cx + a, y + b, 2, 2, '#1e2124'));
+  } else if (u.type === 'javelin') {
+    soldier(cx - 4, y + 2, true); soldier(cx + 5, y - 1, false);
+  } else if (u.type === 'himars') {
+    box(cx - 6, y + 3, 5, 6, '#7b8a4e', '#56623a', '#68754a');
+    R(cx - 8, y - 3, 3, 1, '#9fc3d9');
+    box(cx + 3, y - 1, 8, 3, '#606d3c', '#48522c', '#566236');
+    box(cx + 3, y - 4, 7, 8, '#7b8a50', '#5a653d', '#6a7647');
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) R(cx - 3 + i * 2, y - 9 + j * 3 + Math.floor(i / 2), 1, 1, '#1e2124');
+    R(cx - 8, y - 3 + 0, 4, 1, '#f2c230');
+    R(cx - 10, y + 3, 2, 2, '#1e2124'); R(cx + 1, y + 4, 2, 2, '#1e2124'); R(cx + 7, y + 1, 2, 2, '#1e2124');
+  } else if (u.type === 'tank') {
+    box(cx, y, 11, 5, '#6a6f5a', '#4c5040', '#5a5f4d');
+    box(cx, y - 5, 6, 4, '#737860', '#50553f', '#5f644f');
+    line(cx, y - 8, cx + bx * 13, y - 8 + by * 13, '#3a3d31');
+    R(cx - 2, y - 10, 4, 1, '#e8e8e0');
+    [[-9, 0], [-5, 2], [4, 2], [8, 0]].forEach(([a, b]) => R(cx + a, y + b, 2, 1, '#1e2124'));
+  } else if (u.type === 'bmp') {
+    box(cx, y, 10, 6, '#646a4f', '#474c38', '#565b44');
+    box(cx - 2, y - 6, 4, 3, '#6e7457', '#4c513b', '#5b6048');
+    line(cx - 2, y - 8, cx - 2 + bx * 9, y - 8 + by * 9, '#2f3228');
+    R(cx + 3, y - 7, 3, 1, '#e8e8e0');
+  } else if (u.type === 'grad') {
+    box(cx - 6, y + 3, 4, 6, '#646a4f', '#474c38', '#565b44');
+    box(cx + 3, y - 1, 8, 3, '#565b44', '#3f4332', '#4b5040');
+    box(cx + 3, y - 4, 6, 5, '#5a5f4a', '#3c402f', '#4c503e');
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) R(cx - 2 + i * 2, y - 8 + j * 2 + Math.floor(i / 2), 1, 1, '#141612');
+    R(cx - 7, y - 4, 3, 1, '#e8e8e0');
+  } else if (u.type === 'lancet') {
+    fillDia(cx, cy, 8, 'rgba(0,0,0,.35)');
+    R(cx - 6, y - 1, 12, 2, '#8b9094'); R(cx + 5, y - 1, 2, 1, '#c5c9cc');
+    for (let k = -3; k <= 3; k++) { R(cx - 3 + k, y + Math.round(k / 2), 1, 1, '#6d7276'); R(cx - 3 + k, y - Math.round(k / 2), 1, 1, '#6d7276'); R(cx + 3 + k, y + Math.round(k / 2), 1, 1, '#6d7276'); R(cx + 3 + k, y - Math.round(k / 2), 1, 1, '#6d7276'); }
+    if (Math.floor(t * 3) % 2) R(cx - 6, y - 1, 1, 1, '#ff4a2b');
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  // hp pips
+  const tw = u.max * 5 - 1, hx = cx - Math.floor(tw / 2), hy = y - (d.fly ? 10 : u.type === 'javelin' ? 17 : 18);
+  R(hx - 1, hy - 1, tw + 2, 5, '#0b1210');
+  for (let i = 0; i < u.max; i++) R(hx + i * 5, hy, 4, 3, i < u.hp ? (ua ? '#7bd650' : '#ff6b4f') : '#2a3a33');
+}
+
+// ---------- particles ----------
+function addP(x, y, vx, vy, life, c, grav, size) { P.push({ x, y, vx, vy, life, max: life, c, grav, size: size || 1 }); }
+function boom(x, y, small) {
+  const [cx, cy] = center(x, y);
+  const n = small ? 8 : 18;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = 0.5 + Math.random() * (small ? 1 : 2);
+    addP(cx, cy - 6, Math.cos(a) * s, Math.sin(a) * s * 0.6 - 0.6, 20 + Math.random() * 20, ['#ffe07a', '#ff9a3a', '#ff4a2b', '#6b6b6b'][i % 4], 0.03, 2);
+  }
+}
+function splash(x, y, dust) {
+  const [cx, cy] = center(x, y);
+  for (let i = 0; i < 16; i++) addP(cx + (Math.random() - 0.5) * 14, cy - 2, (Math.random() - 0.5) * 1.2, -1 - Math.random() * 1.8, 30 + Math.random() * 15, dust ? (i % 2 ? '#8a7a5a' : '#b3a37a') : (i % 2 ? '#9cc7e0' : '#ffffff'), 0.08, 1);
+}
+const flakes = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 0.15 + Math.random() * 0.35, p: Math.random() * 6 }));
+
+// ---------- frame ----------
+const bg = g.createLinearGradient(0, 0, 0, H);
+bg.addColorStop(0, '#1a2733'); bg.addColorStop(0.6, '#101a23'); bg.addColorStop(1, '#0b1117');
+function frame(now) {
+  const t = now / 1000;
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 26; i++) R(Math.floor(hash(i, 1, 2) * W), Math.floor(hash(i, 3, 4) * 60), 1, 1, 'rgba(200,220,235,.18)');
+  fillDia(OX, OY + 80 + 16, 164, 'rgba(0,0,0,.35)');
+
+  for (const u of S.units) { u.rx += (u.x - u.rx) * 0.22; u.ry += (u.y - u.ry) * 0.22; if (Math.abs(u.x - u.rx) < 0.01) u.rx = u.x; if (Math.abs(u.y - u.ry) < 0.01) u.ry = u.y; u.flash = Math.max(0, u.flash - 0.06); }
+
+  // ground
+  for (let s = 0; s < 15; s++) for (let x = 0; x < 8; x++) { const y = s - x; if (y >= 0 && y < 8) drawTile(x, y, t); }
+
+  // ground overlays
+  const pulse = reduced ? 0.5 : (Math.sin(t * 5) + 1) / 2;
+  for (const s of S.spawns) {
+    const sx = OX + (s.x - s.y) * 20, sy = OY + (s.x + s.y) * 10;
+    for (let r = 1; r < 19; r++) { const w = r < 10 ? 2 * (r + 1) : 2 * (20 - r); for (let px = sx - w + 2; px < sx + w - 2; px++) if (((px + sy + r) >> 2) & 1) R(px, sy + r, 1, 1, 'rgba(242,194,48,.55)'); }
+    outlineDia(sx, sy + 10, 20, '#f2c230');
+  }
+  const su = sel != null ? byId(sel) : null;
+  if (su && mode === 'move' && S.phase === 'player') for (const p of reachable(su)) { if (p.x === su.x && p.y === su.y) continue; const [cx, cy] = center(p.x, p.y); fillDia(cx, cy, 20, 'rgba(74,163,255,.32)'); outlineDia(cx, cy, 20, '#7cc0ff'); }
+  let preview = null;
+  if (su && mode === 'target' && S.phase === 'player') {
+    const ts = wTargets(su);
+    for (const p of ts) { const [cx, cy] = center(p.x, p.y); fillDia(cx, cy, 20, 'rgba(242,194,48,.18)'); outlineDia(cx, cy, 20, 'rgba(242,194,48,.8)'); }
+    const ht = hover && ts.find(p => p.x === hover.x && p.y === hover.y);
+    if (ht) { preview = wEffects(su, ht); for (const e of preview) { const [cx, cy] = center(e.x, e.y); fillDia(cx, cy, 20, e.dmg ? 'rgba(255,170,40,.55)' : 'rgba(255,220,120,.25)'); } }
+  }
+  const TH = threats();
+  for (const a of TH) { const [cx, cy] = center(a.x, a.y); fillDia(cx, cy, 20, `rgba(255,74,43,${0.22 + pulse * 0.2})`); outlineDia(cx, cy, 20, '#ff4a2b'); outlineDia(cx, cy, 12, 'rgba(255,120,90,.9)'); }
+  for (const b of S.bombs) { const [cx, cy] = center(b.x, b.y); outlineDia(cx, cy, 20, pulse > 0.5 ? '#ff4a2b' : '#ffb199'); outlineDia(cx, cy, 10, '#ff4a2b'); }
+  if (hover) { const [cx, cy] = center(hover.x, hover.y); outlineDia(cx, cy, 20, 'rgba(255,255,255,.85)'); }
+
+  // objects, painter's order
+  const dr = [];
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const tl = T(x, y);
+    if (tl.t === 'f') dr.push({ d: x + y, f: () => drawTrees(x, y) });
+    else if (BLD[tl.t]) dr.push({ d: x + y, f: () => drawBuilding(x, y, t) });
+  }
+  for (const u of S.units) dr.push({ d: u.rx + u.ry + 0.1, f: () => drawUnit(u, t) });
+  dr.sort((a, b) => a.d - b.d).forEach(o => o.f());
+
+  // threat trails & numbers
+  for (const e of S.units) {
+    if (e.team !== 'ru' || !e.aim) continue;
+    const d = UT[e.type], tiles = attackTiles(e);
+    const [ex, ey] = center(e.rx, e.ry);
+    for (const a of tiles) {
+      const [tx, ty] = center(a.x, a.y);
+      if (d.atk === 'art') {
+        for (let i = 1; i < 14; i++) { const k = i / 14, x = ex + (tx - ex) * k, y = ey - 10 + (ty - ey + 6) * k - Math.sin(k * Math.PI) * 34; if (i % 2) R(x, y, 2, 2, 'rgba(255,90,60,.85)'); }
+      } else if (d.atk === 'line') {
+        const n = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
+        for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); R(px - 1, py - 1, 3, 3, 'rgba(255,90,60,.9)'); }
+      } else {
+        const [vx, vy] = screenDir(e.aim.dir);
+        line(ex + vx * 6, ey - (d.fly ? 10 : 4) + vy * 6, ex + vx * 16, ey - (d.fly ? 6 : 2) + vy * 16, '#ff4a2b');
+      }
+      badge(tx, ty - 2, a.dmg, '#3a0e06', '#ff4a2b', '#ffe0d6');
+    }
+  }
+  for (const b of S.bombs) { const [cx, cy] = center(b.x, b.y); badge(cx, cy - 2, '!', '#3a0e06', pulse > 0.5 ? '#ffb199' : '#ff4a2b', '#ffffff'); }
+  if (preview) for (const e of preview) {
+    const [cx, cy] = center(e.x, e.y);
+    if (e.dmg) badge(cx, cy - 2, e.dmg, '#3a2c06', '#f2c230', '#fff4c6');
+    if (e.push && unitAt(e.x, e.y)) { const [vx, vy] = screenDir(e.push); const x0 = cx + vx * 4, y0 = cy + vy * 4 - 2, x1 = cx + vx * 15, y1 = cy + vy * 15 - 2; line(x0, y0, x1, y1, '#fff1b0'); line(x0 + 1, y0, x1 + 1, y1, '#f2c230'); R(x1 - 1, y1 - 1, 3, 3, '#fff1b0'); }
+  }
+
+  // tracers
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i], k = (now - f.t0) / f.dur;
+    if (k >= 1) { FX.splice(i, 1); continue; }
+    for (let j = 0; j < 4; j++) {
+      const kk = Math.max(0, k - j * 0.05), x = f.x0 + (f.x1 - f.x0) * kk, y = f.y0 + (f.y1 - f.y0) * kk - Math.sin(kk * Math.PI) * f.arc;
+      R(x, y, j ? 1 : 2, j ? 1 : 2, j ? 'rgba(255,200,120,.6)' : f.c);
+    }
+  }
+  // smoke from damaged buildings
+  if (!reduced) for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const tl = T(x, y);
+    if (BLD[tl.t] && tl.hp < tl.max && Math.random() < 0.05) { const [cx, cy] = center(x, y); addP(cx + (Math.random() - 0.5) * 10, cy - (tl.hp > 0 ? 24 : 4), 0.15 + Math.random() * 0.15, -0.3 - Math.random() * 0.2, 70, Math.random() < 0.5 ? '#2a2a2a' : '#404040', -0.001, 2); }
+  }
+  for (let i = P.length - 1; i >= 0; i--) {
+    const p = P[i]; p.x += p.vx; p.y += p.vy; p.vy += p.grav; p.life--;
+    if (p.life <= 0) { P.splice(i, 1); continue; }
+    g.globalAlpha = Math.min(1, p.life / p.max * 1.4); R(p.x, p.y, p.size, p.size, p.c);
+  }
+  g.globalAlpha = 1;
+  if (!reduced) for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.12; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } R(f.x, f.y, 1, 1, 'rgba(235,242,248,.75)'); }
+  requestAnimationFrame(frame);
+}
+
+// ---------- sizing ----------
+function fit() {
+  const box = document.getElementById('board').clientWidth;
+  const s = Math.min(box / W, 2.6);
+  cv.style.width = Math.floor(W * s) + 'px';
+  cv.style.height = Math.floor(H * s) + 'px';
+}
+addEventListener('resize', fit);
+init();
+fit();
+requestAnimationFrame(frame);
+})();
+</script>
