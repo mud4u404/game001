@@ -1,5 +1,5 @@
 // Automated playtest: drives the whole campaign with a simple bot, collects errors and screenshots.
-// Usage: NODE_PATH=$(npm root -g) node tools/playtest.js [outDir]
+// Usage: node tools/playtest.js [outDir]   (after npm install && npx playwright install chromium)
 const { chromium } = require('playwright');
 const path = require('path');
 const out = process.argv[2] || 'playtest-out';
@@ -106,4 +106,7 @@ const BOT = async () => {
   console.log(JSON.stringify(log, null, 1));
   console.log('ERRORS', errs.length ? errs.join('\n') : 'none');
   await browser.close();
-})();
+  process.exitCode = errs.length ? 1 : 0;
+})().catch(e => { console.error('PLAYTEST CRASHED', e); process.exit(2); });
+// Guard against a stuck battle loop.
+setTimeout(() => { console.error('PLAYTEST TIMEOUT'); process.exit(3); }, 8 * 60 * 1000).unref();

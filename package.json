@@ -1,0 +1,12 @@
+{
+  "name": "sunflower-line",
+  "private": true,
+  "description": "向日葵防线：回合制战术游戏",
+  "scripts": {
+    "check": "node tools/check.js",
+    "playtest": "node tools/playtest.js playtest-out"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
