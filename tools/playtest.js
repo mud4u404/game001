@@ -58,7 +58,8 @@ const BOT = async () => {
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${out}/02-campaign.png` });
   const log = [];
-  for (let m = 0; m < 3; m++) {
+  const missionCount = await page.evaluate(() => MISSIONS.length);
+  for (let m = 0; m < missionCount; m++) {
     await page.click('#btnBrief'); await page.waitForTimeout(1600);
     if (m === 0) await page.screenshot({ path: `${out}/03-dialog.png` });
     await page.click('#btnSkip'); await page.waitForTimeout(300);
@@ -99,8 +100,12 @@ const BOT = async () => {
     await page.screenshot({ path: `${out}/2${m}-debrief.png` });
     if (st.scene === 'campaign' && await page.isVisible('#gameover')) { log.push('GAME OVER'); break; }
     await page.evaluate(() => { const b = document.querySelector('#shop .up:not([disabled])'); if (b) b.click(); });
-    await page.click('#btnNext'); await page.waitForTimeout(800);
-    if (m < 2) await page.screenshot({ path: `${out}/3${m}-campaign.png` });
+    // chapter transitions play story cards; fast-forward them and wait for the map
+    await page.evaluate(() => window.__sf.setSpeed(0.01));
+    await page.click('#btnNext');
+    for (let k = 0; k < 100 && !(await page.evaluate("window.__sf.SCENE === 'campaign' && !document.getElementById('campaign').hidden")); k++) await page.waitForTimeout(100);
+    await page.evaluate(() => window.__sf.setSpeed(1));
+    if (m < missionCount - 1) await page.screenshot({ path: `${out}/3${m}-campaign.png` });
   }
   await page.evaluate(() => window.__sf.setSpeed(0.01)); await page.waitForTimeout(800);
   console.log(JSON.stringify(log, null, 1));

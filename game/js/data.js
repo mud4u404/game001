@@ -180,6 +180,38 @@ const MISSIONS = [
     },
     consequence: () => null,
   },
+  {
+    id: 'odesa', code: '2-1', name: '敖德萨湾', date: '2022年4月上旬 夜间', place: '敖德萨州 · 敖德萨湾',
+    chapter: 1, mapPos: [0.56, 0.54], turns: 4, face: { ua: [0, 1], ru: [0, -1] },
+    map: ['b.h.fbh.', '.h.r.h.f', 'rrrrrrrr', '.f..h..f', 'ssssssss', 'oooooooo', 'oooooooo', 'oooooooo'],
+    deploy: [[0, 1], [2, 1], [4, 1], [6, 1], [0, 3], [2, 3], [3, 3], [5, 3], [6, 3], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2]],
+    squad: { t64: [3, 3], atgm: [5, 3], neptune: [2, 1] },
+    enemies: [['raptor', 2, 6], ['raptor', 5, 7], ['btr', 6, 6], ['ka52', 7, 5]],
+    waves: [
+      { turn: 1, units: [['btr', 1, 7]] },
+      { turn: 2, units: [['raptor', 7, 7]] },
+      { turn: 3, units: [['btr', 3, 7], ['btr', 6, 7]] },
+    ],
+    barrage: null,
+    objectives: [
+      { id: 'naval', kind: 'primary', text: '击沉 2 艘巡逻艇', reward: 1, eval: B => ({ cur: B.stats.naval, max: 2 }) },
+      { id: 'hold', kind: 'primary', text: '坚守到第 4 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 4), max: 4 }) },
+      { id: 'heli', kind: 'bonus', text: '击落卡-52', reward: 1, eval: B => ({ cur: B.stats.heli, max: 1 }) },
+    ],
+    brief: [
+      ['oksana', '“向日葵”，敖德萨外海发现俄军巡逻艇。它们在替登陆部队侦察海滩和雷区。'],
+      ['dmytro', '“海王星”已经展开。两发导弹，够让它们知道这片海不欢迎客人。'],
+      ['mykola', '沙滩上开不快，我守在公路上。谁想上岸，先过我这一关。'],
+      ['taras', '卡-52 会低空掩护登陆，毒刺留给它。'],
+      ['oksana', '任务：击沉巡逻艇，挡住登陆部队。整个敖德萨都在看着这片海。'],
+    ],
+    tips: ['“海王星”只能攻击水面舰艇，每场任务 2 发。', 'BTR 是两栖的，会从海上直接冲上沙滩。', '车辆在沙滩上每格消耗 2 点移动力。'],
+    outcome: {
+      win: '俄军巡逻艇撤出了敖德萨湾。几天后，4月13日夜，两枚“海王星”导弹击中了黑海舰队旗舰“莫斯科”号。',
+      partial: '巡逻艇仍在外海游弋，把海岸防线的位置报给了舰队。',
+    },
+    consequence: () => null,
+  },
 ];
 
 // ---------- campaign upgrades ----------
