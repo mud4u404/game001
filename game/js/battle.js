@@ -24,6 +24,7 @@ function mkUnit(type, x, y) {
   if (type === 't64') { u.hp = u.max = d.hp + CAMP.up.t64hp; }
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
+  if (type === 'bmp2') { u.ammo.kon = 1; }
   return u;
 }
 function newBattle(mi) {

@@ -112,6 +112,33 @@ function mNeptune() {
   v.box(5, 6, -3, 3, 3, 5, C.uaD);
   return v;
 }
+function mTdf() {
+  const v = new Vox(), o = { pants: '#4c5a34', vest: '#5f6f3c', helmet: '#4d5733', band: '#d8c040', pack: '#4a5530' };
+  // three-man squad in a wedge: RPG gunner, kneeling machine gunner, rifleman
+  const b = soldier(v, -4, -3, o);
+  v.set(-5, -3, b + 2, '#d8c040');
+  v.box(-3, 4, -2, -2, b + 3, b + 3, '#3a3f33'); v.box(4, 5, -2, -2, b + 3, b + 3, '#2b2e2a');
+  const b2 = soldier(v, 0, 0, Object.assign({ kneel: true }, o));
+  v.set(-1, 0, b2 + 2, '#d8c040');
+  v.box(1, 7, 1, 1, b2 + 2, b2 + 2, '#2b2e2a'); v.set(7, 1, b2 + 2, '#3a3f33');
+  const b3 = soldier(v, 4, 2, o);
+  v.set(3, 2, b3 + 2, '#d8c040');
+  return v;
+}
+function mBmp2() {
+  const v = new Vox(), G = C.uaG, D = C.uaD;
+  tracks(v, 9, 3);
+  v.box(-10, 7, -3, 3, 1, 3, G);
+  v.box(8, 11, -2, 2, 1, 2, G);
+  v.box(11, 11, -1, 1, 2, 3, D);
+  v.box(-10, -10, -2, 2, 3, 4, D);
+  for (let y = -2; y <= 2; y++) v.paint(9, y, 1, G);
+  v.ell(-2, 0, 2.2, 1.8, 4, 5, G);
+  v.box(0, 10, 0, 0, 5, 5, '#3f4233'); v.set(10, 0, 5, '#22231d');
+  v.box(-4, -3, 1, 2, 6, 8, D); v.box(-4, -3, 1, 1, 6, 8, '#3a3f33');
+  v.box(-2, -2, -3, 3, 4, 4, C.white);
+  return v;
+}
 
 // --- Russian units ---
 function mT72() {
@@ -246,8 +273,8 @@ function wreckify(vox, seed) {
 const hullOf = v => v.filter(p => p[2] <= 4);
 const turretOf = v => v.filter(p => p[2] >= 5).shift(0, 0, -5);
 
-const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv, magura: mMagura, neptune: mNeptune, raptor: mRaptor };
-const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-9, 0, 7], raptor: [12, 0, 4] };
+const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv, magura: mMagura, neptune: mNeptune, raptor: mRaptor, tdf: mTdf, bmp2: mBmp2 };
+const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-9, 0, 7], raptor: [12, 0, 4], tdf: [7, 1, 4], bmp2: [10, 0, 5] };
 
 // --- buildings & props ---
 function mApt(seed, dmg) {

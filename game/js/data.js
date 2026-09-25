@@ -16,6 +16,8 @@ const UNITS = {
   orlan: { name: '奥兰-10 侦察无人机', team: 'ru', cls: 'air', hp: 1, move: 5, mob: 'air', atk: null, alt: 44, spotter: true },
   magura:  { name: '海上无人艇', short: '无人艇', team: 'ua', cls: 'la', hp: 1, move: 5, mob: 'sea', weapons: ['seaRam'], pilot: 'olena', desc: '装满炸药的无人快艇。撞击目标后引爆，自身随之损失。' },
   neptune: { name: '“海王星”发射车', short: '海王星', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', weapons: ['neptune'], pilot: 'dmytro', desc: '岸基反舰导弹发射车，只能攻击水面舰艇。' },
+  tdf:     { name: '国土防卫步兵班', short: '步兵班', team: 'ua', cls: 'inf', hp: 3, move: 3, mob: 'foot', weapons: ['pkm', 'rpg'], pilot: 'roman', desc: '基辅本地人组成的国土防卫部队步兵班。熟悉每一条街道，可以进入森林。' },
+  bmp2:    { name: 'BMP-2 步兵战车', short: 'BMP-2', team: 'ua', cls: 'la', hp: 3, move: 4, mob: 'track', weapons: ['a42', 'konkurs'], pilot: 'serhiy', desc: '第72机械化旅的步兵战车。机关炮能对空，还带 1 发反坦克导弹。' },
   raptor:  { name: '03160 型“猛禽”巡逻艇', team: 'ru', cls: 'la', hp: 2, move: 5, mob: 'sea', atk: 'kord', armor: true },
   civ:   { name: '撤离的平民', team: 'civ', cls: 'inf', hp: 1, move: 3, mob: 'foot', stable: true },
 };
@@ -39,6 +41,9 @@ const WEAPONS = {
   grad:    { name: '122毫米火箭齐射', kind: 'grad', min: 3, range: 5, dmg: { ha: 1, la: 1, soft: 1, inf: 1, bld: 1 }, fx: 'grad' },
   vikhr:   { name: '“旋风”反坦克导弹', kind: 'line', range: 4, overForest: true, dmg: { ha: 3, la: 3, soft: 3, inf: 1, bld: 1 }, fx: 'atgm' },
   kord:    { name: '12.7毫米机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 2, la: 1, ha: 0, bld: 1 }, fx: 'mg' },
+  pkm:     { name: 'PKM 通用机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 1, la: 0, ha: 0, bld: 0 }, fx: 'mg', desc: '射程 3。压制步兵，对装甲无效。' },
+  a42:     { name: '2A42 30毫米机关炮', kind: 'line', range: 4, hitsAir: true, dmg: { ha: 1, la: 2, soft: 2, inf: 2, air: 1, bld: 1 }, fx: 'mg', desc: '射程 4。可以打直升机和无人机。' },
+  konkurs: { name: '9M113“竞赛”反坦克导弹', kind: 'line', range: 5, ammo: 'kon', dmg: { ha: 3, la: 3, soft: 2, inf: 1, bld: 1 }, fx: 'atgm', desc: '直射导弹，射程 5，每场任务 1 发。' },
   msta:    { name: '152毫米炮火', dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, fx: 'barrage' },
 };
 
@@ -70,7 +75,9 @@ const CHARS = {
   taras:  { name: '塔拉斯·梅利尼克', call: '教授', role: '反坦克组组长', face: { skin: '#e0b896', hair: '#8a8378', style: 'helmet', beard: '#9a9388', glasses: true, uniform: '#5f6f3c' } },
   ivanna: { name: '伊万娜·霍尔丁 中尉', call: '计算器', role: 'D-30 炮班长', face: { skin: '#ecc4a0', hair: '#b0763c', style: 'beanie', uniform: '#56603a' } },
   olena:  { name: '奥列娜·克拉夫丘克 中士', call: '海燕', role: '无人艇操作员', face: { skin: '#e8c0a0', hair: '#2a2420', style: 'beanie', headset: true, uniform: '#2f3b4a' } },
-  dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#4a3a2a', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
+  dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#2e2620', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
+  roman:  { name: '罗曼·特卡琴科', call: '邮差', role: '国土防卫步兵班长', face: { skin: '#dcb08a', hair: '#5a4632', style: 'helmet', beard: '#5a4632', uniform: '#5f6f3c' } },
+  serhiy: { name: '谢尔希·莫罗兹 中士', call: '铁匠', role: 'BMP-2 车长', face: { skin: '#e0b896', hair: '#2e2620', style: 'tanker', uniform: '#4d5733' } },
   radio:  { name: '无线电截获', call: '截获', role: '俄军频道', face: { radio: true } },
 };
 
