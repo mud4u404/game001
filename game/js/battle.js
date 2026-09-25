@@ -496,11 +496,17 @@ function spawnCivilians() {
   const cv = B.mission.civ;
   if (!cv) return;
   while (B.civNext < cv.groups.length && cv.groups[B.civNext] <= B.turn) {
-    const [x, y] = cv.path[0];
-    if (unitAt(x, y)) break;
-    const c = mkUnit('civ', x, y); c.face = [-1, 0]; c.pathIdx = 0;
+    // spawn at the path start, or sidestep to path[1]/path[2] while enemies squat there
+    let at = null;
+    for (let idx = 0; idx < Math.min(3, cv.path.length); idx++) {
+      const [x, y] = cv.path[idx];
+      if (!unitAt(x, y)) { at = { x, y, idx }; break; }
+    }
+    if (!at) break;
+    const c = mkUnit('civ', at.x, at.y); c.face = [-1, 0]; c.pathIdx = at.idx;
     B.units.push(c);
     B.civNext++;
+    if (at.idx > 0) toast('平民绕开敌军，从旁边的路口出发', '');
   }
 }
 async function moveCivilians() {
