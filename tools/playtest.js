@@ -60,6 +60,7 @@ const BOT = async () => {
   const log = [];
   const missionCount = await page.evaluate(() => MISSIONS.length);
   for (let m = 0; m < missionCount; m++) {
+    await page.evaluate(() => { const C = window.__sf.CAMP; C.aid = Math.max(C.aid, 10); C.roster.forEach(r => { r.wrecked = false; }); });
     await page.click('#btnBrief'); await page.waitForTimeout(1600);
     if (m === 0) await page.screenshot({ path: `${out}/03-dialog.png` });
     await page.click('#btnSkip'); await page.waitForTimeout(300);
