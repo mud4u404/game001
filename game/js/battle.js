@@ -23,6 +23,7 @@ function mkUnit(type, x, y) {
   };
   if (type === 't64') { u.hp = u.max = d.hp + CAMP.up.t64hp; }
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
+  if (type === 'neptune') u.ammo.nep = 2;
   return u;
 }
 function newBattle(mi) {
@@ -120,6 +121,8 @@ function weaponTargets(u, wid) {
     if (!spotted(x, y, u)) continue;
     out.push({ x, y });
   }
+  else if (w.kind === 'melee') for (const [dx, dy] of DIRS) { const x = u.x + dx, y = u.y + dy; if (inB(x, y)) out.push({ x, y, dir: [dx, dy] }); }
+  else if (w.kind === 'naval') for (const o of B.units) { if (o.dead || o === u || U(o).mob !== 'sea') continue; const d = dist(u, o); if (d >= w.min && d <= w.range) out.push({ x: o.x, y: o.y }); }
   else if (w.kind === 'any') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) out.push({ x, y });
   return out;
 }
@@ -285,8 +288,8 @@ async function killUnit(o, src, how) {
   } else if (o.team === 'civ') {
     B.stats.civLost++; CAMP.grid = Math.max(0, CAMP.grid - 1); B.stats.gridLost++;
     toast('一批平民遇难 · 电网 -1', 'bad');
-  } else toast(`${d.name} 被摧毁`, 'bad');
-  if (how === 'drown') { await animSink(o); }
+  } else toast(how === 'expend' ? `${d.name} 完成攻击` : `${d.name} 被摧毁`, how === 'expend' ? '' : 'bad');
+  if (how === 'drown' || how === 'expend') { await animSink(o); }
   else if (d.cls === 'air') await animCrash(o);
   else if (isVehicle(o)) await animWreck(o);
   else { await tween(350, k => { o.alpha = 1 - k; }); }
@@ -339,6 +342,7 @@ async function playerFire(u, wid, t) {
   renderHud();
   await animAttack(u, wid, t, eff);
   await applyEffects(eff, u);
+  if (w.selfDestruct && !u.dead) await killUnit(u, null, 'expend');
   busy = false;
   afterAction();
 }
