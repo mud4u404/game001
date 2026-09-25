@@ -284,12 +284,13 @@ function renderHud() {
   }).join('');
   const player = B.phase === 'player' && !busy;
   $('btnEnd').disabled = !player;
+  $('btnEnd').innerHTML = `结束回合<small>E</small>`;
   $('btnReset').disabled = !player || B.resetLeft <= 0;
   $('btnReset').innerHTML = `作战预案<small>×${B.resetLeft}</small>`;
   const tb = $('btnTB2');
   tb.disabled = !player || B.tb2Left <= 0;
   tb.classList.toggle('on', mode === 'support');
-  tb.innerHTML = `<span class="ico">✈</span><span>TB2 打击<small>剩余 ${B.tb2Left}</small></span>`;
+  tb.innerHTML = `<span class="ico">✈</span><span>TB2 打击<small>剩余 ${B.tb2Left} · T</small></span>`;
   $('deploy').hidden = B.phase !== 'deploy';
   $('hBottom').hidden = B.phase === 'deploy';
   // roster
@@ -369,6 +370,10 @@ function selectUnit(u) {
   wsel = U(u).weapons.find(w => weaponTargets(u, w).length || !WEAPONS[w].ammo) || U(u).weapons[0];
   mode = u.moved ? 'target' : 'move';
 }
+function undoMove() {
+  const u = B.units.find(v => v.id === sel);
+  if (u && u.prev && !u.acted) { u.x = u.rx = u.prev.x; u.y = u.ry = u.prev.y; u.face = u.prev.face; u.prev = null; u.moved = false; mode = 'move'; renderHud(); }
+}
 function armWeapon(wid) {
   const u = B.units.find(v => v.id === sel);
   if (!u || u.acted || B.phase !== 'player' || busy) return;
@@ -428,11 +433,25 @@ stage.addEventListener('mouseleave', () => { hover = null; renderTip(); });
 stage.addEventListener('click', onBoardClick);
 stage.addEventListener('contextmenu', ev => { ev.preventDefault(); if (SCENE === 'battle') cancel(); });
 document.addEventListener('keydown', ev => {
+  if (ev.isComposing) return;
   if (SCENE === 'briefing' && (ev.key === ' ' || ev.key === 'Enter') && dlg) { ev.preventDefault(); nextLine(); return; }
   if (SCENE !== 'battle' || !B) return;
   if (ev.key === 'Escape') cancel();
   const u = B.units.find(v => v.id === sel);
   if ((ev.key === '1' || ev.key === '2') && u && u.team === 'ua') { const wid = U(u).weapons[+ev.key - 1]; if (wid) armWeapon(wid); }
+  const k = ev.key.toLowerCase();
+  if (busy || (B.phase !== 'player' && B.phase !== 'deploy')) return;
+  if (k === 'tab') {
+    ev.preventDefault();
+    const list = ['t64', 'atgm', 'd30'].map(t => B.units.find(v => v.type === t && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
+    if (!list.length) return;
+    const i = list.findIndex(v => v.id === sel);
+    selectUnit(ev.shiftKey ? list[(i <= 0 ? list.length : i) - 1] : list[(i + 1) % list.length]);
+    renderHud();
+  }
+  else if (k === 'z') undoMove();
+  else if (k === 'e' && B.phase === 'player') { AUDIO.click(); enemyPhase(); }
+  else if (k === 't' && B.phase === 'player' && B.tb2Left > 0) { mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); }
 });
 
 // ---------- debrief & upgrades ----------
@@ -506,7 +525,7 @@ $('btnTB2').onclick = () => { if (B.phase !== 'player' || busy || B.tb2Left <= 0
 $('roster').addEventListener('click', ev => { const b = ev.target.closest('[data-uid]'); if (!b || busy) return; const u = B.units.find(v => v.id === +b.dataset.uid); if (u) { selectUnit(u); renderHud(); } });
 $('unitCard').addEventListener('click', ev => {
   const w = ev.target.closest('[data-wid]'); if (w) { armWeapon(w.dataset.wid); return; }
-  if (ev.target.closest('#btnUndo')) { const u = B.units.find(v => v.id === sel); if (u && u.prev && !u.acted) { u.x = u.rx = u.prev.x; u.y = u.ry = u.prev.y; u.face = u.prev.face; u.prev = null; u.moved = false; mode = 'move'; renderHud(); } }
+  if (ev.target.closest('#btnUndo')) undoMove();
 });
 $('shop').addEventListener('click', ev => { const b = ev.target.closest('[data-up]'); if (b) buy(b.dataset.up); });
 $('btnNext').onclick = () => { AUDIO.click(); continueCampaign(); };
