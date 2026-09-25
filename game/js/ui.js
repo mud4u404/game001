@@ -385,7 +385,7 @@ function renderTip() {
   let html = '';
   if (o && o.team !== 'ua') {
     const d = U(o);
-    html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${d.move}${d.amph ? ' · 两栖' : ''}</p>`;
+    html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${o.move || d.move}${d.amph ? ' · 两栖' : ''}</p>`;
     if (o.team === 'civ') html += `<p>沿公路撤离，每回合 3 格。能穿过我方单位，会被敌人挡住。</p>`;
     else if (d.atk === 'land') html += `<p class="threat">下回合：在此降落，放下空降兵</p>`;
     else if (d.spotter) html += `<p class="threat">为俄军炮兵校射：敌方炮火 +1，并瞄准你的单位</p>`;

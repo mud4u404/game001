@@ -593,7 +593,7 @@ function endMission(reason) {
     const r0 = rankOf(rec.xp || 0), r1 = rankOf(u.xp || 0);
     if (RANKS.indexOf(r1) > RANKS.indexOf(r0)) {
       const dup = B.squad.filter(q => q.type === rec.type).length > 1;
-      res.promotions.push(`${CHARS[UNITS[rec.type].pilot].call}${dup ? ' #' + rec.rid : ''}晋升为${r1.name}`);
+      res.promotions.push(`${CHARS[UNITS[rec.type].pilot].call}${dup ? ' #' + rec.rid : ''}（${UNITS[rec.type].short}）晋升为${r1.name}。`);
       rec.xp = u.xp;
     }
   }
