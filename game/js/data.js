@@ -14,6 +14,9 @@ const UNITS = {
   ka52:  { name: '卡-52 武装直升机', team: 'ru', cls: 'air', hp: 3, move: 5, mob: 'air', atk: 'vikhr', alt: 36 },
   mi8:   { name: '米-8 运输直升机', team: 'ru', cls: 'air', hp: 2, move: 5, mob: 'air', atk: 'land', alt: 30 },
   orlan: { name: '奥兰-10 侦察无人机', team: 'ru', cls: 'air', hp: 1, move: 5, mob: 'air', atk: null, alt: 44, spotter: true },
+  magura:  { name: '海上无人艇', short: '无人艇', team: 'ua', cls: 'la', hp: 1, move: 5, mob: 'sea', weapons: ['seaRam'], pilot: 'olena', desc: '装满炸药的无人快艇。撞击目标后引爆，自身随之损失。' },
+  neptune: { name: '“海王星”发射车', short: '海王星', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', weapons: ['neptune'], pilot: 'dmytro', desc: '岸基反舰导弹发射车，只能攻击水面舰艇。' },
+  raptor:  { name: '03160 型“猛禽”巡逻艇', team: 'ru', cls: 'la', hp: 2, move: 5, mob: 'sea', atk: 'kord', armor: true },
   civ:   { name: '撤离的平民', team: 'civ', cls: 'inf', hp: 1, move: 3, mob: 'foot', stable: true },
 };
 const CLASS_NAME = { ha: '重装甲', la: '轻装甲', soft: '无装甲', inf: '步兵', air: '空中', bld: '建筑' };
@@ -28,11 +31,14 @@ const WEAPONS = {
   stinger: { name: 'FIM-92 毒刺', kind: 'aa', min: 1, range: 5, ammo: 'sting', dmg: { air: 3 }, fx: 'stinger', desc: '锁定 5 格内的空中目标。' },
   how122:  { name: '122毫米榴弹', kind: 'arc', min: 2, range: 6, spot: 3, dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, blast: true, crater: true, fx: 'artillery', desc: '曲射 2–6 格。落点必须在其他友军的观察范围内。落点四周的单位被震退 1 格。' },
   tb2:     { name: 'TB2 无人机打击', kind: 'any', dmg: { ha: 2, la: 2, soft: 2, inf: 2, bld: 1 }, crater: true, fx: 'tb2', desc: 'MAM-L 制导炸弹，对任意地面目标造成 2 点伤害。' },
+  seaRam:  { name: '撞击引爆', kind: 'melee', dmg: { la: 4, ha: 4, soft: 4, inf: 2, bld: 1 }, selfDestruct: true, fx: 'rpg', desc: '撞击相邻目标并引爆，4 点伤害。无人艇随之损失。' },
+  neptune: { name: 'R-360 反舰导弹', kind: 'naval', min: 2, range: 8, ammo: 'nep', dmg: { la: 4, ha: 4, soft: 3 }, fx: 'atgm', desc: '锁定 2–8 格内的水面舰艇，4 点伤害。每场任务 2 发。' },
   t72gun:  { name: '125毫米主炮', kind: 'line', range: 8, dmg: { ha: 2, la: 3, soft: 3, inf: 2, bld: 1 }, fx: 'shell' },
   gun30:   { name: '30毫米机关炮', kind: 'line', range: 3, dmg: { ha: 1, la: 1, soft: 2, inf: 2, bld: 1 }, fx: 'mg' },
   rpg:     { name: 'RPG-7 火箭筒', kind: 'melee', dmg: { ha: 2, la: 2, soft: 2, inf: 1, bld: 1 }, fx: 'rpg' },
   grad:    { name: '122毫米火箭齐射', kind: 'grad', min: 3, range: 5, dmg: { ha: 1, la: 1, soft: 1, inf: 1, bld: 1 }, fx: 'grad' },
   vikhr:   { name: '“旋风”反坦克导弹', kind: 'line', range: 4, overForest: true, dmg: { ha: 3, la: 3, soft: 3, inf: 1, bld: 1 }, fx: 'atgm' },
+  kord:    { name: '12.7毫米机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 2, la: 1, ha: 0, bld: 1 }, fx: 'mg' },
   msta:    { name: '152毫米炮火', dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, fx: 'barrage' },
 };
 

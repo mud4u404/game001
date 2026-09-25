@@ -14,7 +14,7 @@ const url = 'file://' + path.resolve(__dirname, '../game/index.html');
   page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + e.stack));
   await page.goto(url);
   await page.waitForTimeout(800);
-  const bad = await page.evaluate(`(() => {
+  const bad = await page.evaluate(`(async () => {
     SPEED = 0.01; CAMP = freshCamp(); newBattle(1);
     for (let x = 0; x < 8; x++) { for (let y = 5; y <= 7; y++) B.tiles[y][x] = { t: 'o' }; B.tiles[4][x] = { t: 's' }; }
     SCENE = 'battle'; B.phase = 'player'; show('hud');
@@ -30,6 +30,22 @@ const url = 'file://' + path.resolve(__dirname, '../game/index.html');
     if (boatSand !== Infinity) problems.push('测试艇沙滩消耗应为 Infinity，实际 ' + boatSand);
     const vdv = moveCost(mkUnit('vdv', 0, 0), 0, 4);
     if (vdv !== 1) problems.push('步兵沙滩消耗应为 1，实际 ' + vdv);
+    // naval rules: neptune locks sea targets only, seaRam rams and self-destructs
+    const nep = mkUnit('neptune', 3, 3); B.units.push(nep);
+    const rap = mkUnit('raptor', 3, 7); B.units.push(rap);
+    const tank = mkUnit('t72', 5, 3); B.units.push(tank);
+    const nt = weaponTargets(nep, 'neptune');
+    if (!nt.some(p => p.x === 3 && p.y === 7)) problems.push('海王星应能锁定 (3,7) 的猛禽艇');
+    if (nt.some(p => p.x === 5 && p.y === 3)) problems.push('海王星不应锁定 (5,3) 的地面目标');
+    if (nep.ammo.nep !== 2) problems.push('海王星弹药应为 2，实际 ' + nep.ammo.nep);
+    const mg = mkUnit('magura', 3, 6); B.units.push(mg);
+    // T-07 will add the olena/dmytro pilots; until then a missing pilot crashes the
+    // unit card in renderHud (ui.js portrait), so borrow an existing one for the test only.
+    UNITS.magura.pilot = 'taras';
+    await playerFire(mg, 'seaRam', weaponTargets(mg, 'seaRam').find(p => p.x === 3 && p.y === 7));
+    if (!rap.dead) problems.push('猛禽艇应被撞击摧毁');
+    if (!mg.dead) problems.push('无人艇撞击后应自毁');
+    if (B.stats.kills !== 1) problems.push('击杀数应为 1，实际 ' + B.stats.kills);
     return problems;
   })()`);
   await page.waitForTimeout(1000);
@@ -38,6 +54,7 @@ const url = 'file://' + path.resolve(__dirname, '../game/index.html');
   if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
   if (bad.length) { console.error(bad.join('\n')); process.exit(1); }
   console.log('TERRAIN OK');
+  console.log('NAVAL OK');
 })().catch(e => { console.error('TERRAIN-SHOT CRASHED', e); process.exit(2); });
 // Guard against a hung page.
 setTimeout(() => { console.error('TERRAIN-SHOT TIMEOUT'); process.exit(3); }, 60 * 1000).unref();
