@@ -14,7 +14,7 @@ const BOT = async () => {
       const o = S.unitAt(e.x, e.y), tile = B.tiles[e.y][e.x];
       if (e.w) {
         if (o) { const d = dmgAgainst(e.w, e.x, e.y); v += o.team === 'ru' ? d * 10 + (d >= o.hp ? 25 : 0) : -40; }
-        else if (bldAlive(tile) && BLD[tile.t].grid) v -= 20;
+        else if (bldAlive(tile) && BLD[tile.t].civil) v -= 20;
         if (tile.t === 'R' && !tile.crater && WEAPONS[e.w].crater) v += 14;
       }
       if (e.push && o && o.team === 'ru') { const nx = o.x + e.push[0], ny = o.y + e.push[1]; if (inB(nx, ny) && B.tiles[ny][nx].t === 'w' && !UNITS[o.type].amph && UNITS[o.type].cls !== 'air') v += 40; }
@@ -60,8 +60,6 @@ const BOT = async () => {
   const log = [];
   const missionCount = await page.evaluate(() => MISSIONS.length);
   for (let m = 0; m < missionCount; m++) {
-    // The bot defends buildings poorly; refill the grid so every mission gets exercised.
-    await page.evaluate(() => { const C = window.__sf.CAMP; C.grid = C.gridMax; });
     await page.click('#btnBrief'); await page.waitForTimeout(1600);
     if (m === 0) await page.screenshot({ path: `${out}/03-dialog.png` });
     await page.click('#btnSkip'); await page.waitForTimeout(300);
@@ -97,7 +95,7 @@ const BOT = async () => {
       if (turns === 2) { await page.waitForTimeout(500); await page.screenshot({ path: `${out}/1${m}-turn3.png` }); }
     }
     await page.waitForTimeout(1500);
-    const st = await page.evaluate(() => ({ scene: window.__sf.SCENE, stats: window.__sf.B.stats, grid: window.__sf.CAMP.grid, aid: window.__sf.CAMP.aid, turn: window.__sf.B.turn }));
+    const st = await page.evaluate(() => ({ scene: window.__sf.SCENE, stats: window.__sf.B.stats, aid: window.__sf.CAMP.aid, turn: window.__sf.B.turn }));
     log.push(st);
     await page.screenshot({ path: `${out}/2${m}-debrief.png` });
     if (st.scene === 'campaign' && await page.isVisible('#gameover')) { log.push('GAME OVER'); break; }

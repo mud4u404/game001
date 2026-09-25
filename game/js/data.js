@@ -56,11 +56,11 @@ const TILE = {
   d: { name: '断桥', note: '只剩木板便桥，只有步兵能通过' },
 };
 const BLD = {
-  h: { name: '民房', hp: 1, pop: 4, grid: true },
-  b: { name: '赫鲁晓夫楼', hp: 2, pop: 120, grid: true },
-  c: { name: '教堂', hp: 1, pop: 25, grid: true },
-  S: { name: '变电站', hp: 2, pop: 0, grid: true },
-  H: { name: '机库', hp: 3, pop: 0, grid: false },
+  h: { name: '民房', hp: 1, pop: 4, civil: true },
+  b: { name: '赫鲁晓夫楼', hp: 2, pop: 120, civil: true },
+  c: { name: '教堂', hp: 1, pop: 25, civil: true },
+  S: { name: '变电站', hp: 2, pop: 0, civil: true },
+  H: { name: '机库', hp: 3, pop: 0, civil: false },
 };
 
 // ---------- characters ----------
@@ -90,9 +90,9 @@ const MISSIONS = [
     ],
     barrage: null,
     objectives: [
-      { id: 'runway', kind: 'primary', text: '炮击跑道，制造 3 个弹坑', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'R' && t.crater), max: 3 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 4 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 4), max: 4 }) },
-      { id: 'heli', kind: 'bonus', text: '击落 2 架直升机', reward: 1, eval: B => ({ cur: B.stats.heli, max: 2 }) },
+      { id: 'runway', kind: 'primary', text: '炮击跑道，制造 3 个弹坑', reward: 5, eval: B => ({ cur: countTiles(B, t => t.t === 'R' && t.crater), max: 3 }) },
+      { id: 'heli', kind: 'bonus', text: '击落 2 架直升机', reward: 2, eval: B => ({ cur: B.stats.heli, max: 2 }) },
+      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
     ],
     brief: [
       ['oksana', '“向日葵”，这里是“基石”。空降兵已经占领了霍斯托梅尔机场西侧跑道，第一波大约两百人，全是直升机运来的。'],
@@ -126,8 +126,9 @@ const MISSIONS = [
     barrage: { from: 1, count: 1 },
     civ: { path: [[6, 6], [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6]], groups: [1, 2, 3], speed: 3 },
     objectives: [
-      { id: 'evac', kind: 'primary', text: '护送至少 2 批平民过河', reward: 1, eval: B => ({ cur: B.stats.evac, max: 2 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 5 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 5), max: 5 }) },
+      { id: 'evac', kind: 'primary', text: '护送至少 2 批平民过河', reward: 5, eval: B => ({ cur: B.stats.evac, max: 2 }) },
+      { id: 'evac3', kind: 'bonus', text: '3 批平民全部过河', reward: 2, eval: B => ({ cur: B.stats.evac, max: 3 }) },
+      { id: 'sub', kind: 'bonus', text: '变电站完好', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'S' && bldAlive(t)), max: 1 }) },
       { id: 'orlan', kind: 'bonus', text: '击落奥兰-10 无人机', reward: 1, eval: B => ({ cur: B.stats.orlan, max: 1 }) },
     ],
     brief: [
@@ -143,7 +144,7 @@ const MISSIONS = [
       win: '那几天，数千名居民踩着断桥下的木板撤离了伊尔平。士兵们在桥下接过老人和孩子，一个一个送到对岸。',
       partial: '撤离路线被炮火切断，许多居民被困在了伊尔平城内。',
     },
-    consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：电网 -1。', grid: -1 }),
+    consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：民防准备不足。' }),
   },
   {
     id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村', chapter: 0,
@@ -162,9 +163,10 @@ const MISSIONS = [
     extraWaves: { runwayOpen: [{ turn: 2, units: [['vdv', 7, 1]] }] },
     barrage: { from: 3, count: 1 },
     objectives: [
-      { id: 'armor', kind: 'primary', text: '击毁 4 辆装甲车辆', reward: 1, eval: B => ({ cur: B.stats.armor, max: 4 }) },
-      { id: 'block', kind: 'primary', text: '最多 1 辆车突破西侧', reward: 0, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
+      { id: 'block', kind: 'primary', text: '最多 1 辆车突破西侧', reward: 5, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
+      { id: 'armor', kind: 'bonus', text: '击毁 4 辆装甲车辆', reward: 2, eval: B => ({ cur: B.stats.armor, max: 4 }) },
       { id: 'cmd', kind: 'bonus', text: '击毁团指挥车', reward: 1, eval: B => ({ cur: B.stats.cmd, max: 1 }) },
+      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 1 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 1, inverse: true }) },
     ],
     brief: [
       ['oksana', '侦察报告：一个坦克团的纵队正沿公路从东北开往布罗瓦里。三十多辆装甲车，车距很近。'],
@@ -194,9 +196,10 @@ const MISSIONS = [
     ],
     barrage: null,
     objectives: [
-      { id: 'naval', kind: 'primary', text: '击沉 2 艘巡逻艇', reward: 1, eval: B => ({ cur: B.stats.naval, max: 2 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 4 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 4), max: 4 }) },
+      { id: 'landing', kind: 'primary', text: '上岸的敌军不超过 1 个', reward: 5, eval: B => ({ cur: B.units.filter(u => u.team === 'ru' && !u.dead && !isAir(u) && !isWater(TILEAT(u.x, u.y))).length, max: 1, inverse: true }) },
+      { id: 'naval', kind: 'bonus', text: '击沉 2 艘巡逻艇', reward: 2, eval: B => ({ cur: B.stats.naval, max: 2 }) },
       { id: 'heli', kind: 'bonus', text: '击落卡-52', reward: 1, eval: B => ({ cur: B.stats.heli, max: 1 }) },
+      { id: 'city', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
     ],
     brief: [
       ['oksana', '“向日葵”，敖德萨外海发现俄军巡逻艇。它们在替登陆部队侦察海滩和雷区。'],
@@ -221,7 +224,6 @@ const UPGRADES = [
   { id: 't64hp', name: '加挂反应装甲', desc: 'T-64BV 生命值 +1。', cost: 2, max: 1 },
   { id: 'spot', name: '空中侦察分队', desc: '民用四旋翼无人机为炮兵校射：观察范围 3 → 5。', cost: 2, max: 1 },
   { id: 'tb2', name: 'TB2 再出动', desc: '每场任务多一次 TB2 打击。', cost: 2, max: 1 },
-  { id: 'grid', name: '抢修电网', desc: '电网 +1。', cost: 1, max: 99 },
 ];
 
 const PROLOGUE = [
