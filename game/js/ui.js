@@ -109,6 +109,7 @@ function freshCamp() { return { grid: 7, gridMax: 7, aid: 0, mission: 0, flags: 
 
 // ---------- story cards ----------
 async function playStory(lines, after) {
+  if (!lines.length) { after(); return; }
   SCENE = 'campaign';
   show('story');
   const box = $('storyText');
@@ -127,21 +128,33 @@ async function playStory(lines, after) {
 }
 
 // ---------- campaign map ----------
-const GEO = {
-  border: [[0, 0.06], [0.2, 0.08], [0.33, 0.05], [0.55, 0.06], [0.75, 0.03], [1, 0.08]],
-  reservoir: [[0.47, 0.1], [0.53, 0.1], [0.565, 0.24], [0.555, 0.4], [0.525, 0.53], [0.495, 0.535], [0.472, 0.42], [0.452, 0.27]],
-  dniproN: [[0.56, 0], [0.53, 0.05], [0.5, 0.1]],
-  dnipro: [[0.51, 0.53], [0.53, 0.62], [0.545, 0.72], [0.56, 0.82], [0.6, 1]],
-  desna: [[0.98, 0.16], [0.82, 0.3], [0.69, 0.42], [0.6, 0.52], [0.535, 0.6]],
-  irpin: [[0.16, 0.96], [0.27, 0.83], [0.35, 0.73], [0.405, 0.64], [0.425, 0.55], [0.465, 0.45]],
-  cities: [['基辅', 0.545, 0.72, 3], ['霍斯托梅尔', 0.38, 0.5, 1], ['布恰', 0.35, 0.58, 1], ['伊尔平', 0.395, 0.635, 1], ['布罗瓦里', 0.66, 0.71, 2], ['斯凯宾', 0.71, 0.635, 1], ['切尔尼戈夫', 0.8, 0.14, 2], ['伊万基夫', 0.27, 0.3, 1], ['维什戈罗德', 0.52, 0.57, 1]],
-  arrows: [[[0.33, 0.02], [0.3, 0.2], [0.33, 0.36], [0.37, 0.45]], [[0.8, 0.16], [0.78, 0.36], [0.73, 0.55], [0.71, 0.61]], [[0.62, 0.05], [0.63, 0.3], [0.66, 0.5]]],
-  air: [[0.5, 0.16], [0.44, 0.3], [0.385, 0.47]],
+const GEOS = {
+  kyiv: {
+    border: [[0, 0.06], [0.2, 0.08], [0.33, 0.05], [0.55, 0.06], [0.75, 0.03], [1, 0.08]],
+    water: [[[0.47, 0.1], [0.53, 0.1], [0.565, 0.24], [0.555, 0.4], [0.525, 0.53], [0.495, 0.535], [0.472, 0.42], [0.452, 0.27]]],
+    rivers: [[[[0.56, 0], [0.53, 0.05], [0.5, 0.1]], 4], [[[0.51, 0.53], [0.53, 0.62], [0.545, 0.72], [0.56, 0.82], [0.6, 1]], 5], [[[0.98, 0.16], [0.82, 0.3], [0.69, 0.42], [0.6, 0.52], [0.535, 0.6]], 3], [[[0.16, 0.96], [0.27, 0.83], [0.35, 0.73], [0.405, 0.64], [0.425, 0.55], [0.465, 0.45]], 2]],
+    labels: [['白俄罗斯', 0.06, 0.035, '#9aa3a8'], ['乌克兰', 0.06, 0.1, '#7f8f84'], ['基辅水库', 0.43, 0.3, '#7fb0cc']],
+    ticks: ['50°30′N', '30°30′E'],
+    cities: [['基辅', 0.545, 0.72, 3], ['霍斯托梅尔', 0.38, 0.5, 1], ['布恰', 0.35, 0.58, 1], ['伊尔平', 0.395, 0.635, 1], ['布罗瓦里', 0.66, 0.71, 2], ['斯凯宾', 0.71, 0.635, 1], ['切尔尼戈夫', 0.8, 0.14, 2], ['伊万基夫', 0.27, 0.3, 1], ['维什戈罗德', 0.52, 0.57, 1]],
+    arrows: [[[0.33, 0.02], [0.3, 0.2], [0.33, 0.36], [0.37, 0.45]], [[0.8, 0.16], [0.78, 0.36], [0.73, 0.55], [0.71, 0.61]], [[0.62, 0.05], [0.63, 0.3], [0.66, 0.5]]],
+    air: [[0.5, 0.16], [0.44, 0.3], [0.385, 0.47]],
+  },
+  odesa: {
+    border: [[0, 0.3], [0.12, 0.45], [0.2, 0.62], [0.24, 0.8], [0.3, 1]],
+    water: [[[1, 0.33], [0.8, 0.4], [0.64, 0.46], [0.56, 0.56], [0.46, 0.66], [0.36, 0.76], [0.3, 0.86], [0.26, 1], [1, 1]]],
+    rivers: [[[[0.14, 0.2], [0.22, 0.4], [0.34, 0.6], [0.4, 0.66]], 3], [[[0.88, 0], [0.9, 0.18], [0.92, 0.32]], 4]],
+    labels: [['摩尔多瓦', 0.03, 0.2, '#9aa3a8'], ['乌克兰', 0.3, 0.12, '#7f8f84'], ['黑海', 0.72, 0.75, '#7fb0cc']],
+    ticks: ['46°30′N', '30°45′E'],
+    cities: [['敖德萨', 0.56, 0.54, 3], ['尤日内', 0.65, 0.44, 1], ['米科拉伊夫', 0.9, 0.2, 2], ['比尔戈罗德', 0.4, 0.68, 1], ['蛇岛', 0.66, 0.9, 1]],
+    arrows: [[[1, 0.75], [0.8, 0.68], [0.66, 0.62]], [[1, 0.45], [0.96, 0.3], [0.92, 0.22]]],
+    air: [],
+  },
 };
 let mapRect = { x: 0, y: 0, w: 1, h: 1 };
 function mp(u, v) { return [mapRect.x + u * mapRect.w, mapRect.y + v * mapRect.h]; }
 function renderCampaign(now) {
   const t = now / 1000;
+  const G = GEOS[CHAPTERS[chapterOf(CAMP.mission)].geo];
   g.drawImage(bgC, 0, 0);
   const mw = Math.min(W * 0.62, H * 1.05), mh = Math.min(H * 0.86, mw * 0.82);
   mapRect = { x: Math.round(W * 0.03 + (W * 0.62 - mw) / 2), y: Math.round((H - mh) / 2 + 10), w: Math.round(mw), h: Math.round(mh) };
@@ -162,51 +175,53 @@ function renderCampaign(now) {
       else { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6); for (let k = 0; k < n; k += 2) line(lerp(x0, x1, k / n), lerp(y0, y1, k / n), lerp(x0, x1, (k + 1) / n), lerp(y0, y1, (k + 1) / n), c, w); }
     }
   };
-  poly(GEO.reservoir, '#2f5f80');
-  path(GEO.dniproN, '#2f5f80', 4); path(GEO.dnipro, '#2f5f80', 5); path(GEO.desna, '#2f5f80', 3); path(GEO.irpin, '#2f5f80', 2);
-  path(GEO.border, '#9aa3a8', 2, true);
-  g.font = '11px "Noto Sans SC", sans-serif'; g.fillStyle = '#9aa3a8';
-  { const [bx, by] = mp(0.06, 0.035); g.fillText('白俄罗斯', bx, by); const [bx2, by2] = mp(0.06, 0.1); g.fillStyle = '#7f8f84'; g.fillText('乌克兰', bx2, by2); }
-  { const [rx, ry] = mp(0.47, 0.3); g.fillStyle = '#7fb0cc'; g.fillText('基辅水库', rx - 30, ry); }
+  for (const w of G.water) poly(w, '#2f5f80');
+  for (const [pts, w] of G.rivers) path(pts, '#2f5f80', w);
+  path(G.border, '#9aa3a8', 2, true);
+  g.font = '11px "Noto Sans SC", sans-serif';
+  for (const [name, u, v, c] of G.labels) { const [lx, ly] = mp(u, v); g.fillStyle = c; g.fillText(name, lx, ly); }
   // enemy axes of advance
   const phase = (t * 0.6) % 1;
-  for (const a of GEO.arrows) {
+  for (const a of G.arrows) {
     path(a, 'rgba(255,74,43,.55)', 5);
     const [x0, y0] = mp(...a[a.length - 2]), [x1, y1] = mp(...a[a.length - 1]);
     const ang = Math.atan2(y1 - y0, x1 - x0);
     for (let s = -1; s <= 1; s += 2) line(x1, y1, x1 - Math.cos(ang + s * 0.6) * 12, y1 - Math.sin(ang + s * 0.6) * 12, 'rgba(255,74,43,.8)', 4);
     for (let i = 1; i < a.length; i++) { const [p0, q0] = mp(...a[i - 1]), [p1, q1] = mp(...a[i]); R(lerp(p0, p1, phase) - 2, lerp(q0, q1, phase) - 2, 4, 4, '#ffb199'); }
   }
-  path(GEO.air, 'rgba(255,120,90,.8)', 2, true);
+  path(G.air, 'rgba(255,120,90,.8)', 2, true);
   const nodeAt = (u, v) => MISSIONS.some(m => Math.abs(m.mapPos[0] - u) < 0.01 && Math.abs(m.mapPos[1] - v) < 0.01);
-  for (const [name, u, v, s] of GEO.cities) {
+  for (const [name, u, v, s] of G.cities) {
     const [px, py] = mp(u, v), n = nodeAt(u, v);
     if (n) { g.font = '12px "Noto Sans SC", sans-serif'; g.fillStyle = '#0a0f14'; g.fillText(name, px + 15, py + 5); g.fillStyle = '#e6edf2'; g.fillText(name, px + 14, py + 4); continue; }
     R(px - s - 2, py - s - 2, s * 2 + 4, s * 2 + 4, '#0a0f14'); R(px - s - 1, py - s - 1, s * 2 + 2, s * 2 + 2, s === 3 ? '#f2c230' : '#d8d2b8');
     g.font = (s === 3 ? 'bold 14px' : '11px') + ' "Noto Sans SC", sans-serif';
     g.fillStyle = '#0a0f14'; g.fillText(name, px + s + 5, py + 5); g.fillStyle = s === 3 ? '#f2c230' : '#c9d2d8'; g.fillText(name, px + s + 4, py + 4);
   }
-  // mission nodes
-  MISSIONS.forEach((m, i) => {
+  // mission nodes: only the current chapter's, numbered from 1 within it
+  MISSIONS.map((m, i) => ({ m, i })).filter(({ m }) => m.chapter === chapterOf(CAMP.mission)).forEach(({ m, i }, k) => {
     const [px, py] = mp(...m.mapPos);
     const done = i < CAMP.mission, cur = i === CAMP.mission;
     const r = cur ? 9 + Math.round(Math.sin(t * 4) * 2) : 8;
     disc(px, py, r + 3, '#0a0f14');
     disc(px, py, r + 1, done ? '#7bd650' : cur ? '#f2c230' : '#5f7485');
     disc(px, py, r - 2, done ? '#2a4a22' : cur ? '#3a2c06' : '#1c2a33');
-    txt(i + 1, px - 1, py - 5, done ? '#b8f59a' : cur ? '#fff1b0' : '#8ea3b4', 2);
+    txt(k + 1, px - 1, py - 5, done ? '#b8f59a' : cur ? '#fff1b0' : '#8ea3b4', 2);
     if (cur) { outlineDia(px, py + 1, 44 + Math.round(Math.sin(t * 4) * 4), 'rgba(242,194,48,.5)'); }
   });
   g.font = '10px "Noto Sans SC", sans-serif'; g.fillStyle = '#6f8494';
-  g.fillText('50°30′N', X + 6, Y + MH * 0.35); g.fillText('30°30′E', X + MW * 0.5 + 4, Y + MH - 6);
+  g.fillText(G.ticks[0], X + 6, Y + MH * 0.35); g.fillText(G.ticks[1], X + MW * 0.5 + 4, Y + MH - 6);
 }
 function showCampaign() {
   SCENE = 'campaign';
   show('campaign');
   const i = CAMP.mission, M = MISSIONS[i];
+  const ch = CHAPTERS[chapterOf(CAMP.mission)];
+  $('cTitle').textContent = ch.name;
+  $('cSub').textContent = ch.sub;
   $('cGrid').innerHTML = gridCells();
   $('cAid').textContent = CAMP.aid;
-  $('cList').innerHTML = MISSIONS.map((m, k) => `
+  $('cList').innerHTML = MISSIONS.map((m, k) => ({ m, k })).filter(({ m }) => m.chapter === chapterOf(CAMP.mission)).map(({ m, k }) => `
     <div class="mrow ${k < i ? 'done' : k === i ? 'cur' : 'locked'}">
       <span class="mcode">${m.code}</span>
       <span class="mname">${esc(m.name)}<small>${esc(m.date)}</small></span>
@@ -507,12 +522,15 @@ function continueCampaign() {
   if (lastResult && lastResult.reason !== 'wiped') CAMP.mission++;
   else if (lastResult && lastResult.reason === 'wiped') CAMP.mission++;
   store.set('sunflower-v1', CAMP);
-  if (CAMP.mission >= MISSIONS.length) { store.del('sunflower-v1'); playStory(EPILOGUE, () => { showTitle(); }); return; }
+  const a = chapterOf(Math.max(0, CAMP.mission - 1));
+  const b = chapterOf(CAMP.mission);
+  if (CAMP.mission >= MISSIONS.length) { store.del('sunflower-v1'); playStory(CHAPTERS[a].epilogue, () => { showTitle(); }); return; }
+  if (b !== a) { playStory(CHAPTERS[a].epilogue, () => playStory(CHAPTERS[b].prologue, showCampaign)); return; }
   showCampaign();
 }
 
 // ---------- wiring ----------
-$('btnNew').onclick = () => { AUDIO.init(); AUDIO.click(); CAMP = freshCamp(); store.set('sunflower-v1', CAMP); playStory(PROLOGUE, showCampaign); };
+$('btnNew').onclick = () => { AUDIO.init(); AUDIO.click(); CAMP = freshCamp(); store.set('sunflower-v1', CAMP); playStory(CHAPTERS[0].prologue, showCampaign); };
 $('btnContinue').onclick = () => { AUDIO.init(); AUDIO.click(); CAMP = Object.assign(freshCamp(), store.get('sunflower-v1')); showCampaign(); };
 $('btnBrief').onclick = () => { AUDIO.click(); showBriefing(); };
 $('briefing').addEventListener('click', ev => { if (dlg && !ev.target.closest('button')) nextLine(); });
