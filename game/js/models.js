@@ -87,6 +87,34 @@ function mTB2() {
   return v;
 }
 
+function mMagura() {
+  const v = new Vox();
+  for (let x = -8; x <= 8; x++) {
+    const half = x >= 8 ? 0 : x >= 6 ? 1 : 2;
+    for (let y = -half; y <= half; y++) for (let z = 0; z <= 2; z++) v.set(x, y, z, z === 0 ? '#3a4046' : '#2a2f33');
+  }
+  v.box(-4, -4, 0, 0, 3, 6, '#1c1e20'); v.set(-4, 0, 7, '#6f93b3');
+  v.box(-9, -9, 0, 0, 0, 1, '#15160f');
+  v.box(-2, -2, -2, 2, 2, 2, C.yel);
+  return v;
+}
+function mNeptune() {
+  const v = new Vox();
+  wheels(v, [-8, -5, -2, 6], 4);
+  v.box(-10, 10, -3, 3, 1, 2, C.uaD);
+  v.box(7, 11, -3, 3, 3, 8, C.uaG);
+  v.box(11, 11, -2, 2, 6, 7, C.glass); v.set(11, -1, 7, C.glassHi);
+  for (const s of [-1, 1]) v.box(8, 9, s * 3, s * 3, 6, 7, C.glass);
+  v.box(8, 9, -3, 3, 8, 8, C.yel);
+  for (let x = -10; x <= 4; x++) {
+    const lift = Math.floor((4 - x) / 4);
+    for (let y = -4; y <= 3; y++) for (let z = 4 + lift; z <= 11 + lift; z++)
+      v.set(x, y, z, (y === -1 || y === 0 || z === 7 + lift || z === 8 + lift) ? C.uaD : C.uaL);
+  }
+  for (const y0 of [-3, 1]) for (const z0 of [8, 12]) v.box(-10, -10, y0, y0 + 1, z0, z0 + 1, '#1a1c18');
+  return v;
+}
+
 // --- Russian units ---
 function mT72() {
   const v = new Vox(), G = C.ruG, D = C.ruD;
@@ -191,6 +219,21 @@ function mCiv() {
   return v;
 }
 
+function mRaptor() {
+  const v = new Vox();
+  for (let x = -11; x <= 11; x++) {
+    const half = x >= 11 ? 0 : x >= 10 ? 1 : x >= 9 ? 2 : 3;
+    for (let y = -half; y <= half; y++) for (let z = 0; z <= 2; z++) v.set(x, y, z, z === 0 ? '#4a5057' : '#7b838a');
+  }
+  v.box(-3, 4, -2, 2, 3, 6, '#8a9299');
+  for (let x = -3; x <= 4; x++) for (const s of [-1, 1]) v.set(x, s * 2, 5, C.glass);
+  for (let y = -2; y <= 2; y++) { v.set(4, y, 5, C.glass); v.set(-3, y, 5, C.glass); }
+  v.box(0, 0, 0, 0, 7, 11, '#2a2d30'); v.box(0, 0, -2, 2, 10, 10, '#2a2d30');
+  v.box(6, 7, -1, 1, 3, 4, '#5b6166'); v.box(8, 12, 0, 0, 4, 4, '#2b2e2a');
+  v.box(-8, -5, 3, 3, 2, 2, C.white); v.box(-8, -5, -3, -3, 2, 2, C.white);
+  return v;
+}
+
 // --- wrecks: burnt, broken copies of the live model ---
 function wreckify(vox, seed) {
   const out = new Vox(), burnt = ['#26221f', '#332c26', '#43372c', '#4d3a2a', '#2c2a28'];
@@ -205,8 +248,8 @@ function wreckify(vox, seed) {
 const hullOf = v => v.filter(p => p[2] <= 4);
 const turretOf = v => v.filter(p => p[2] >= 5).shift(0, 0, -5);
 
-const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv };
-const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1] };
+const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv, magura: mMagura, neptune: mNeptune, raptor: mRaptor };
+const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-10, 0, 12], raptor: [12, 0, 4] };
 
 // --- buildings & props ---
 function mApt(seed, dmg) {
