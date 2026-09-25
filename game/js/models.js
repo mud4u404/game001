@@ -106,12 +106,10 @@ function mNeptune() {
   v.box(11, 11, -2, 2, 6, 7, C.glass); v.set(11, -1, 7, C.glassHi);
   for (const s of [-1, 1]) v.box(8, 9, s * 3, s * 3, 6, 7, C.glass);
   v.box(8, 9, -3, 3, 8, 8, C.yel);
-  for (let x = -10; x <= 4; x++) {
-    const lift = Math.floor((4 - x) / 4);
-    for (let y = -4; y <= 3; y++) for (let z = 4 + lift; z <= 11 + lift; z++)
-      v.set(x, y, z, (y === -1 || y === 0 || z === 7 + lift || z === 8 + lift) ? C.uaD : C.uaL);
-  }
-  for (const y0 of [-3, 1]) for (const z0 of [8, 12]) v.box(-10, -10, y0, y0 + 1, z0, z0 + 1, '#1a1c18');
+  for (let x = -9; x <= 4; x++) for (let y = -3; y <= 2; y++) for (let z = 4; z <= 9; z++)
+    v.set(x, y, z, (y === -1 || z === 6) ? C.uaD : C.uaL);
+  for (const y0 of [-3, 0]) for (const z0 of [4, 7]) v.box(-9, -9, y0, y0 + 1, z0, z0 + 1, '#1a1c18');
+  v.box(5, 6, -3, 3, 3, 5, C.uaD);
   return v;
 }
 
@@ -249,7 +247,7 @@ const hullOf = v => v.filter(p => p[2] <= 4);
 const turretOf = v => v.filter(p => p[2] >= 5).shift(0, 0, -5);
 
 const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv, magura: mMagura, neptune: mNeptune, raptor: mRaptor };
-const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-10, 0, 12], raptor: [12, 0, 4] };
+const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-9, 0, 7], raptor: [12, 0, 4] };
 
 // --- buildings & props ---
 function mApt(seed, dmg) {
