@@ -170,7 +170,7 @@ async function animTB2(t) {
 async function animWreck(o) {
   const t = TILEAT(o.x, o.y);
   explode(o.x, o.y, 3, 0);
-  if (t.t === 'w') { splashAt(o.x, o.y); await tween(500, k => { o.rz = -k * 14; o.alpha = 1 - k; }); return; }
+  if (isWater(t)) { splashAt(o.x, o.y); await tween(500, k => { o.rz = -k * 14; o.alpha = 1 - k; }); return; }
   t.wreck = { type: o.type, face: o.face.slice(), seed: o.id };
   if (o.type === 't72' || o.type === 't64') {
     const d = pick(DIRS), [sx, sy] = screenDir(d);
@@ -190,7 +190,7 @@ async function animCrash(o) {
     if (s !== spin) { spin = s; o.face = DIRS[[0, 2, 1, 3][s % 4]]; const [sx, sy] = unitScreen(o); puff(sx, sy - 6, 2, '#333'); }
   }, EASE.lin);
   explode(o.x, o.y, 3, 0);
-  if (t.t === 'w') splashAt(o.x, o.y);
+  if (isWater(t)) splashAt(o.x, o.y);
   else if (!bldAlive(t) && !t.wreck) t.wreck = { type: o.type, face: o.face.slice(), seed: o.id, air: true };
 }
 async function animSink(o) {
@@ -231,6 +231,8 @@ const TCOL = {
   f:   ['#5f5e42', '#4a3d2d', '#5c4b37'],
   B:   ['#85827a', '#4a3d2d', '#5c4b37'],
   w:   ['#2f6a92', '#1a3a50', '#224860'],
+  o:   ['#24587d', '#15334a', '#1b4260'],
+  s:   ['#c9b88a', '#4a3d2d', '#5c4b37'],
 };
 const isRoadT = (x, y) => inB(x, y) && ['r', 'd', 'R'].includes(TILEAT(x, y).t);
 function drawTile(x, y, t) {
@@ -249,9 +251,9 @@ function drawTile(x, y, t) {
     if (hash(y, d, 7) < 0.12) R(sx + d, yt + 6 + Math.floor(hash(d, y, 8) * 8), 2, 1, '#43382a');
   }
   fillDia(cx, cy, 40, top);
-  if (key === 'w') {
-    const landL = inB(x - 1, y) && !['w', 'd'].includes(TILEAT(x - 1, y).t);
-    const landU = inB(x, y - 1) && !['w', 'd'].includes(TILEAT(x, y - 1).t);
+  if (key === 'w' || key === 'o') {
+    const landL = inB(x - 1, y) && !isWater(TILEAT(x - 1, y)) && TILEAT(x - 1, y).t !== 'd';
+    const landU = inB(x, y - 1) && !isWater(TILEAT(x, y - 1)) && TILEAT(x, y - 1).t !== 'd';
     for (let r = 0; r < 20; r++) {
       if (landL) { R(sx - 2 * (r + 1), sy + r, 8, 1, '#1d4260'); R(sx - 2 * (r + 1), sy + r, 2, 1, '#cfd8dc'); }
       if (landU) { R(sx + 2 * (r + 1) - 8, sy + r, 8, 1, '#1d4260'); R(sx + 2 * (r + 1) - 2, sy + r, 2, 1, '#cfd8dc'); }
@@ -262,6 +264,12 @@ function drawTile(x, y, t) {
       const r = 6 + Math.floor(hash(x, y, i + 9) * 28), w = r < 20 ? 2 * (r + 1) : 2 * (40 - r);
       const px = cx - w + 6 + Math.floor(hash(y, x, i) * Math.max(1, 2 * w - 16));
       R(px, sy + r, 6, 1, a > 0.7 ? '#a6cfe6' : '#5f9ac0');
+    }
+    if (key === 'o') for (let i = 0; i < 3; i++) {
+      if (Math.sin(t * 1.2 + i) <= 0.5) continue;
+      const r = 6 + Math.floor(hash(x, y, i + 9) * 28), w2 = r < 20 ? 2 * (r + 1) : 2 * (40 - r);
+      const px = cx - w2 + 6 + Math.floor(hash(y, x, i + 5) * Math.max(1, 2 * w2 - 12));
+      R(px, sy + r, 6, 1, '#dfeaf0');
     }
     return;
   }
@@ -275,6 +283,7 @@ function drawTile(x, y, t) {
     else if (key === 'r') c = k < 0.5 ? '#86847e' : '#605e58';
     else if (key === 'R') c = k < 0.5 ? '#a09f99' : '#7b7a74';
     else if (key === 'f') c = k < 0.35 ? '#dfe5e8' : '#474630';
+    else if (key === 's') c = k < 0.4 ? '#dcc99a' : k < 0.8 ? '#b3a172' : '#8f7f5a';
     else c = k < 0.5 ? '#918e85' : '#6c6961';
     R(px, sy + r, len, 1, c);
   }
