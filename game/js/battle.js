@@ -30,7 +30,7 @@ function newBattle(mi) {
   const M = MISSIONS[mi];
   B = {
     mission: M, mi, turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
-    stats: { kills: 0, heli: 0, orlan: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, gridLost: 0, dmgTaken: 0 },
+    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, gridLost: 0, dmgTaken: 0 },
     nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {},
   };
   for (let y = 0; y < 8; y++) {
@@ -281,6 +281,7 @@ async function killUnit(o, src, how) {
     B.stats.kills++;
     if (o.type === 'ka52' || o.type === 'mi8') { B.stats.heli++; bark('heli'); }
     if (o.type === 'orlan') { B.stats.orlan++; bark('orlan'); }
+    if (U(o).mob === 'sea') B.stats.naval++;
     if (d.armor) B.stats.armor++;
     if (o.type === 'cmd') { B.stats.cmd++; bark('cmd'); }
     toast(`${d.name} 被摧毁`, 'good');
@@ -313,7 +314,7 @@ async function pushUnit(v, dir) {
   v.x = nx; v.y = ny;
   await tween(170, k => { v.rx = lerp(nx - dir[0], nx, k); v.ry = lerp(ny - dir[1], ny, k); }, EASE.out);
   if (isWater(t) && !air && !U(v).amph && U(v).mob !== 'sea') {
-    toast(`${U(v).name} 被推进河里沉没`, v.team === 'ru' ? 'good' : 'bad');
+    toast(`${U(v).name} 落水沉没`, v.team === 'ru' ? 'good' : 'bad');
     await killUnit(v, null, 'drown');
   }
 }
