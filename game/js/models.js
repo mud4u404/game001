@@ -141,7 +141,7 @@ function mBtr(cmd) {
   for (const s of [-1, 1]) { v.set(3, s * 3, 4, '#2b2e2a'); v.set(-2, s * 3, 3, D); v.set(-5, s * 3, 3, D); }
   if (cmd) {
     v.box(-6, -1, -2, 2, 6, 7, D);
-    for (const [x, y] of [[-6, 2], [-4, -2], [2, 2]]) v.box(x, x, y, y, 6, 17, '#2a2c26');
+    for (const [x, y] of [[-6, 2], [-4, -2], [2, 2]]) { v.set(x, y, 6, '#2a2c26'); v.box(x, x, y, y, 7, 13, '#7d8488'); v.set(x, y, 14, '#b7bec2'); }
     v.box(3, 4, -1, 0, 6, 6, '#2b2e2a');
   } else {
     v.box(-1, 1, -1, 1, 6, 7, D); v.box(2, 9, 0, 0, 7, 7, '#2b2e25'); v.box(-1, -1, 1, 2, 8, 8, '#2b2e25');
