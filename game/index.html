@@ -215,11 +215,6 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .up .ucost{font-size:12px;color:var(--sun);font-weight:700}
 .dbgo{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
-#gameover{background:rgba(5,8,11,.94);display:grid;place-items:center}
-#gameover .panel{padding:28px 32px;display:grid;gap:14px;max-width:480px;text-align:center}
-#gameover h2{margin:0;font-family:var(--f-disp);font-weight:400;font-size:44px;color:var(--red)}
-#gameover p{margin:0;color:var(--dim);line-height:1.7}
-
 @media (max-width:900px){
   .db{grid-template-columns:1fr}
   .cside{width:min(360px,52vw)}
@@ -261,7 +256,6 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
   <div class="ctop"><h2 id="cTitle"></h2><span id="cSub"></span></div>
   <aside class="cside">
     <div class="panel">
-      <div class="res"><span class="ph">电网</span><span id="cGrid"></span></div>
       <div class="res"><span class="ph">国际援助</span><span class="aid"><b class="num" id="cAid">0</b></span></div>
     </div>
     <div class="panel"><span class="ph">战役进程</span><div id="cList"></div></div>
@@ -288,7 +282,6 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 <section id="hud" class="layer" hidden>
   <div class="hl">
     <div class="panel">
-      <div class="ht"><span class="ph">电网</span><span id="hGrid"></span></div>
       <div class="ht"><span id="hMission"></span><span class="tn" id="hTurn"></span></div>
     </div>
     <div class="roster" id="roster"></div>
@@ -333,13 +326,6 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
   </div>
 </section>
 
-<section id="gameover" class="layer" hidden>
-  <div class="panel">
-    <h2>电网崩溃</h2>
-    <p>城市陷入黑暗，防线随之瓦解。这一轮推演失败了。</p>
-    <button class="btn primary big" id="btnRestart" type="button">重新开始战役</button>
-  </div>
-</section>
 
 <script src="js/util.js"></script>
 <script src="js/gfx.js"></script>
