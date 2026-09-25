@@ -99,7 +99,6 @@ const BOT = async () => {
     const st = await page.evaluate(() => ({ scene: window.__sf.SCENE, stats: window.__sf.B.stats, aid: window.__sf.CAMP.aid, turn: window.__sf.B.turn }));
     log.push(st);
     await page.screenshot({ path: `${out}/2${m}-debrief.png` });
-    if (st.scene === 'campaign' && await page.isVisible('#gameover')) { log.push('GAME OVER'); break; }
     await page.evaluate(() => { const b = document.querySelector('#shop .up:not([disabled])'); if (b) b.click(); });
     // chapter transitions play story cards; fast-forward them and wait for the map
     await page.evaluate(() => window.__sf.setSpeed(0.01));

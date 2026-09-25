@@ -590,6 +590,9 @@ function fixUnit(rid) {
   renderShop();
 }
 function continueCampaign() {
+  // accept the result: units that died in this battle are marked wrecked in the roster
+  for (const u of B.units) if (u.team === 'ua' && u.dead && u.rid) { const rec = CAMP.roster.find(r => r.rid === u.rid); if (rec) rec.wrecked = true; }
+  for (const rid of B.deadRids || []) { const rec = CAMP.roster.find(r => r.rid === rid); if (rec) rec.wrecked = true; }
   const doneM = MISSIONS[Math.min(CAMP.mission, MISSIONS.length - 1)];
   if (lastResult && lastResult.win && doneM.grant && !CAMP.flags['grant' + CAMP.mission]) {
     CAMP.flags['grant' + CAMP.mission] = true;

@@ -49,7 +49,7 @@ function newBattle(mi, picks) {
   B = {
     mission: M, mi, squad: picks.slice(), turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
     stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0 },
-    nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {},
+    nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {}, deadRids: [],
   };
   for (let y = 0; y < 8; y++) {
     const row = [];
@@ -317,10 +317,8 @@ async function killUnit(o, src, how) {
   } else if (o.team === 'civ') {
     B.stats.civLost++;
     toast('一批平民遇难', 'bad');
-  } else {
-    toast(how === 'expend' ? `${d.name} 完成攻击` : `${d.name} 被摧毁`, how === 'expend' ? '' : 'bad');
-    if (o.rid) { const rec = CAMP.roster.find(r => r.rid === o.rid); if (rec) rec.wrecked = true; }
-  }
+  } else toast(how === 'expend' ? `${d.name} 完成攻击` : `${d.name} 被摧毁`, how === 'expend' ? '' : 'bad');
+  if (o.rid) B.deadRids.push(o.rid);
   if (how === 'drown' || how === 'expend') { await animSink(o); }
   else if (d.cls === 'air') await animCrash(o);
   else if (isVehicle(o)) await animWreck(o);
