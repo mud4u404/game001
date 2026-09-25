@@ -294,7 +294,7 @@ function renderHud() {
   $('deploy').hidden = B.phase !== 'deploy';
   $('hBottom').hidden = B.phase === 'deploy';
   // roster
-  $('roster').innerHTML = ['t64', 'atgm', 'd30'].map(type => {
+  $('roster').innerHTML = Object.keys(B.mission.squad).map(type => {
     const u = B.units.find(v => v.type === type && v.team === 'ua' && !v.dead);
     const d = UNITS[type];
     if (!u) return `<button class="rchip dead" type="button" disabled><img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span><em>损毁</em></button>`;
@@ -443,7 +443,7 @@ document.addEventListener('keydown', ev => {
   if (busy || (B.phase !== 'player' && B.phase !== 'deploy')) return;
   if (k === 'tab') {
     ev.preventDefault();
-    const list = ['t64', 'atgm', 'd30'].map(t => B.units.find(v => v.type === t && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
+    const list = Object.keys(B.mission.squad).map(t => B.units.find(v => v.type === t && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
     if (!list.length) return;
     const i = list.findIndex(v => v.id === sel);
     selectUnit(ev.shiftKey ? list[(i <= 0 ? list.length : i) - 1] : list[(i + 1) % list.length]);

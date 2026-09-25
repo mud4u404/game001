@@ -69,6 +69,8 @@ const CHARS = {
   mykola: { name: '米科拉·舍甫琴科 上士', call: '老鹰', role: 'T-64BV 车长', face: { skin: '#d2a47e', hair: '#6b5a4a', style: 'tanker', mustache: '#5a4a3a', uniform: '#4d5733' } },
   taras:  { name: '塔拉斯·梅利尼克', call: '教授', role: '反坦克组组长', face: { skin: '#e0b896', hair: '#8a8378', style: 'helmet', beard: '#9a9388', glasses: true, uniform: '#5f6f3c' } },
   ivanna: { name: '伊万娜·霍尔丁 中尉', call: '计算器', role: 'D-30 炮班长', face: { skin: '#ecc4a0', hair: '#b0763c', style: 'beanie', uniform: '#56603a' } },
+  olena:  { name: '奥列娜·克拉夫丘克 中士', call: '海燕', role: '无人艇操作员', face: { skin: '#e8c0a0', hair: '#2a2420', style: 'beanie', headset: true, uniform: '#2f3b4a' } },
+  dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#4a3a2a', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
   radio:  { name: '无线电截获', call: '截获', role: '俄军频道', face: { radio: true } },
 };
 

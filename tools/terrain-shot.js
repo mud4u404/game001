@@ -39,22 +39,33 @@ const url = 'file://' + path.resolve(__dirname, '../game/index.html');
     if (nt.some(p => p.x === 5 && p.y === 3)) problems.push('海王星不应锁定 (5,3) 的地面目标');
     if (nep.ammo.nep !== 2) problems.push('海王星弹药应为 2，实际 ' + nep.ammo.nep);
     const mg = mkUnit('magura', 3, 6); B.units.push(mg);
-    // T-07 will add the olena/dmytro pilots; until then a missing pilot crashes the
-    // unit card in renderHud (ui.js portrait), so borrow an existing one for the test only.
-    UNITS.magura.pilot = 'taras';
     await playerFire(mg, 'seaRam', weaponTargets(mg, 'seaRam').find(p => p.x === 3 && p.y === 7));
     if (!rap.dead) problems.push('猛禽艇应被撞击摧毁');
     if (!mg.dead) problems.push('无人艇撞击后应自毁');
     if (B.stats.kills !== 1) problems.push('击杀数应为 1，实际 ' + B.stats.kills);
+    // squad-driven roster: swap in the chapter-2 sea squad and rebuild the battle
+    window.__origSquad = MISSIONS[1].squad;
+    MISSIONS[1].squad = { magura: [2, 6], neptune: [3, 3], atgm: [4, 3] };
+    newBattle(1);
+    for (let x = 0; x < 8; x++) { for (let y = 5; y <= 7; y++) B.tiles[y][x] = { t: 'o' }; B.tiles[4][x] = { t: 's' }; }
+    SCENE = 'battle'; B.phase = 'player'; show('hud');
+    selectUnit(B.units.find(u => u.type === 'magura')); renderHud();
+    const chips = document.querySelectorAll('#roster .rchip').length;
+    if (chips !== 3) problems.push('名单应为 3 项，实际 ' + chips);
+    const rosterText = document.getElementById('roster').innerText;
+    for (const name of ['无人艇', '海王星', '标枪/毒刺']) if (!rosterText.includes(name)) problems.push('名单缺少 ' + name);
     return problems;
   })()`);
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `${out}/terrain.png` });
+  await page.screenshot({ path: `${out}/squad.png` });
+  await page.evaluate('MISSIONS[1].squad = window.__origSquad');
   await browser.close();
   if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
   if (bad.length) { console.error(bad.join('\n')); process.exit(1); }
   console.log('TERRAIN OK');
   console.log('NAVAL OK');
+  console.log('SQUAD OK');
 })().catch(e => { console.error('TERRAIN-SHOT CRASHED', e); process.exit(2); });
 // Guard against a hung page.
 setTimeout(() => { console.error('TERRAIN-SHOT TIMEOUT'); process.exit(3); }, 60 * 1000).unref();
