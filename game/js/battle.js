@@ -6,6 +6,7 @@ let CAMP = null;    // campaign progress (grid, aid, upgrades, flags)
 const inB = (x, y) => x >= 0 && y >= 0 && x < 8 && y < 8;
 const TILEAT = (x, y) => B.tiles[y][x];
 const bldAlive = t => !!BLD[t.t] && t.hp > 0;
+const isWater = t => t.t === 'w' || t.t === 'o';
 const unitAt = (x, y) => B.units.find(u => u.x === x && u.y === y && !u.dead);
 const U = u => UNITS[u.type];
 const isAir = u => U(u).cls === 'air';
@@ -49,10 +50,11 @@ function moveCost(u, x, y) {
   const t = TILEAT(x, y), d = U(u);
   if (bldAlive(t)) return Infinity;
   if (d.mob === 'air') return 1;
+  if (d.mob === 'sea') return isWater(t) ? 1 : Infinity;
   if (t.wreck) return Infinity;
-  if (d.mob === 'foot') return t.t === 'w' ? Infinity : 1;
+  if (d.mob === 'foot') return isWater(t) ? Infinity : 1;
   if (t.t === 'f' || t.t === 'd') return Infinity;
-  if (t.t === 'w') return d.amph ? 2 : Infinity;
+  if (isWater(t)) return d.amph ? 2 : Infinity;
   if (t.t === 'r' || t.t === 'R') return t.crater ? 2 : 1;
   return 2;
 }
@@ -236,7 +238,7 @@ async function hitTile(x, y, wid, src) {
   const w = WEAPONS[wid], t = TILEAT(x, y), o = unitAt(x, y);
   const big = ['artillery', 'barrage', 'tb2', 'shell', 'javelin', 'atgm'].includes(w.fx);
   explode(x, y, big ? 2 : 1, o && isAir(o) ? U(o).alt : 0);
-  if ((w.crater || wid === 'msta') && !bldAlive(t) && t.t !== 'w' && t.t !== 'd' && !t.crater) {
+  if ((w.crater || wid === 'msta') && !bldAlive(t) && !isWater(t) && t.t !== 'd' && !t.crater) {
     t.crater = true; addDecal(x, y);
     if (t.t === 'R') bark('crater');
   }
@@ -297,7 +299,7 @@ async function pushUnit(v, dir) {
   if (!inB(nx, ny)) return;
   const o = unitAt(nx, ny), t = TILEAT(nx, ny);
   const air = isAir(v);
-  if (o || bldAlive(t) || (!air && (t.wreck || (t.t === 'f' && isVehicle(v))))) {
+  if (o || bldAlive(t) || (!air && (t.wreck || (t.t === 'f' && isVehicle(v)))) || U(v).mob === 'sea' && !isWater(t)) {
     await animBump(v, dir);
     AUDIO.hit(); shake(2);
     if (o) { await damageUnit(o, 1); if (!v.dead) await damageUnit(v, 1); }
@@ -307,7 +309,7 @@ async function pushUnit(v, dir) {
   }
   v.x = nx; v.y = ny;
   await tween(170, k => { v.rx = lerp(nx - dir[0], nx, k); v.ry = lerp(ny - dir[1], ny, k); }, EASE.out);
-  if (t.t === 'w' && !air && !U(v).amph) {
+  if (isWater(t) && !air && !U(v).amph && U(v).mob !== 'sea') {
     toast(`${U(v).name} 被推进河里沉没`, v.team === 'ru' ? 'good' : 'bad');
     await killUnit(v, null, 'drown');
   }
@@ -476,7 +478,7 @@ function markBarrage() {
     if (!tgt) {
       const u = pick(us), opts = [];
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
-        if (Math.abs(x - u.x) + Math.abs(y - u.y) > 2 || TILEAT(x, y).t === 'w' || used.has(x + ',' + y)) continue;
+        if (Math.abs(x - u.x) + Math.abs(y - u.y) > 2 || isWater(TILEAT(x, y)) || used.has(x + ',' + y)) continue;
         const o = unitAt(x, y); if (o && o.team === 'ru') continue;
         opts.push({ x, y });
       }
