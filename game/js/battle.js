@@ -14,7 +14,7 @@ const isVehicle = u => ['ha', 'la', 'soft'].includes(U(u).cls);
 const ua = () => B.units.filter(u => u.team === 'ua' && !u.dead);
 const ru = () => B.units.filter(u => u.team === 'ru' && !u.dead);
 
-function mkUnit(type, x, y) {
+function mkUnit(type, x, y, xp = 0) {
   const d = UNITS[type], M = B.mission;
   const u = {
     id: B.nextId++, type, team: d.team, x, y, hp: d.hp, max: d.hp, moved: false, acted: false,
@@ -25,6 +25,10 @@ function mkUnit(type, x, y) {
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
   if (type === 'bmp2') { u.ammo.kon = 1; }
+  u.xp = xp;
+  const rank = rankOf(xp);
+  if (rank.hp) { u.hp += rank.hp; u.max += rank.hp; }
+  if (rank.move) u.move = d.move + rank.move;
   return u;
 }
 function defaultPicks(M) {
@@ -58,7 +62,7 @@ function newBattle(mi, picks) {
   }
   const seenTypes = {};
   for (const rec of picks) {
-    const u = mkUnit(rec.type, 0, 0);
+    const u = mkUnit(rec.type, 0, 0, rec.xp || 0);
     let pos = null;
     if (M.squad[rec.type] && !seenTypes[rec.type]) pos = { x: M.squad[rec.type][0], y: M.squad[rec.type][1] };
     if (!pos || unitAt(pos.x, pos.y)) pos = deploySpot(u, M);
@@ -88,7 +92,7 @@ function moveCost(u, x, y) {
   return 2;
 }
 function reach(u, budget) {
-  const mp = budget == null ? U(u).move : budget;
+  const mp = budget == null ? (u.move || U(u).move) : budget;
   const best = new Map([[u.x + ',' + u.y, { x: u.x, y: u.y, c: 0, prev: null }]]);
   const open = [{ x: u.x, y: u.y, c: 0 }];
   while (open.length) {
@@ -312,6 +316,7 @@ async function killUnit(o, src, how) {
     if (U(o).mob === 'sea') B.stats.naval++;
     if (d.armor) B.stats.armor++;
     if (o.type === 'cmd') { B.stats.cmd++; bark('cmd'); }
+    if (src && src.team === 'ua' && src.xp !== undefined) src.xp++;
     toast(`${d.name} 被摧毁`, 'good');
     if (!B.said.firstKill) { B.said.firstKill = 1; bark('kill', src); }
   } else if (o.team === 'civ') {
@@ -373,7 +378,9 @@ async function playerFire(u, wid, t) {
   sel = u.id; mode = null;
   renderHud();
   await animAttack(u, wid, t, eff);
+  const xpBefore = u.xp;
   await applyEffects(eff, u);
+  if (w.selfDestruct) u.xp = xpBefore; // 撞击自毁的无人艇不计经验
   if (w.selfDestruct && !u.dead) await killUnit(u, null, 'expend');
   busy = false;
   afterAction();
@@ -580,6 +587,22 @@ function endMission(reason) {
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;
   res.stats = Object.assign({}, B.stats);
+  // promotions: compare each surviving unit's rank against its record's rank at battle start
+  res.promotions = [];
+  for (const rec of B.squad) {
+    const u = B.units.find(v => v.rid === rec.rid);
+    if (!u || u.dead) continue;
+    const r0 = rankOf(rec.xp || 0), r1 = rankOf(u.xp || 0);
+    if (RANKS.indexOf(r1) > RANKS.indexOf(r0)) {
+      const dup = B.squad.filter(q => q.type === rec.type).length > 1;
+      res.promotions.push(`${CHARS[UNITS[rec.type].pilot].call}${dup ? ' #' + rec.rid : ''}晋升为${r1.name}`);
+      rec.xp = u.xp;
+    }
+  }
+  for (const rec of B.squad) {
+    const u = B.units.find(v => v.rid === rec.rid);
+    if (u && !u.dead) rec.xp = u.xp || 0;
+  }
   if (primaryOk) AUDIO.win(); else AUDIO.lose();
   showDebrief(res);
 }

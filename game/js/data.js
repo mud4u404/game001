@@ -248,6 +248,13 @@ const EPILOGUE = [
   '首都守住了。战争还远没有结束。',
 ];
 
+const RANKS = [
+  { xp: 0, name: '新兵' },
+  { xp: 3, name: '老兵', hp: 1 },
+  { xp: 7, name: '精锐', hp: 1, move: 1 },
+];
+const rankOf = xp => { let r = RANKS[0]; for (const t of RANKS) if ((xp || 0) >= t.xp) r = t; return r; };
+
 const PROLOGUE2 = [
   '2022年3月，黑海。',
   '俄罗斯黑海舰队封锁了乌克兰的港口，登陆舰在敖德萨外海游弋。',
