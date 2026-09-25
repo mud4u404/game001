@@ -77,7 +77,7 @@ const CHARS = {
 // ---------- missions ----------
 const MISSIONS = [
   {
-    id: 'hostomel', code: '1-1', name: '霍斯托梅尔机场', date: '2022年2月24日 下午', place: '基辅州 · 霍斯托梅尔',
+    id: 'hostomel', code: '1-1', name: '霍斯托梅尔机场', date: '2022年2月24日 下午', place: '基辅州 · 霍斯托梅尔', chapter: 0,
     mapPos: [0.38, 0.5], turns: 4, face: { ua: [0, -1], ru: [0, 1] },
     map: ['ffff.fff', 'f..H..Hf', 'RRRRRRRR', 'RRRRRRRR', '..r...r.', 'f.r..f..', 'hhr.h..f', 'b.rh.hf.'],
     deploy: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], [2, 6], [3, 6], [5, 6], [6, 6], [1, 7], [2, 7], [4, 7]],
@@ -110,7 +110,7 @@ const MISSIONS = [
     consequence: B => (objDone(B, 'runway') ? null : { flag: 'runwayOpen', text: '跑道未被破坏：后续任务将出现更多空降兵。' }),
   },
   {
-    id: 'irpin', code: '1-2', name: '伊尔平断桥', date: '2022年3月5日 清晨', place: '基辅州 · 伊尔平',
+    id: 'irpin', code: '1-2', name: '伊尔平断桥', date: '2022年3月5日 清晨', place: '基辅州 · 伊尔平', chapter: 0,
     mapPos: [0.395, 0.635], turns: 5, face: { ua: [1, 0], ru: [-1, 0] },
     map: ['fb.h.w.f', 'h.b.rw.b', '.bSbrw..', '....rw.f', 'fh.b.w..', '.c..rw.h', 'rrrrrdrr', 'ff.h.wf.'],
     deploy: [[0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [2, 4], [4, 4], [0, 5], [2, 5], [3, 5], [4, 5], [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [2, 7], [4, 7], [4, 2], [4, 1]],
@@ -146,7 +146,7 @@ const MISSIONS = [
     consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：电网 -1。', grid: -1 }),
   },
   {
-    id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村',
+    id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村', chapter: 0,
     mapPos: [0.71, 0.635], turns: 5, face: { ua: [0, -1], ru: [-1, 0] },
     map: ['ffff.fff', '.f..f...', 'h.h..h.h', 'rrrrrrrr', '.h.c..h.', '..f....f', 'ff..ff..', 'fff.ffff'],
     deploy: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [2, 5], [0, 5], [1, 5], [3, 5], [4, 5], [0, 6], [1, 6], [2, 6], [3, 6], [3, 7]],
@@ -205,6 +205,18 @@ const EPILOGUE = [
   '在俄军撤出的布恰、伊尔平和霍斯托梅尔，人们找到了数百名平民的遗体。',
   '首都守住了。战争还远没有结束。',
 ];
+
+const PROLOGUE2 = [
+  '2022年3月，黑海。',
+  '俄罗斯黑海舰队封锁了乌克兰的港口，登陆舰在敖德萨外海游弋。',
+  '敖德萨人把沙袋堆上海滩，在港口入口布下水雷。',
+  '“向日葵”特遣队被调往南方。',
+];
+const CHAPTERS = [
+  { name: '战区一 · 基辅之冬', sub: '基辅州战略态势 · 2022年2–3月', geo: 'kyiv', prologue: PROLOGUE, epilogue: EPILOGUE },
+  { name: '战区二 · 黑海', sub: '敖德萨州沿海 · 2022年3–10月', geo: 'odesa', prologue: PROLOGUE2, epilogue: [] },
+];
+const chapterOf = mi => MISSIONS[mi] ? MISSIONS[mi].chapter : CHAPTERS.length - 1;
 
 function countTiles(B, fn) { let n = 0; for (const row of B.tiles) for (const t of row) if (fn(t)) n++; return n; }
 function objDone(B, id) {
