@@ -403,6 +403,26 @@ function m3Tdf() {
 MODEL3D.tdf = m3Tdf;
 
 // ---------- T-19 俄军空降兵 vdv ----------
+function m3Vdv() {
+  const T = new THREE.Group();
+  const opts = { uni: '#5f6450', vest: '#4d5140', helmet: '#555a48', band: '#e8e8e0' };
+  const PACK = mat3('#4a4e3d', 0.85), PAD = mat3('#5d6450', 0.85), NET = mat3('#6a6f55', 1);
+  // 1. standing rifleman, helmet covered with a camouflage net
+  const s1 = soldier3(T, 2, 0, 0, Object.assign({ gun: 'rifle' }, opts));
+  part(s1, new THREE.SphereGeometry(0.62, 16, 10, 0, Math.PI * 2, 0, HALF_PI * 1.05), NET, 0.02, 3.67, 0).scale.set(1.08, 0.95, 1.02);
+  // kneeling rifleman and standing machine gunner
+  soldier3(T, 1.2, -2.6, 0.08, Object.assign({ pose: 'kneel', gun: 'rifle' }, opts));
+  soldier3(T, 0.6, 2.6, -0.08, Object.assign({ gun: 'mg' }, opts));
+  // 2. a big backpack with a rolled sleeping pad on top, for each soldier
+  for (const [px, pz] of [[1.1, 0], [0.4, -2.6], [-0.2, 2.6]]) {
+    part(T, rbox(1.05, 1.35, 0.8, 0.14, 1), PACK, px - 0.9, 2.45, pz);
+    part(T, cyl(0.27, 0.27, 1.7, 12), PAD, px - 0.9, 3.4, pz, 0, 0, HALF_PI);
+  }
+  // 4. green metal ammo box on the ground
+  part(T, rbox(1.5, 0.6, 0.95, 0.08, 1), mat3('#4d5a3a', 0.55, 0.4), 0.2, 0.3, 3.5);
+  return T;
+}
+MODEL3D.vdv = m3Vdv;
 
 // ---------- T-20 撤离的平民 civ ----------
 
