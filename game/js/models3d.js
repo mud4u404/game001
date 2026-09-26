@@ -340,6 +340,40 @@ MODEL3D['bld:h'] = m3House;
 // Each task card adds its builder and MODEL3D registration inside its own section below, so cards merge cleanly.
 
 // ---------- T-17 反坦克组 atgm ----------
+function m3Atgm() {
+  const T = new THREE.Group();
+  const UNI = '#5d6b3e', VEST = '#4a5533', HEL = '#4c5732';
+  const TUBE = mat3('#5d6448', 0.6, 0.05), CLU = mat3('#3b3f33', 0.5, 0.2), DK = mat3('#2d302a', 0.6, 0.3);
+  // 1+3. Soldier A: kneeling professor with the Javelin, thin-frame glasses below the helmet
+  const A = soldier3(T, 1.5, -2, 0, { pose: 'kneel', uni: UNI, vest: VEST, helmet: HEL, gun: 'none' });
+  part(A, cyl(0.1, 0.1, 0.05, 12), DK, 0.45, 3.2, -0.16, 0, 0, HALF_PI);
+  part(A, cyl(0.1, 0.1, 0.05, 12), DK, 0.45, 3.2, 0.16, 0, 0, HALF_PI);
+  part(A, rbox(0.06, 0.05, 0.11, 0.02, 1), DK, 0.47, 3.21, 0);
+  // FGM-148 Javelin on the shoulder: tube, thicker end caps, CLU under the front, eyepiece on the left
+  const J = new THREE.Group(); J.position.set(1.6, 4.3, -2); J.rotation.z = 0.16; T.add(J);
+  part(J, cyl(0.36, 0.36, 5.5, 18), TUBE, 0, 0, 0, 0, 0, HALF_PI);
+  part(J, cyl(0.44, 0.44, 0.5, 18), DK, -2.6, 0, 0, 0, 0, HALF_PI);
+  part(J, cyl(0.42, 0.42, 0.4, 18), DK, 2.65, 0, 0, 0, 0, HALF_PI);
+  part(J, rbox(1.15, 0.6, 0.62, 0.08, 1), CLU, 1.55, -0.52, 0.15);
+  part(J, rbox(0.42, 0.2, 0.2, 0.04, 1), CLU, 0.72, -0.4, 0.52);
+  // 2. Soldier B: standing Stinger gunner, IFF antenna folded on the tube front
+  soldier3(T, -1.5, 2.5, 0, { uni: UNI, vest: VEST, helmet: HEL, gun: 'none' });
+  const S2 = new THREE.Group(); S2.position.set(-0.3, 3.95, 2.5); S2.rotation.z = 0.1; T.add(S2);
+  part(S2, cyl(0.28, 0.28, 7.0, 16), TUBE, 0, 0, 0, 0, 0, HALF_PI);
+  part(S2, cyl(0.34, 0.34, 0.35, 16), DK, -3.3, 0, 0, 0, 0, HALF_PI);
+  part(S2, rbox(0.16, 0.45, 0.16, 0.04, 1), DK, 1.5, -0.45, 0);
+  part(S2, rbox(0.06, 0.55, 0.06, 0.02, 1), DK, 2.4, 0.42, 0);
+  for (let k = 0; k < 3; k++) part(S2, rbox(0.5, 0.05, 0.05, 0.02, 1), DK, 2.4, 0.42 + (k - 1) * 0.16, 0);
+  // 4. open ammo crate, half-open lid, spare tube peeking out
+  part(T, rbox(1.7, 0.55, 1.05, 0.06, 1), CLU, 3.6, 0.28, 1.4);
+  part(T, rbox(1.7, 0.08, 1.05, 0.03, 1), DK, 3.6, 0.66, 0.72, -1.15, 0, 0);
+  part(T, cyl(0.3, 0.3, 3.0, 14), TUBE, 3.95, 0.6, 1.35, 0, 0, HALF_PI);
+  // 5. a bag at each soldier's feet
+  part(T, rbox(0.95, 0.6, 0.75, 0.12, 1), mat3('#4a5533', 0.85), 2.75, 0.3, -3.05);
+  part(T, rbox(0.85, 0.55, 0.7, 0.12, 1), mat3('#3c4529', 0.85), -2.55, 0.28, 3.35);
+  return T;
+}
+MODEL3D.atgm = m3Atgm;
 
 // ---------- T-18 国土防卫步兵班 tdf ----------
 
