@@ -242,34 +242,67 @@ MODEL3D.cmd = () => m3Btr(true);
 // ---------- people ----------
 // Reference figure for every infantry and civilian model. About 4.4 units tall standing.
 // o: { uni, vest, helmet, skin, band, pose: 'stand' | 'kneel', gun: 'rifle' | 'rpg' | 'mg' | 'none', hat } -> Group facing +x.
+// Limb between two points a -> b (arrays [x, y, z]) with a round joint at b.
+function limb(parent, a, b, r, mat, jointMat) {
+  const A = new THREE.Vector3(...a), Bv = new THREE.Vector3(...b), d = Bv.clone().sub(A), len = d.length();
+  const m = part(parent, cyl(r * 0.92, r, len, 10), mat, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+  part(parent, sph(r * 1.02, 10, 8), jointMat || mat, b[0], b[1], b[2]);
+  return m;
+}
 function soldier3(parent, x, z, ry, o) {
   o = o || {};
   const S = new THREE.Group(); S.position.set(x, 0, z); S.rotation.y = ry || 0; parent.add(S);
   const UNI = mat3(o.uni || '#5d6b3e', 0.9), VEST = mat3(o.vest || '#4a5533', 0.85), SK = mat3(o.skin || '#d6ad86', 0.7);
   const HEL = mat3(o.helmet || '#4c5732', 0.6), BK = mat3('#232420', 0.6, 0.3), BOOT = mat3('#2a2620', 0.8);
+  const POUCH = mat3('#3c4529', 0.9), civ = o.band === null && o.gun === 'none';
+  const HAND = civ ? SK : mat3('#2e2f2a', 0.8);
   const kneel = o.pose === 'kneel';
+  // legs: thigh + shin with knee joints, boots
   if (kneel) {
-    part(S, rbox(0.55, 1.4, 0.5, 0.2), UNI, -0.2, 0.3, 0.3, 0, 0, HALF_PI);
-    part(S, rbox(0.55, 1.5, 0.5, 0.2), UNI, 0.35, 0.75, -0.3);
-    part(S, rbox(0.7, 0.3, 0.5, 0.12), BOOT, 0.45, 0.15, -0.3);
+    limb(S, [0, 1.35, 0.3], [-0.55, 0.35, 0.3], 0.26, UNI);
+    limb(S, [-0.55, 0.35, 0.3], [-1.1, 0.25, 0.3], 0.24, UNI);
+    limb(S, [0, 1.35, -0.3], [0.55, 0.85, -0.3], 0.26, UNI);
+    limb(S, [0.55, 0.85, -0.3], [0.5, 0.25, -0.3], 0.24, UNI);
+    part(S, rbox(0.75, 0.3, 0.5, 0.12), BOOT, 0.62, 0.15, -0.3);
   } else for (const s of [-1, 1]) {
-    part(S, rbox(0.55, 1.7, 0.55, 0.22), UNI, 0, 0.85, s * 0.33);
-    part(S, rbox(0.8, 0.32, 0.55, 0.12), BOOT, 0.12, 0.16, s * 0.33);
+    limb(S, [0, 1.75, s * 0.3], [0.06, 0.95, s * 0.32], 0.27, UNI);
+    limb(S, [0.06, 0.95, s * 0.32], [0, 0.32, s * 0.33], 0.24, UNI);
+    part(S, rbox(0.82, 0.32, 0.52, 0.12), BOOT, 0.14, 0.16, s * 0.33);
   }
   const hy = kneel ? 1.35 : 1.75;
-  part(S, rbox(0.9, 1.5, 1.25, 0.3), VEST, 0, hy + 0.75, 0);
-  for (let k = 0; k < 3; k++) part(S, rbox(0.22, 0.4, 0.3, 0.06, 1), mat3('#3c4529', 0.9), 0.5, hy + 0.55, -0.4 + k * 0.4);
-  part(S, rbox(0.5, 0.8, 1.0, 0.15), mat3('#3c4529', 0.9), -0.62, hy + 0.9, 0);
-  for (const s of [-1, 1]) part(S, rbox(0.42, 1.25, 0.42, 0.18), UNI, 0.35, hy + 0.9, s * 0.72, 0, 0, -0.9);
-  if (o.band !== null) part(S, new THREE.BoxGeometry(0.3, 0.26, 0.44), mat3(o.band || '#f2c230', 0.6), 0.02, hy + 1.2, 0.72);
-  part(S, sph(0.42, 18, 12), SK, 0.05, hy + 1.85, 0);
-  if (o.hat) part(S, cyl(0.46, 0.5, 0.35, 16), mat3(o.hat, 0.9), 0.02, hy + 2.12, 0);
-  else part(S, new THREE.SphereGeometry(0.52, 20, 10, 0, Math.PI * 2, 0, HALF_PI * 1.05), HEL, 0.02, hy + 1.92, 0).scale.set(1.05, 0.9, 1.0);
-  const gun = o.gun || 'rifle';
+  // torso: plate carrier over the uniform, chest plate, magazine pouches, back pack
+  part(S, rbox(0.82, 1.45, 1.15, 0.32), UNI, 0, hy + 0.72, 0);
+  part(S, rbox(0.9, 1.1, 1.22, 0.25), VEST, 0.02, hy + 0.9, 0);
+  part(S, rbox(0.14, 0.75, 0.8, 0.06), VEST, 0.5, hy + 1.0, 0);
+  for (let k = 0; k < 3; k++) part(S, rbox(0.22, 0.38, 0.28, 0.06, 1), POUCH, 0.55, hy + 0.55, -0.38 + k * 0.38);
+  part(S, rbox(0.5, 0.8, 1.0, 0.15), POUCH, -0.62, hy + 0.9, 0);
+  if (o.band !== null) part(S, new THREE.BoxGeometry(0.3, 0.26, 0.44), mat3(o.band || '#f2c230', 0.6), 0.02, hy + 1.1, 0.7);
+  // neck, head, helmet or hat
+  part(S, cyl(0.19, 0.22, 0.3, 10), SK, 0.04, hy + 1.52, 0);
+  part(S, sph(0.4, 18, 12), SK, 0.06, hy + 1.85, 0);
+  if (o.hat) part(S, cyl(0.44, 0.48, 0.35, 16), mat3(o.hat, 0.9), 0.03, hy + 2.12, 0);
+  else {
+    part(S, new THREE.SphereGeometry(0.52, 20, 10, 0, Math.PI * 2, 0, HALF_PI * 1.05), HEL, 0.02, hy + 1.92, 0).scale.set(1.05, 0.9, 1.0);
+    part(S, cyl(0.54, 0.56, 0.08, 20), HEL, 0.02, hy + 1.9, 0);
+  }
+  // arms: shoulder -> elbow -> hand, posed for the weapon
+  const gun = o.gun || 'rifle', sh = s => [0.02, hy + 1.28, s * 0.62];
+  let hands;
+  if (gun === 'rifle' || gun === 'mg') hands = [[[0.45, hy + 0.7, 0.62], [1.02, hy + 0.92, 0.28]], [[0.55, hy + 0.85, -0.55], [1.75, hy + 1.0, 0.24]]];
+  else if (gun === 'rpg') hands = [[[0.4, hy + 0.95, 0.6], [0.75, hy + 1.45, 0.05]], [[0.5, hy + 1.0, -0.62], [1.35, hy + 1.5, -0.5]]];
+  else hands = [[[0.3, hy + 0.7, 0.66], [0.8, hy + 0.75, 0.42]], [[0.3, hy + 0.7, -0.66], [0.8, hy + 0.75, -0.42]]];
+  [1, -1].forEach((s, i) => {
+    const [el, hd] = hands[i];
+    limb(S, sh(s), el, 0.2, UNI);
+    limb(S, el, hd, 0.18, UNI, HAND);
+    part(S, sph(0.23, 12, 8), UNI, ...sh(s));
+  });
   if (gun === 'rifle' || gun === 'mg') {
     const R = new THREE.Group(); R.position.set(0.9, hy + 1.15, 0.25); R.rotation.z = kneel ? 0.05 : -0.15; S.add(R);
     part(R, new THREE.BoxGeometry(gun === 'mg' ? 2.8 : 2.4, 0.18, 0.12), BK, 0.2, 0, 0);
     part(R, new THREE.BoxGeometry(0.22, 0.45, 0.1), BK, 0.1, -0.25, 0, 0, 0, 0.2);
+    part(R, new THREE.BoxGeometry(0.2, 0.4, 0.1), BK, 0.55, -0.24, 0, 0, 0, -0.25);
     if (gun === 'mg') { part(R, new THREE.BoxGeometry(0.5, 0.35, 0.3), BK, 0.2, -0.28, 0); part(R, cyl(0.05, 0.05, 0.6, 6), BK, 1.3, -0.3, 0.12, 0, 0, 0.4); }
   } else if (gun === 'rpg') {
     part(S, cyl(0.16, 0.16, 3.2, 12), mat3('#3d4a2c', 0.6), 0.2, hy + 1.65, -0.55, 0, 0, HALF_PI);
