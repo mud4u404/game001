@@ -635,6 +635,54 @@ function m3T72b3() {
 MODEL3D.t72 = m3T72b3;
 
 // ---------- T-24 BM-21 冰雹 grad ----------
+function m3Grad() {
+  const T = new THREE.Group();
+  const OL = mat3('#5a5f4b', 0.6, 0.05), OD = mat3('#3f4234', 0.65, 0.05), LT = mat3('#686d58', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3);
+  // 1. wheels: one front axle, two rear axles, big three-layer tires, fenders above
+  for (const s of [-1, 1]) {
+    const z = s * 2.9;
+    for (const x of [5.6, -3.0, -5.2]) {
+      part(T, cyl(1.4, 1.4, 0.9, 24), RUB, x, 1.4, z, HALF_PI);
+      part(T, cyl(1.08, 1.08, 1.0, 20), OL, x, 1.4, z, HALF_PI);
+      part(T, cyl(0.32, 0.32, 1.12, 12), STEEL, x, 1.4, z, HALF_PI);
+      part(T, rbox(3.1, 0.16, 1.2, 0.08, 1), DKS, x, 3.0, s * 2.95);
+    }
+  }
+  // chassis frame
+  part(T, rbox(15.4, 0.5, 3.9, 0.08, 1), OD, 0.2, 1.15, 0);
+  // 2. long-hood Ural cab: engine hood with radiator slats, headlights, bumper, windshield, door windows, flat roof
+  part(T, rbox(2.7, 1.55, 3.3, 0.12, 1), OL, 6.35, 2.5, 0);
+  for (let k = 0; k < 6; k++) part(T, new THREE.BoxGeometry(0.1, 1.1, 0.16), DKS, 7.72, 2.45, -0.5 + k * 0.2);
+  for (const s of [-1, 1]) part(T, cyl(0.3, 0.32, 0.35, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 7.7, 2.9, s * 1.35, 0, 0, HALF_PI);
+  part(T, rbox(0.28, 0.42, 3.5, 0.06, 1), DKS, 7.95, 1.3, 0);
+  for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(0.12, 0.3, 0.5), DKS, 7.7, 1.35, s * 1.1);
+  part(T, rbox(3.1, 1.9, 4.1, 0.15, 1), OL, 4.0, 3.35, 0);
+  part(T, rbox(0.1, 0.85, 1.6, 0.04, 1), GLS, 5.58, 3.85, -0.95);
+  part(T, rbox(0.1, 0.85, 1.6, 0.04, 1), GLS, 5.58, 3.85, 0.95);
+  for (const s of [-1, 1]) part(T, rbox(0.06, 0.7, 1.3, 0.03, 1), GLS, 4.0, 3.85, s * 2.12);
+  part(T, rbox(3.2, 0.16, 4.2, 0.06, 1), OL, 4.0, 4.38, 0);
+  // 3. spare tire standing behind the cab and an equipment box
+  part(T, cyl(1.35, 1.35, 0.8, 22), RUB, -0.55, 2.1, -2.35);
+  part(T, rbox(2.3, 0.95, 1.5, 0.1, 1), OL, -0.75, 1.95, 1.9);
+  // 5. fuel tanks: horizontal cylinders on both sides
+  for (const s of [-1, 1]) part(T, cyl(0.55, 0.55, 2.9, 16), STEEL, 0.4, 1.9, s * 3.15, 0, 0, HALF_PI);
+  // 6. launch rack in the turret group: turntable, tall A-frame, 40-tube block raised 12°
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-1.4, 1.6, 0); T.add(Tu);
+  part(Tu, cyl(2.05, 2.15, 0.5, 26), OL, 0, 0.25, 0);
+  for (const s of [-1, 1]) part(Tu, rbox(0.3, 5.0, 0.5, 0.08, 1), OD, 0.75, 5.15, s * 1.3, 0.32, 0, 0);
+  part(Tu, cyl(0.18, 0.18, 3.0, 12), STEEL, 0.6, 7.45, 0, 0, 0, HALF_PI);
+  const BL = new THREE.Group(); BL.position.set(0.6, 7.55, 0); BL.rotation.z = 0.21; Tu.add(BL);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 10; j++) {
+    part(BL, cyl(0.26, 0.26, 4.8, 12), OL, 1.0, (i - 1.5) * 0.62, (j - 4.5) * 0.62, 0, 0, HALF_PI);
+    part(BL, cyl(0.19, 0.19, 0.1, 10), mat3('#1a1c18', 0.8), 3.42, (i - 1.5) * 0.62, (j - 4.5) * 0.62, 0, 0, HALF_PI);
+  }
+  for (const s of [-1, 1]) part(BL, rbox(5.0, 2.7, 0.12, 0.05, 1), OD, 1.0, 0, s * 3.25);
+  part(BL, rbox(1.4, 2.6, 6.4, 0.06, 1), OD, -1.7, 0, 0);
+  return T;
+}
+MODEL3D.grad = m3Grad;
 
 // ---------- T-25 海王星发射车 neptune ----------
 
