@@ -504,6 +504,63 @@ function m3D30() {
 MODEL3D.d30 = m3D30;
 
 // ---------- T-22 BMP-2 bmp2 ----------
+function m3Bmp2() {
+  const T = new THREE.Group();
+  const OL = mat3('#5b6636', 0.6, 0.05), OD = mat3('#474f2a', 0.65, 0.05), LT = mat3('#66733d', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3);
+  // 1. running gear: six road wheels, three return rollers, toothed drive sprocket, idler, tracks
+  for (const s of [-1, 1]) {
+    const z = s * 2.75;
+    for (let i = 0; i < 6; i++) {
+      const x = -4.9 + i * 1.95;
+      part(T, cyl(1.15, 1.15, 0.85, 24), RUB, x, 1.25, z, HALF_PI);
+      part(T, cyl(0.9, 0.9, 0.95, 20), OL, x, 1.25, z, HALF_PI);
+      part(T, cyl(0.3, 0.3, 1.05, 12), STEEL, x, 1.25, z, HALF_PI);
+    }
+    for (let i = 0; i < 3; i++) part(T, cyl(0.3, 0.3, 0.6, 12), DKS, -3.4 + i * 3.2, 2.6, z, HALF_PI);
+    part(T, cyl(0.85, 0.85, 0.8, 20), OL, 6.15, 1.5, z, HALF_PI);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; part(T, new THREE.BoxGeometry(0.24, 0.24, 0.7), DKS, 6.15 + Math.cos(a) * 1.0, 1.5 + Math.sin(a) * 1.0, z, 0, 0, a); }
+    part(T, cyl(1.0, 1.0, 0.8, 20), OL, -6.3, 1.6, z, HALF_PI);
+    trackLoop(T, -6.3, 6.15, 1.35, 1.15, z, 1.9);
+  }
+  // 2. hull: low wedge with the long corrugated glacis
+  part(T, profile([[-7.0, 1.1], [6.3, 1.0], [7.15, 2.3], [3.8, 3.95], [-7.0, 3.95]], 5.0), OL, 0, 0, 0);
+  const rib = new THREE.Group(); rib.position.set(5.35, 2.5, 0); rib.rotation.z = -0.745; T.add(rib);
+  for (let k = 0; k < 6; k++) part(rib, new THREE.BoxGeometry(0.26, 0.09, 4.5), LT, 0, k * 0.52, 0);
+  // 3. side fender strip, rear doors with windows and handles
+  for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(14.2, 0.14, 0.85), DKS, 0.05, 4.02, s * 2.9);
+  for (const s of [-1, 1]) {
+    part(T, rbox(1.7, 2.7, 0.14, 0.06, 1), OD, -7.05, 2.45, s * 1.25);
+    part(T, rbox(0.55, 0.4, 0.08, 0.03, 1), GLS, -7.12, 3.35, s * 1.25);
+    part(T, new THREE.BoxGeometry(0.1, 0.4, 0.08), DKS, -6.7, 2.6, s * 1.25 + s * 0.09);
+  }
+  // 4. four troop hatches behind the turret, driver hatch and periscopes at the front roof
+  for (const [hx, hz] of [[-2.3, 1.25], [-2.3, -1.25], [-4.1, 1.25], [-4.1, -1.25]]) part(T, rbox(1.5, 0.12, 1.25, 0.05, 1), LT, hx, 4.05, hz);
+  part(T, cyl(0.62, 0.66, 0.16, 22), OL, 4.35, 4.1, -1.15);
+  part(T, rbox(0.7, 0.14, 0.14, 0.03, 1), DKS, 4.9, 4.18, -0.55);
+  // 5. turret offset to the left: flat beveled profile, smoke dischargers on both sides
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-0.8, 4.05, 0.85); T.add(Tu);
+  part(Tu, profile([[-1.8, 0], [1.9, 0.22], [2.15, 1.0], [0.9, 1.5], [-1.55, 1.5], [-1.95, 0.7]], 2.6), OL, 0, 0, 0);
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) part(Tu, cyl(0.15, 0.15, 0.5, 12), DKS, -0.9, 1.0, s * (1.05 + k * 0.38), 0.5 * s, 0, HALF_PI * 0.72);
+  // 6. 2A42 30 mm cannon: root sleeve, long thin barrel, perforated muzzle brake
+  part(Tu, rbox(1.5, 0.85, 1.1, 0.18, 1), OD, 1.35, 0.95, 0);
+  part(Tu, cyl(0.3, 0.3, 2.0, 14), DKS, 2.0, 0.95, 0, 0, 0, HALF_PI);
+  part(Tu, cyl(0.09, 0.12, 10.6, 14), STEEL, 7.3, 0.95, 0, 0, 0, HALF_PI);
+  part(Tu, cyl(0.2, 0.2, 1.1, 14), DKS, 12.0, 0.95, 0, 0, 0, HALF_PI);
+  for (let k = 0; k < 4; k++) part(Tu, new THREE.BoxGeometry(0.14, 0.14, 0.5), DKS, 11.75, 0.95, -0.3 + k * 0.2);
+  // 7. 9M113 Konkurs launcher tube on a mount atop the turret
+  part(Tu, rbox(0.7, 0.4, 0.5, 0.06, 1), DKS, -0.5, 1.75, -0.35);
+  const K = new THREE.Group(); K.position.set(-0.5, 2.0, -0.35); K.rotation.z = 0.12; Tu.add(K);
+  part(K, cyl(0.22, 0.22, 5.4, 14), mat3('#8a8a5c', 0.6, 0.05), 1.9, 0, 0, 0, 0, HALF_PI);
+  part(K, cyl(0.26, 0.26, 0.3, 14), DKS, -0.7, 0, 0, 0, 0, HALF_PI);
+  part(K, cyl(0.26, 0.26, 0.3, 14), mat3('#6d6d48', 0.6), 4.5, 0, 0, 0, 0, HALF_PI);
+  // 8. headlights at the bow, exhaust on the right rear
+  for (const s of [-1, 1]) part(T, cyl(0.24, 0.28, 0.4, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 6.95, 2.95, s * 1.8, 0, 0, HALF_PI);
+  part(T, rbox(1.25, 0.5, 0.9, 0.08, 1), DKS, -6.4, 3.6, -2.15);
+  return T;
+}
+MODEL3D.bmp2 = m3Bmp2;
 
 // ---------- T-23 T-72B3 t72 ----------
 
