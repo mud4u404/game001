@@ -718,6 +718,58 @@ function m3Orlan() {
 MODEL3D.orlan = m3Orlan;
 
 // ---------- T-29 无人艇 magura 与巡逻艇 raptor ----------
+// Boats float on the sea: the game's water plane is y = -1.8, hulls reach down to about y = -2.6.
+const FOAM = () => mat3('#eef2f4', 0.4, 0, { transparent: true, opacity: 0.7 });
+function m3Magura() {
+  const T = new THREE.Group();
+  const DKH = mat3('#2b2e31', 0.6, 0.1), DECK = mat3('#3a3e42', 0.8), DKS = mat3('#2d302a', 0.6, 0.3);
+  // plan-view hull extruded vertically: V-shaped pointed bow, flat deck
+  part(T, profile([[-5.5, -1.3], [-5.5, 1.3], [0.5, 1.05], [3.8, 0.62], [5.5, 0]], 3.0), DKH, 0, -1.1, 0, -HALF_PI);
+  part(T, rbox(10.4, 0.14, 2.35, 0.04, 1), DECK, -0.3, 0.48, 0);
+  // raised charge-bay cover at the front with seam lines
+  part(T, rbox(2.7, 0.5, 1.55, 0.08, 1), DKH, 2.4, 0.72, 0);
+  for (const dz of [-0.5, 0.5]) part(T, new THREE.BoxGeometry(2.5, 0.03, 0.05), mat3('#1a1c18', 0.7), 2.4, 0.99, dz);
+  // short mast with two antennas and a small camera
+  part(T, cyl(0.07, 0.09, 1.6, 10), DKS, -1.9, 1.3, 0);
+  for (const s of [-1, 1]) part(T, cyl(0.025, 0.025, 0.9, 6), DKS, -1.9, 2.3, s * 0.16);
+  part(T, sph(0.15, 12, 8), DKS, -1.9, 2.05, 0);
+  part(T, cyl(0.09, 0.1, 0.1, 10), mat3('#1a1c18', 0.8), -1.9, 2.0, 0, 0, 0, HALF_PI);
+  // stern waterjet outlets: two dark circles
+  for (const dz of [-0.45, 0.45]) part(T, cyl(0.22, 0.22, 0.12, 12), mat3('#141614', 0.8), -5.55, -1.0, dz, 0, 0, HALF_PI);
+  // white bow wave at the waterline
+  part(T, rbox(3.0, 0.06, 2.3, 0.03, 1), FOAM(), 3.3, -1.76, 0, 0, 0, 0.1);
+  return T;
+}
+function m3Raptor() {
+  const T = new THREE.Group();
+  const HULL = mat3('#b5bcc1', 0.55, 0.05), SUP = mat3('#c9cfd3', 0.55, 0.05), DKD = mat3('#7d8488', 0.85);
+  const DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  // plan-view hull: fast planing bow, fender strip along the side
+  part(T, profile([[-9.0, -2.8], [-9.0, 2.8], [6.4, 2.55], [8.7, 1.15], [9.0, 0]], 4.4), HULL, 0, -0.4, 0, -HALF_PI);
+  part(T, rbox(17.8, 0.14, 5.55, 0.04, 1), DKD, -0.1, 1.86, 0);
+  part(T, new THREE.BoxGeometry(17.6, 0.26, 0.26), mat3('#2d302a', 0.7), -0.4, -1.55, 0);
+  // enclosed wheelhouse: dark glass band all round, railing on the roof
+  part(T, rbox(3.5, 2.1, 4.25, 0.12, 1), SUP, 0.8, 3.0, 0);
+  part(T, rbox(3.55, 0.65, 4.3, 0.08, 1), mat3('#223044', 0.1, 0.3), 0.8, 3.55, 0);
+  part(T, rbox(3.3, 0.1, 4.05, 0.05, 1), SUP, 0.8, 4.1, 0);
+  for (const dz of [-1.6, -0.8, 0, 0.8, 1.6]) part(T, cyl(0.035, 0.035, 0.45, 6), DKS, 0.8, 4.32, dz);
+  // remote weapon station on the bow: small turret with a 12.7 mm machine gun, in the turret group
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(4.7, 1.95, 0); T.add(Tu);
+  part(Tu, cyl(0.52, 0.6, 0.55, 18), SUP, 0, 0.28, 0);
+  part(Tu, cyl(0.09, 0.1, 1.9, 10), DKS, 1.1, 0.5, 0, 0, 0, HALF_PI);
+  // mast above the wheelhouse: radar dome (flattened cylinder) and two antennas
+  part(T, cyl(0.09, 0.11, 1.5, 10), DKS, 0.8, 5.0, 0);
+  part(T, cyl(0.55, 0.55, 0.3, 18), mat3('#c9cfd3', 0.6), 0.8, 5.6, 0).scale.set(1.0, 0.55, 1.0);
+  for (const dz of [-0.35, 0.35]) part(T, cyl(0.03, 0.03, 1.1, 6), DKS, 0.8, 5.4, dz);
+  // rear deck: two exhausts and two life raft canisters
+  for (const dz of [-1.5, 1.5]) part(T, cyl(0.2, 0.2, 0.75, 10), DKS, -7.4, 2.15, dz, 0, 0, HALF_PI);
+  for (const dz of [-0.85, 0.85]) part(T, cyl(0.38, 0.38, 1.3, 14), mat3('#e8e8e0', 0.7), -7.9, 2.35, dz, 0, 0, HALF_PI);
+  // bow wave at the waterline
+  part(T, rbox(3.4, 0.06, 3.4, 0.03, 1), FOAM(), 7.0, -1.76, 0, 0, 0, 0.1);
+  return T;
+}
+MODEL3D.magura = m3Magura;
+MODEL3D.raptor = m3Raptor;
 
 // ---------- T-30 赫鲁晓夫楼 bld:b ----------
 
