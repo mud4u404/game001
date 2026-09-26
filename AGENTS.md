@@ -42,7 +42,8 @@
 ## 3. 自测（推送前必须全部通过）
 
 ```
-node tools/check.js                                  # 语法检查 + 改动范围检查
+git fetch origin                                     # 先拉取，否则范围检查会拿过期的集成分支做对比
+node tools/check.js                                  # 语法检查 + 改动范围检查 + 分支来源检查
 node tools/playtest.js /tmp/pt-T-xx                  # 机器人打通整章（2D 模式），结尾输出 ERRORS none（截图输出到仓库外的临时目录）
 node tools/shot3d.js /tmp/s3-T-xx                    # 3D 画面冒烟测试：逐关加载 3D 战场并截图，结尾输出 SHOT3D OK（约 1 分钟）
 ```

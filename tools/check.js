@@ -45,4 +45,8 @@ const changed = new Set([
 const outside = [...changed].filter(f => !res.some(r => r.test(f)));
 if (outside.length) fail(`${id} 改了范围外的文件：\n  ${outside.join('\n  ')}\n  允许的范围：${allowed.join('、')}`);
 else console.log(`✓ 改动范围检查通过（${id}，${changed.size} 个文件）`);
+
+// 3. the branch must start from the trunk: commits of other task cards must not ride along
+const foreign = sh(`git log --format=%s ${TRUNK}..HEAD`).split('\n').filter(l => /^T-\d+/.test(l) && !l.startsWith(id + ':') && !l.startsWith(id + ' '));
+if (foreign.length) { fail(`分支里混进了其他卡的提交（应从 ${TRUNK} 开分支）：\n  ` + foreign.join('\n  ')); process.exit(1); }
 process.exit(failed ? 1 : 0);
