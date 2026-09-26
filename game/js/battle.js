@@ -14,7 +14,7 @@ const isVehicle = u => ['ha', 'la', 'soft'].includes(U(u).cls);
 const ua = () => B.units.filter(u => u.team === 'ua' && !u.dead);
 const ru = () => B.units.filter(u => u.team === 'ru' && !u.dead);
 
-function mkUnit(type, x, y) {
+function mkUnit(type, x, y, xp = 0) {
   const d = UNITS[type], M = B.mission;
   const u = {
     id: B.nextId++, type, team: d.team, x, y, hp: d.hp, max: d.hp, moved: false, acted: false,
@@ -25,21 +25,53 @@ function mkUnit(type, x, y) {
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
   if (type === 'bmp2') { u.ammo.kon = 1; }
+  u.xp = xp;
+  const rank = rankOf(xp);
+  if (rank.hp) { u.hp += rank.hp; u.max += rank.hp; }
+  if (rank.move) u.move = d.move + rank.move;
   return u;
 }
-function newBattle(mi) {
+function defaultPicks(M) {
+  const picks = [];
+  for (const type of Object.keys(M.squad)) {
+    const rec = CAMP.roster.find(r => r.type === type && !r.wrecked && M.pool.includes(r.type));
+    if (rec && !picks.includes(rec)) picks.push(rec);
+  }
+  return picks;
+}
+function deploySpot(u, M) {
+  for (const [x, y] of M.deploy) {
+    if (unitAt(x, y) || moveCost(u, x, y) === Infinity) continue;
+    return { x, y };
+  }
+  const [x, y] = M.deploy[0];
+  return { x, y };
+}
+function newBattle(mi, picks) {
   const M = MISSIONS[mi];
+  if (!picks) picks = defaultPicks(M);
   B = {
-    mission: M, mi, turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
+    mission: M, mi, squad: picks.slice(), turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
     stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0 },
-    nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {},
+    nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {}, deadRids: [],
   };
   for (let y = 0; y < 8; y++) {
     const row = [];
     for (let x = 0; x < 8; x++) { const t = M.map[y][x]; row.push(BLD[t] ? { t, hp: BLD[t].hp, max: BLD[t].hp } : { t }); }
     B.tiles.push(row);
   }
-  for (const [type, [x, y]] of Object.entries(M.squad)) B.units.push(mkUnit(type, x, y));
+  const seenTypes = {};
+  for (const rec of picks) {
+    const u = mkUnit(rec.type, 0, 0, rec.xp || 0);
+    let pos = null;
+    if (M.squad[rec.type] && !seenTypes[rec.type]) pos = { x: M.squad[rec.type][0], y: M.squad[rec.type][1] };
+    if (!pos || unitAt(pos.x, pos.y)) pos = deploySpot(u, M);
+    u.x = pos.x; u.y = pos.y;
+    u.rx = u.x; u.ry = u.y;
+    seenTypes[rec.type] = true;
+    u.rid = rec.rid;
+    B.units.push(u);
+  }
   for (const [type, x, y] of M.enemies) B.units.push(mkUnit(type, x, y));
   B.waves = M.waves.map(w => ({ turn: w.turn, units: w.units.slice() }));
   if (M.extraWaves) for (const [flag, ws] of Object.entries(M.extraWaves)) if (CAMP.flags[flag]) for (const w of ws) B.waves.push({ turn: w.turn, units: w.units.slice() });
@@ -61,7 +93,7 @@ function moveCost(u, x, y) {
   return 2;
 }
 function reach(u, budget) {
-  const mp = budget == null ? U(u).move : budget;
+  const mp = budget == null ? (u.move || U(u).move) : budget;
   const best = new Map([[u.x + ',' + u.y, { x: u.x, y: u.y, c: 0, prev: null }]]);
   const open = [{ x: u.x, y: u.y, c: 0 }];
   while (open.length) {
@@ -285,12 +317,14 @@ async function killUnit(o, src, how) {
     if (U(o).mob === 'sea') B.stats.naval++;
     if (d.armor) B.stats.armor++;
     if (o.type === 'cmd') { B.stats.cmd++; bark('cmd'); }
+    if (src && src.team === 'ua' && src.xp !== undefined) src.xp++;
     toast(`${d.name} 被摧毁`, 'good');
     if (!B.said.firstKill) { B.said.firstKill = 1; bark('kill', src); }
   } else if (o.team === 'civ') {
     B.stats.civLost++;
     toast('一批平民遇难', 'bad');
   } else toast(how === 'expend' ? `${d.name} 完成攻击` : `${d.name} 被摧毁`, how === 'expend' ? '' : 'bad');
+  if (o.rid) B.deadRids.push(o.rid);
   if (how === 'drown' || how === 'expend') { await animSink(o); }
   else if (d.cls === 'air') await animCrash(o);
   else if (isVehicle(o)) await animWreck(o);
@@ -343,7 +377,9 @@ async function playerFire(u, wid, t) {
   sel = u.id; mode = null;
   renderHud();
   await animAttack(u, wid, t, eff);
+  const xpBefore = u.xp;
   await applyEffects(eff, u);
+  if (w.selfDestruct) u.xp = xpBefore; // 撞击自毁的无人艇不计经验
   if (w.selfDestruct && !u.dead) await killUnit(u, null, 'expend');
   busy = false;
   afterAction();
@@ -556,6 +592,22 @@ function endMission(reason) {
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;
   res.stats = Object.assign({}, B.stats);
+  // promotions: compare each surviving unit's rank against its record's rank at battle start
+  res.promotions = [];
+  for (const rec of B.squad) {
+    const u = B.units.find(v => v.rid === rec.rid);
+    if (!u || u.dead) continue;
+    const r0 = rankOf(rec.xp || 0), r1 = rankOf(u.xp || 0);
+    if (RANKS.indexOf(r1) > RANKS.indexOf(r0)) {
+      const dup = B.squad.filter(q => q.type === rec.type).length > 1;
+      res.promotions.push(`${CHARS[UNITS[rec.type].pilot].call}${dup ? ' #' + rec.rid : ''}（${UNITS[rec.type].short}）晋升为${r1.name}。`);
+      rec.xp = u.xp;
+    }
+  }
+  for (const rec of B.squad) {
+    const u = B.units.find(v => v.rid === rec.rid);
+    if (u && !u.dead) rec.xp = u.xp || 0;
+  }
   if (primaryOk) AUDIO.win(); else AUDIO.lose();
   showDebrief(res);
 }

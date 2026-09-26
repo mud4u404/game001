@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>3D 模型检视</title>
+<style>
+html,body{margin:0;background:#16222c;color:#dfe7ee;font:14px system-ui,"Noto Sans SC",sans-serif}
+#info{position:fixed;left:16px;top:12px;z-index:2}
+#info b{color:#f2c230}
+canvas{display:block}
+.lab{position:fixed;font-size:12px;color:#94a6b5;z-index:2}
+</style>
+</head>
+<body>
+<div id="info"></div>
+<canvas id="cv"></canvas>
+<canvas id="stage" hidden></canvas>
+<script src="../game/vendor/three.min.js"></script>
+<script src="../game/js/util.js"></script>
+<script src="../game/js/gfx.js"></script>
+<script src="../game/js/models.js"></script>
+<script src="../game/js/models3d.js"></script>
+<script>
+'use strict';
+// Model viewer: tools/model3d.html?m=<MODEL3D key>[&seed=3][&dmg=1]  (seed and damaged are passed to buildings)
+// Top row: the model close up from the four facings the game uses. Bottom right: the same model at the
+// size it has in the game (one tile about 1/12 of the screen width), on a tile, next to the reference T-64.
+const Q = new URLSearchParams(location.search), key = Q.get('m') || 't64', seed = +(Q.get('seed') || 3), dmg = Q.get('dmg') === '1';
+const cv = document.getElementById('cv');
+const VW = 1600, VH = 900;
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+renderer.setSize(VW, VH); renderer.setPixelRatio(1);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setScissorTest(true);
+
+function stageScene(objs) {
+  const scene = new THREE.Scene();
+  scene.background = lin('#1a2631');
+  const env = new THREE.Scene(), eg = new THREE.SphereGeometry(50, 32, 16), col = [];
+  const top = lin('#b9d3ee'), mid = lin('#8b98a3'), bot = lin('#3b3328'), p = eg.attributes.position;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i) / 50, c = y > 0 ? mid.clone().lerp(top, y) : mid.clone().lerp(bot, -y); col.push(c.r, c.g, c.b); }
+  eg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  env.add(new THREE.Mesh(eg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
+  scene.add(new THREE.HemisphereLight(lin('#dce9f7'), lin('#40362a'), 0.35));
+  const sun = new THREE.DirectionalLight(lin('#ffeed8'), 2.3);
+  sun.position.set(-40, 90, 50); sun.target.position.set(0, 0, 0);
+  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 300 });
+  sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.03;
+  scene.add(sun, sun.target);
+  for (const o of objs) scene.add(o);
+  return scene;
+}
+function tile(x, z, c) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  part(g, rbox(19.7, 19.7, 1.2, 0.5), mat3(c || '#6f6e69', 0.9), 0, -0.6, 0, HALF_PI);
+  part(g, rbox(19.4, 19.4, 6, 0.3), mat3('#3f3427', 1), 0, -4.2, 0, HALF_PI);
+  return g;
+}
+function isoCam(half, target) {
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, -2000, 2000);
+  const el = Math.PI / 6, az = Math.PI / 4, R = 800;
+  cam.position.set(target.x + Math.cos(el) * Math.sin(az) * R, target.y + Math.sin(el) * R, target.z + Math.cos(el) * Math.cos(az) * R);
+  cam.lookAt(target); cam.userData.half = half;
+  return cam;
+}
+function view(scene, cam, x, y, w, h) {
+  const half = cam.userData.half;
+  cam.left = -half * w / h; cam.right = half * w / h; cam.top = half; cam.bottom = -half; cam.updateProjectionMatrix();
+  renderer.setViewport(x, VH - y - h, w, h); renderer.setScissor(x, VH - y - h, w, h);
+  renderer.render(scene, cam);
+}
+function label(text, x, y) { const d = document.createElement('div'); d.className = 'lab'; d.textContent = text; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); }
+
+const build0 = MODEL3D[key], build = () => build0(seed, dmg);
+if (!build0) { document.getElementById('info').innerHTML = `MODEL3D 里没有 <b>${key}</b>`; throw new Error('no model ' + key); }
+const probe = build(), box = new THREE.Box3().setFromObject(probe), sz = box.getSize(new THREE.Vector3());
+document.getElementById('info').innerHTML = `<b>${key}</b>${dmg ? '（受损）' : ''} · 尺寸 长 ${sz.x.toFixed(1)} × 高 ${sz.y.toFixed(1)} × 宽 ${sz.z.toFixed(1)}（一格 = 20）`;
+// four facings, close up
+const FACES = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+FACES.forEach(([fx, fz], i) => {
+  const m = build(); m.rotation.y = -Math.atan2(fz, fx);
+  const scene = stageScene([m, tile(0, 0)]);
+  const x = i * 400, cam = isoCam(Math.max(9, sz.y * 1.3, Math.max(sz.x, sz.z) * 0.55), new THREE.Vector3(0, sz.y * 0.4, 0));
+  view(scene, cam, x, 40, 400, 420);
+  label(`朝向 [${fx}, ${fz}]`, x + 12, 44);
+});
+// game-size view: model and the T-64 reference on a 3 x 1 strip of tiles
+{
+  const m = build(); const ref = MODEL3D.t64(); ref.position.set(-20, 0, 0);
+  const scene = stageScene([m, ref, tile(0, 0), tile(-20, 0, '#8c7a55'), tile(20, 0, '#8c7a55')]);
+  // in game at 1600 x 900 the art canvas is scaled x2: 2 * 2.83 device px per screen unit
+  view(scene, isoCam(430 / 2 / (2 * 2 * Math.SQRT2), new THREE.Vector3(0, 3, 0)), 800, 470, 800, 430);
+  label('游戏中实际大小（左：T-64 参照）', 812, 474);
+  const scene2 = stageScene([build(), (() => { const r = MODEL3D.t64(); r.position.set(-22, 0, 0); return r; })(), tile(0, 0), tile(-22, 0, '#8c7a55')]);
+  view(scene2, isoCam(16, new THREE.Vector3(-8, 3, 0)), 0, 470, 800, 430);
+  label('与 T-64 并排（近景）', 12, 474);
+}
+window.MODEL_READY = true;
+</script>
+</body>
+</html>

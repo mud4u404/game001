@@ -15,6 +15,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--f-ui);font-size:14px;-webkit-font-smoothing:antialiased;user-select:none}
 [hidden]{display:none!important}
+#gl{position:fixed;left:0;top:0;display:block}
 #stage{position:fixed;left:0;top:0;display:block;image-rendering:pixelated;cursor:default}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
@@ -137,6 +138,20 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .rchip.sel{border-color:var(--blue);box-shadow:inset 4px 0 0 var(--blue)}
 .rchip.done{opacity:.6}
 .rchip.dead{opacity:.35}
+.picklist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rchip.pick{grid-template-columns:auto 1fr auto;grid-template-rows:auto;column-gap:8px;padding:5px 8px}
+.rchip.pick .pf{grid-row:auto;width:26px;height:26px}
+.rchip.pick em{grid-column:auto;grid-row:auto;color:var(--sun)}
+.rchip.pick.off{opacity:.4;cursor:not-allowed}
+.rchip.pick:not(.off):hover{border-color:var(--edge)}
+.pkhead{display:flex;justify-content:space-between;align-items:baseline}
+.pkhead .num{font-family:var(--f-px);font-size:12px;color:var(--sun)}
+.roster.big{grid-template-columns:1fr 1fr;gap:5px}
+.stars{color:#d8c040;font-size:10px;letter-spacing:1px;font-style:normal}
+.roster.big .rchip{padding:4px 6px 4px 4px}
+.roster.big .rchip .pf{width:30px;height:30px}
+.shead{font-size:11px;letter-spacing:.14em;color:var(--dim);margin-top:10px;border-bottom:1px solid var(--edge2);padding-bottom:4px}
+.nonerep{font-size:12px;color:var(--faint);padding:6px 0}
 .hr{position:absolute;right:14px;top:14px;width:min(300px,32vw);padding:12px 14px;display:grid;gap:10px}
 #tip{position:absolute;right:14px;top:auto;bottom:110px;width:min(300px,32vw);padding:12px 14px;display:grid;gap:4px;font-size:12px;pointer-events:none}
 #tip h5{margin:0;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:center}
@@ -224,6 +239,7 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.banner.show{animation:none;opacity:1}#storyText.in{animation:none;opacity:1}}
 </style>
 
+<canvas id="gl" aria-hidden="true"></canvas>
 <canvas id="stage" aria-label="战场"></canvas>
 
 <section id="title" class="layer">
@@ -275,6 +291,10 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
     <div><span class="ph">任务目标</span><ul class="objs" id="bObjs" style="margin-top:10px"></ul></div>
     <div><span class="ph">敌情</span><ul class="intel" id="bEnemy" style="margin-top:10px"></ul></div>
     <div class="full"><span class="ph">作战要点</span><ul class="tips" id="bTips" style="margin-top:10px"></ul></div>
+    <div class="full" id="pickBlock">
+      <div class="pkhead"><span class="ph">出击编制</span><span id="pickInfo" class="num"></span></div>
+      <div id="pickList" class="picklist"></div>
+    </div>
     <div class="full go"><button class="btn primary big" id="btnDeploy" type="button">部署部队</button></div>
   </div>
 </section>
@@ -327,12 +347,15 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 </section>
 
 
+<script src="vendor/three.min.js"></script>
 <script src="js/util.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/models.js"></script>
+<script src="js/models3d.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/render.js"></script>
+<script src="js/scene3d.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>

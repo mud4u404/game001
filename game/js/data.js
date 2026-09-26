@@ -3,9 +3,9 @@
 // cls: ha heavy armour · la light armour · soft trucks & towed guns · inf infantry · air aircraft
 // mob: track / wheel pay 2 movement per muddy field (Feb–Mar thaw), 1 on roads; foot pays 1 everywhere.
 const UNITS = {
-  t64:   { name: 'T-64BV 主战坦克', short: 'T-64BV', team: 'ua', cls: 'ha', hp: 4, move: 4, mob: 'track', weapons: ['gun125', 'nsvt'], pilot: 'mykola', desc: '第1独立坦克旅的老式主战坦克，挂着“接触-1”反应装甲。' },
-  atgm:  { name: '反坦克组', short: '标枪/毒刺', team: 'ua', cls: 'inf', hp: 2, move: 3, mob: 'foot', weapons: ['javelin', 'stinger'], pilot: 'taras', desc: '国土防卫部队的反坦克小组。可以进入森林，受到的伤害 -1。' },
-  d30:   { name: 'D-30 榴弹炮', short: 'D-30', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', weapons: ['how122'], pilot: 'ivanna', desc: '122毫米牵引榴弹炮班。需要有友军在目标附近观察才能开火。' },
+  t64:   { name: 'T-64BV 主战坦克', short: 'T-64BV', team: 'ua', cls: 'ha', hp: 4, move: 4, mob: 'track', cost: 2, price: 5, weapons: ['gun125', 'nsvt'], pilot: 'mykola', desc: '第1独立坦克旅的老式主战坦克，挂着“接触-1”反应装甲。' },
+  atgm:  { name: '反坦克组', short: '标枪/毒刺', team: 'ua', cls: 'inf', hp: 2, move: 3, mob: 'foot', cost: 1, price: 3, weapons: ['javelin', 'stinger'], pilot: 'taras', desc: '国土防卫部队的反坦克小组。可以进入森林，受到的伤害 -1。' },
+  d30:   { name: 'D-30 榴弹炮', short: 'D-30', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', cost: 1, price: 3, weapons: ['how122'], pilot: 'ivanna', desc: '122毫米牵引榴弹炮班。需要有友军在目标附近观察才能开火。' },
   t72:   { name: 'T-72B3 坦克', team: 'ru', cls: 'ha', hp: 4, move: 4, mob: 'track', atk: 't72gun', armor: true },
   btr:   { name: 'BTR-82A 装甲车', team: 'ru', cls: 'la', hp: 2, move: 4, mob: 'wheel', amph: true, atk: 'gun30', armor: true },
   cmd:   { name: '团指挥车', team: 'ru', cls: 'la', hp: 2, move: 4, mob: 'wheel', amph: true, atk: null, armor: true },
@@ -14,10 +14,10 @@ const UNITS = {
   ka52:  { name: '卡-52 武装直升机', team: 'ru', cls: 'air', hp: 3, move: 5, mob: 'air', atk: 'vikhr', alt: 36 },
   mi8:   { name: '米-8 运输直升机', team: 'ru', cls: 'air', hp: 2, move: 5, mob: 'air', atk: 'land', alt: 30 },
   orlan: { name: '奥兰-10 侦察无人机', team: 'ru', cls: 'air', hp: 1, move: 5, mob: 'air', atk: null, alt: 44, spotter: true },
-  magura:  { name: '海上无人艇', short: '无人艇', team: 'ua', cls: 'la', hp: 1, move: 5, mob: 'sea', weapons: ['seaRam'], pilot: 'olena', desc: '装满炸药的无人快艇。撞击目标后引爆，自身随之损失。' },
-  neptune: { name: '“海王星”发射车', short: '海王星', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', weapons: ['neptune'], pilot: 'dmytro', desc: '岸基反舰导弹发射车，只能攻击水面舰艇。' },
-  tdf:     { name: '国土防卫步兵班', short: '步兵班', team: 'ua', cls: 'inf', hp: 3, move: 3, mob: 'foot', weapons: ['pkm', 'rpg'], pilot: 'roman', desc: '基辅本地人组成的国土防卫部队步兵班。熟悉每一条街道，可以进入森林。' },
-  bmp2:    { name: 'BMP-2 步兵战车', short: 'BMP-2', team: 'ua', cls: 'la', hp: 3, move: 4, mob: 'track', weapons: ['a42', 'konkurs'], pilot: 'serhiy', desc: '第72机械化旅的步兵战车。机关炮能对空，还带 1 发反坦克导弹。' },
+  magura:  { name: '海上无人艇', short: '无人艇', team: 'ua', cls: 'la', hp: 1, move: 5, mob: 'sea', cost: 1, price: 2, weapons: ['seaRam'], pilot: 'olena', desc: '装满炸药的无人快艇。撞击目标后引爆，自身随之损失。' },
+  neptune: { name: '“海王星”发射车', short: '海王星', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', cost: 2, price: 5, weapons: ['neptune'], pilot: 'dmytro', desc: '岸基反舰导弹发射车，只能攻击水面舰艇。' },
+  tdf:     { name: '国土防卫步兵班', short: '步兵班', team: 'ua', cls: 'inf', hp: 3, move: 3, mob: 'foot', cost: 1, price: 2, weapons: ['pkm', 'rpg'], pilot: 'roman', desc: '基辅本地人组成的国土防卫部队步兵班。熟悉每一条街道，可以进入森林。' },
+  bmp2:    { name: 'BMP-2 步兵战车', short: 'BMP-2', team: 'ua', cls: 'la', hp: 3, move: 4, mob: 'track', cost: 2, price: 4, weapons: ['a42', 'konkurs'], pilot: 'serhiy', desc: '第72机械化旅的步兵战车。机关炮能对空，还带 1 发反坦克导弹。' },
   raptor:  { name: '03160 型“猛禽”巡逻艇', team: 'ru', cls: 'la', hp: 2, move: 5, mob: 'sea', atk: 'kord', armor: true },
   civ:   { name: '撤离的平民', team: 'civ', cls: 'inf', hp: 1, move: 3, mob: 'foot', stable: true },
 };
@@ -84,7 +84,7 @@ const CHARS = {
 // ---------- missions ----------
 const MISSIONS = [
   {
-    id: 'hostomel', code: '1-1', name: '霍斯托梅尔机场', date: '2022年2月24日 下午', place: '基辅州 · 霍斯托梅尔', chapter: 0,
+    id: 'hostomel', code: '1-1', name: '霍斯托梅尔机场', date: '2022年2月24日 下午', place: '基辅州 · 霍斯托梅尔', chapter: 0, slots: 5, pool: ['t64', 'atgm', 'd30', 'tdf', 'bmp2'],
     mapPos: [0.38, 0.5], turns: 4, face: { ua: [0, -1], ru: [0, 1] },
     map: ['ffff.fff', 'f..H..Hf', 'RRRRRRRR', 'RRRRRRRR', '..r...r.', 'f.r..f..', 'hhr.h..f', 'b.rh.hf.'],
     deploy: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], [2, 6], [3, 6], [5, 6], [6, 6], [1, 7], [2, 7], [4, 7]],
@@ -117,7 +117,7 @@ const MISSIONS = [
     consequence: B => (objDone(B, 'runway') ? null : { flag: 'runwayOpen', text: '跑道未被破坏：后续任务将出现更多空降兵。' }),
   },
   {
-    id: 'irpin', code: '1-2', name: '伊尔平断桥', date: '2022年3月5日 清晨', place: '基辅州 · 伊尔平', chapter: 0,
+    id: 'irpin', code: '1-2', name: '伊尔平断桥', date: '2022年3月5日 清晨', place: '基辅州 · 伊尔平', chapter: 0, slots: 6, pool: ['t64', 'atgm', 'd30', 'tdf', 'bmp2'],
     mapPos: [0.395, 0.635], turns: 5, face: { ua: [1, 0], ru: [-1, 0] },
     map: ['fb.h.w.f', 'h.b.rw.b', '.bSbrw..', '....rw.f', 'fh.b.w..', '.c..rw.h', 'rrrrrdrr', 'ff.h.wf.'],
     deploy: [[0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [4, 3], [2, 4], [4, 4], [0, 5], [2, 5], [3, 5], [4, 5], [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [2, 7], [4, 7], [4, 2], [4, 1]],
@@ -130,6 +130,7 @@ const MISSIONS = [
       { turn: 4, units: [['btr', 6, 1]] },
     ],
     extraWaves: { runwayOpen: [{ turn: 2, units: [['vdv', 7, 5]] }] },
+    grant: { type: 'bmp2', text: '第72机械化旅调来一辆 BMP-2。' },
     barrage: { from: 1, count: 1 },
     civ: { path: [[6, 6], [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6]], groups: [1, 2, 3], speed: 3 },
     objectives: [
@@ -154,7 +155,7 @@ const MISSIONS = [
     consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：民防准备不足。' }),
   },
   {
-    id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村', chapter: 0,
+    id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村', chapter: 0, slots: 6, pool: ['t64', 'atgm', 'd30', 'tdf', 'bmp2'],
     mapPos: [0.71, 0.635], turns: 5, face: { ua: [0, -1], ru: [-1, 0] },
     map: ['ffff.fff', '.f..f...', 'h.h..h.h', 'rrrrrrrr', '.h.c..h.', '..f....f', 'ff..ff..', 'fff.ffff'],
     deploy: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [2, 5], [0, 5], [1, 5], [3, 5], [4, 5], [0, 6], [1, 6], [2, 6], [3, 6], [3, 7]],
@@ -190,8 +191,8 @@ const MISSIONS = [
     consequence: () => null,
   },
   {
-    id: 'odesa', code: '2-1', name: '敖德萨湾', date: '2022年4月上旬 夜间', place: '敖德萨州 · 敖德萨湾',
-    chapter: 1, mapPos: [0.56, 0.54], turns: 4, face: { ua: [0, 1], ru: [0, -1] },
+    id: 'odesa', code: '2-1', name: '敖德萨湾', date: '2022年4月上旬 夜间', place: '敖德萨州 · 敖德萨湾', slots: 5, pool: ['t64', 'atgm', 'neptune', 'tdf', 'bmp2'],
+    chapter: 1, mapPos: [0.56, 0.54], turns: 4, face: { ua: [0, 1], ru: [0, -1] }, arrival: { type: 'neptune', text: '海岸导弹营调来一辆“海王星”发射车。' },
     map: ['b.h.fbh.', '.h.r.h.f', 'rrrrrrrr', '.f..h..f', 'ssssssss', 'oooooooo', 'oooooooo', 'oooooooo'],
     deploy: [[0, 1], [2, 1], [4, 1], [6, 1], [0, 3], [2, 3], [3, 3], [5, 3], [6, 3], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2]],
     squad: { t64: [3, 3], atgm: [5, 3], neptune: [2, 1] },
@@ -246,6 +247,13 @@ const EPILOGUE = [
   '在俄军撤出的布恰、伊尔平和霍斯托梅尔，人们找到了数百名平民的遗体。',
   '首都守住了。战争还远没有结束。',
 ];
+
+const RANKS = [
+  { xp: 0, name: '新兵' },
+  { xp: 3, name: '老兵', hp: 1 },
+  { xp: 7, name: '精锐', hp: 1, move: 1 },
+];
+const rankOf = xp => { let r = RANKS[0]; for (const t of RANKS) if ((xp || 0) >= t.xp) r = t; return r; };
 
 const PROLOGUE2 = [
   '2022年3月，黑海。',

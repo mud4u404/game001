@@ -105,7 +105,11 @@ function showTitle() {
   const save = store.get('sunflower-v1');
   $('btnContinue').hidden = !(save && save.mission < MISSIONS.length);
 }
-function freshCamp() { return { aid: 0, mission: 0, flags: {}, up: { jav: 0, sting: 0, t64hp: 0, spot: 0, tb2: 0 }, log: [], pre: null }; }
+function freshCamp() {
+  return { aid: 6, mission: 0, flags: {}, up: { jav: 0, sting: 0, t64hp: 0, spot: 0, tb2: 0 }, log: [], pre: null,
+    roster: [{ rid: 1, type: 't64', wrecked: false, xp: 0 }, { rid: 2, type: 'atgm', wrecked: false, xp: 0 }, { rid: 3, type: 'd30', wrecked: false, xp: 0 }, { rid: 4, type: 'tdf', wrecked: false, xp: 0 }, { rid: 5, type: 'tdf', wrecked: false, xp: 0 }],
+    nextRid: 6 };
+}
 
 // ---------- story cards ----------
 async function playStory(lines, after) {
@@ -268,12 +272,53 @@ function showMissionCard() {
   const M = MISSIONS[CAMP.mission];
   dlg = null;
   $('bDialog').hidden = true; $('bCard').hidden = false;
+  // one-time reinforcement on first entering this mission
+  if (M.arrival && !CAMP.flags['arrival' + CAMP.mission]) {
+    CAMP.flags['arrival' + CAMP.mission] = true;
+    CAMP.roster.push({ rid: CAMP.nextRid++, type: M.arrival.type, wrecked: false, xp: 0 });
+    toast(M.arrival.text, 'good');
+  }
+  // safety net: the free militia squad always exists
+  if (!CAMP.roster.some(r => r.type === 'tdf' && !r.wrecked)) {
+    CAMP.roster.push({ rid: CAMP.nextRid++, type: 'tdf', wrecked: false, xp: 0 });
+    toast('国土防卫部队补充了一个步兵班', 'good');
+  }
+  picked = defaultPicks(M).slice();
   $('bObjs').innerHTML = M.objectives.map(o => `<li class="${o.kind}"><i></i>${esc(o.text)}${o.reward ? `<em>援助 +${o.reward}</em>` : ''}</li>`).join('');
   $('bTips').innerHTML = M.tips.map(t => `<li>${esc(t)}</li>`).join('');
   const enemy = {};
   for (const [type] of M.enemies) enemy[type] = (enemy[type] || 0) + 1;
   for (const w of B.waves) for (const [type] of w.units) enemy[type] = (enemy[type] || 0) + 1;
   $('bEnemy').innerHTML = Object.entries(enemy).map(([t, n]) => `<li>${esc(UNITS[t].name)} <b>×${n}</b></li>`).join('');
+  renderPick();
+}
+// ---------- sortie picker ----------
+let picked = [];
+function pickCost() {
+  const free = picked.findIndex(r => r.type === 'tdf');
+  return picked.reduce((s, r, i) => s + (i === free ? 0 : UNITS[r.type].cost), 0);
+}
+function renderPick() {
+  const M = MISSIONS[CAMP.mission];
+  const free = picked.findIndex(r => r.type === 'tdf');
+  $('pickInfo').textContent = `已选 ${picked.length} / ${M.slots} · 出动费 ${pickCost()} · 可用援助 ${CAMP.aid}`;
+  $('pickList').innerHTML = CAMP.roster.map(rec => {
+    const d = UNITS[rec.type], i = picked.indexOf(rec);
+    const off = rec.wrecked || !M.pool.includes(rec.type);
+    const tag = rec.wrecked ? '损毁' : off ? '不适用' : i === free ? '免费' : d.cost;
+    return `<button type="button" class="rchip pick${i >= 0 ? ' sel' : ''}${off ? ' off' : ''}" data-rid="${rec.rid}" ${off ? 'disabled' : ''}>
+      <img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)} ${rankStars(rec.xp)}</span><em>${tag}</em></button>`;
+  }).join('');
+  $('btnDeploy').disabled = !picked.length;
+}
+function togglePick(rec) {
+  const M = MISSIONS[CAMP.mission];
+  const i = picked.indexOf(rec);
+  if (i >= 0) { picked.splice(i, 1); renderPick(); return; }
+  if (picked.length >= M.slots) { toast('编制已满', ''); return; }
+  picked.push(rec);
+  if (pickCost() > CAMP.aid) { picked.splice(picked.indexOf(rec), 1); toast('援助不足', ''); return; }
+  renderPick();
 }
 function beginDeploy() {
   SCENE = 'battle';
@@ -306,12 +351,13 @@ function renderHud() {
   $('deploy').hidden = B.phase !== 'deploy';
   $('hBottom').hidden = B.phase === 'deploy';
   // roster
-  $('roster').innerHTML = Object.keys(B.mission.squad).map(type => {
-    const u = B.units.find(v => v.type === type && v.team === 'ua' && !v.dead);
-    const d = UNITS[type];
-    if (!u) return `<button class="rchip dead" type="button" disabled><img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span><em>损毁</em></button>`;
+  $('roster').classList.toggle('big', B.squad.length > 4);
+  $('roster').innerHTML = B.squad.map(rec => {
+    const u = B.units.find(v => v.rid === rec.rid);
+    const d = UNITS[rec.type];
+    if (!u || u.dead) return `<button class="rchip dead" type="button" disabled><img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span><em>损毁</em></button>`;
     const st = B.phase === 'deploy' ? '部署' : u.acted ? '已行动' : u.moved ? '已移动' : '待命';
-    return `<button class="rchip ${sel === u.id ? 'sel' : ''} ${u.acted && B.phase === 'player' ? 'done' : ''}" type="button" data-uid="${u.id}"><img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span>${pipsHtml(u.hp, u.max)}<em>${st}</em></button>`;
+    return `<button class="rchip ${sel === u.id ? 'sel' : ''} ${u.acted && B.phase === 'player' ? 'done' : ''}" type="button" data-uid="${u.id}"><img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)} ${rankStars(u.xp)}</span>${pipsHtml(u.hp, u.max)}<em>${st}</em></button>`;
   }).join('');
   // selected unit card
   const su = sel != null ? B.units.find(u => u.id === sel && !u.dead) : null;
@@ -320,7 +366,7 @@ function renderHud() {
     const d = U(su), ch = CHARS[d.pilot];
     card.hidden = false;
     card.innerHTML = `
-      <div class="uc-head"><img class="pf big" alt="" src="${pimg(d.pilot)}"><div><h4>${esc(d.name)}</h4><small>${esc(ch.call)} · ${esc(ch.name)}</small><div class="uc-stats">${pipsHtml(su.hp, su.max)}<span>移动 ${d.move}</span><span>${CLASS_NAME[d.cls]}</span></div></div></div>
+      <div class="uc-head"><img class="pf big" alt="" src="${pimg(d.pilot)}"><div><h4>${esc(d.name)}</h4><small>${esc(ch.call)} · ${esc(ch.name)}${rankOf(su.xp).name !== '新兵' ? ` · ${rankOf(su.xp).name}` : ''}</small><div class="uc-stats">${pipsHtml(su.hp, su.max)}<span>移动 ${su.move || d.move}</span><span>${CLASS_NAME[d.cls]}</span>${rankStars(su.xp)}</div></div></div>
       <div class="weps">${d.weapons.map((wid, i) => {
         const w = WEAPONS[wid], ammo = w.ammo ? su.ammo[w.ammo] : null, empty = ammo === 0;
         return `<button type="button" class="wep ${mode === 'target' && wsel === wid ? 'on' : ''}" data-wid="${wid}" ${su.acted || empty || B.phase !== 'player' ? 'disabled' : ''}>
@@ -331,6 +377,7 @@ function renderHud() {
   renderTip();
 }
 function pipsHtml(hp, max, enemy) { let s = ''; for (let i = 0; i < max; i++) s += `<i class="${i < hp ? 'on' : ''}"></i>`; return `<span class="pips ${enemy ? 'ru' : ''}">${s}</span>`; }
+function rankStars(xp) { const lvl = RANKS.indexOf(rankOf(xp)); return lvl ? `<span class="stars">${'★'.repeat(lvl)}</span>` : ''; }
 function renderTip() {
   const tip = $('tip');
   if (!hover || !B || SCENE !== 'battle') { tip.hidden = true; return; }
@@ -338,7 +385,7 @@ function renderTip() {
   let html = '';
   if (o && o.team !== 'ua') {
     const d = U(o);
-    html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${d.move}${d.amph ? ' · 两栖' : ''}</p>`;
+    html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${o.move || d.move}${d.amph ? ' · 两栖' : ''}</p>`;
     if (o.team === 'civ') html += `<p>沿公路撤离，每回合 3 格。能穿过我方单位，会被敌人挡住。</p>`;
     else if (d.atk === 'land') html += `<p class="threat">下回合：在此降落，放下空降兵</p>`;
     else if (d.spotter) html += `<p class="threat">为俄军炮兵校射：敌方炮火 +1，并瞄准你的单位</p>`;
@@ -455,7 +502,7 @@ document.addEventListener('keydown', ev => {
   if (busy || (B.phase !== 'player' && B.phase !== 'deploy')) return;
   if (k === 'tab') {
     ev.preventDefault();
-    const list = Object.keys(B.mission.squad).map(t => B.units.find(v => v.type === t && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
+    const list = B.squad.map(rec => B.units.find(v => v.rid === rec.rid && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
     if (!list.length) return;
     const i = list.findIndex(v => v.id === sel);
     selectUnit(ev.shiftKey ? list[(i <= 0 ? list.length : i) - 1] : list[(i + 1) % list.length]);
@@ -487,6 +534,7 @@ function showDebrief(res) {
       <div><b class="num">${s.bldHit}</b><span>建筑被击中</span></div>
       <div><b class="num">${s.evac}</b><span>平民撤离</span></div>`;
     const notes = [];
+    if (res.promotions) for (const line of res.promotions) notes.push(line);
     if (res.consequence) notes.push(res.consequence.text);
     $('dbConseq').hidden = !notes.length;
     $('dbConseq').textContent = notes.join(' ');
@@ -500,12 +548,24 @@ function showDebrief(res) {
 }
 function renderShop() {
   $('shopAid').textContent = CAMP.aid;
-  $('shop').innerHTML = UPGRADES.map(up => {
+  const ups = UPGRADES.map(up => {
     const lvl = CAMP.up[up.id] || 0, maxed = lvl >= up.max;
     return `<button type="button" class="up" data-up="${up.id}" ${maxed || CAMP.aid < up.cost ? 'disabled' : ''}>
       <span class="uname">${esc(up.name)}${up.max > 1 ? ` <small>${lvl}/${up.max}</small>` : ''}</span>
       <span class="udesc">${esc(up.desc)}</span><span class="ucost">${maxed ? '已装备' : `援助 ${up.cost}`}</span></button>`;
   }).join('');
+  const pool = ['tdf', 'atgm', 'd30', 'bmp2', 't64'];
+  const units = pool.map(t => {
+    const d = UNITS[t];
+    return `<button type="button" class="up" data-buy="${t}" ${CAMP.aid < d.price ? 'disabled' : ''}>
+      <span class="uname">${esc(d.name)}</span><span class="udesc">${esc(d.desc)}</span><span class="ucost">援助 ${d.price}</span></button>`;
+  }).join('');
+  const fixes = CAMP.roster.filter(r => r.wrecked).map(r => {
+    const d = UNITS[r.type], cost = Math.ceil(d.price / 2);
+    return `<button type="button" class="up" data-fix="${r.rid}" ${CAMP.aid < cost ? 'disabled' : ''}>
+      <span class="uname">${esc(d.name)} <small>#${r.rid}</small></span><span class="udesc">送回后方整修，恢复出战资格。</span><span class="ucost">援助 ${cost}</span></button>`;
+  }).join('');
+  $('shop').innerHTML = `<div class="shead">升级</div>${ups}<div class="shead">部队</div>${units}<div class="shead">维修</div>${fixes || '<div class="nonerep">没有需要维修的部队。</div>'}`;
 }
 function buy(id) {
   const up = UPGRADES.find(u => u.id === id);
@@ -515,7 +575,32 @@ function buy(id) {
   CAMP.aid -= up.cost; AUDIO.select();
   renderShop();
 }
+function buyUnit(type) {
+  const d = UNITS[type];
+  if (!d || CAMP.aid < d.price) return;
+  CAMP.aid -= d.price;
+  CAMP.roster.push({ rid: CAMP.nextRid++, type, wrecked: false, xp: 0 });
+  AUDIO.select();
+  renderShop();
+}
+function fixUnit(rid) {
+  const rec = CAMP.roster.find(r => r.rid === rid);
+  if (!rec || !rec.wrecked) return;
+  const cost = Math.ceil(UNITS[rec.type].price / 2);
+  if (CAMP.aid < cost) return;
+  CAMP.aid -= cost; rec.wrecked = false; AUDIO.select();
+  renderShop();
+}
 function continueCampaign() {
+  // accept the result: units that died in this battle are marked wrecked in the roster
+  for (const u of B.units) if (u.team === 'ua' && u.dead && u.rid) { const rec = CAMP.roster.find(r => r.rid === u.rid); if (rec) rec.wrecked = true; }
+  for (const rid of B.deadRids || []) { const rec = CAMP.roster.find(r => r.rid === rid); if (rec) rec.wrecked = true; }
+  const doneM = MISSIONS[Math.min(CAMP.mission, MISSIONS.length - 1)];
+  if (lastResult && lastResult.win && doneM.grant && !CAMP.flags['grant' + CAMP.mission]) {
+    CAMP.flags['grant' + CAMP.mission] = true;
+    CAMP.roster.push({ rid: CAMP.nextRid++, type: doneM.grant.type, wrecked: false, xp: 0 });
+    toast(doneM.grant.text, 'good');
+  }
   if (lastResult) CAMP.mission++;
   store.set('sunflower-v1', CAMP);
   const a = chapterOf(Math.max(0, CAMP.mission - 1));
@@ -531,7 +616,21 @@ $('btnContinue').onclick = () => { AUDIO.init(); AUDIO.click(); CAMP = Object.as
 $('btnBrief').onclick = () => { AUDIO.click(); showBriefing(); };
 $('briefing').addEventListener('click', ev => { if (dlg && !ev.target.closest('button')) nextLine(); });
 $('btnSkip').onclick = ev => { ev.stopPropagation(); showMissionCard(); };
-$('btnDeploy').onclick = () => { AUDIO.click(); CAMP.pre = JSON.parse(JSON.stringify(Object.assign({}, CAMP, { pre: null }))); beginDeploy(); };
+$('btnDeploy').onclick = () => {
+  if (!picked.length) return;
+  AUDIO.click();
+  CAMP.pre = JSON.parse(JSON.stringify(Object.assign({}, CAMP, { pre: null })));
+  const free = picked.findIndex(r => r.type === 'tdf');
+  picked.forEach((r, i) => { if (i !== free) CAMP.aid -= UNITS[r.type].cost; });
+  newBattle(CAMP.mission, picked);
+  beginDeploy();
+};
+$('pickList').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-rid]');
+  if (!b) return;
+  const rec = CAMP.roster.find(r => r.rid === +b.dataset.rid);
+  if (rec) togglePick(rec);
+});
 $('btnStart').onclick = () => { AUDIO.click(); sel = null; mode = null; $('deploy').hidden = true; startBattle(); };
 $('btnEnd').onclick = () => { AUDIO.click(); enemyPhase(); };
 $('btnReset').onclick = () => { if (B.phase !== 'player' || busy || B.resetLeft <= 0) return; restoreSnapshot(B.snap); sel = null; mode = null; toast('启用作战预案：本回合重新部署', ''); renderHud(); };
@@ -541,7 +640,11 @@ $('unitCard').addEventListener('click', ev => {
   const w = ev.target.closest('[data-wid]'); if (w) { armWeapon(w.dataset.wid); return; }
   if (ev.target.closest('#btnUndo')) undoMove();
 });
-$('shop').addEventListener('click', ev => { const b = ev.target.closest('[data-up]'); if (b) buy(b.dataset.up); });
+$('shop').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-up]'); if (b) { buy(b.dataset.up); return; }
+  const u = ev.target.closest('[data-buy]'); if (u) { buyUnit(u.dataset.buy); return; }
+  const f = ev.target.closest('[data-fix]'); if (f) fixUnit(+f.dataset.fix);
+});
 $('btnNext').onclick = () => { AUDIO.click(); continueCampaign(); };
 $('btnRetry').onclick = () => {
   AUDIO.click();

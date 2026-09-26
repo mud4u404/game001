@@ -27,6 +27,7 @@ function fitStage() {
   OX = Math.floor(W / 2);
   OY = Math.floor((H - 336) / 2) + 26;
   buildBackground();
+  if (typeof size3D === 'function') size3D();
 }
 // Screen position (CSS px) of an art-space point, for HTML overlays.
 function artToCss(x, y) { const dpr = window.devicePixelRatio || 1; return [x * PX / dpr, y * PX / dpr]; }

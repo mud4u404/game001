@@ -5,7 +5,7 @@ const path = require('path');
 const out = process.argv[2];
 if (!out) { console.error('usage: node tools/terrain-shot.js <outDir>'); process.exit(2); }
 require('fs').mkdirSync(out, { recursive: true });
-const url = 'file://' + path.resolve(__dirname, '../game/index.html');
+const url = 'file://' + path.resolve(__dirname, '../game/index.html') + '?2d';
 
 (async () => {
   const browser = await chromium.launch();

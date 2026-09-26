@@ -11,7 +11,8 @@ const once = process.argv.includes('--once');
 
 function findWork() {
   sh('git -c core.quotepath=off fetch -q origin --prune');
-  const board = sh('git -c core.quotepath=off show origin/main:docs/tasks/BOARD.md');
+  // The board lives on the integration branch (see AGENTS.md); main only receives milestone merges.
+  const board = sh('git -c core.quotepath=off show origin/claude/inspiring-johnson-7m5bvj:docs/tasks/BOARD.md');
   const rows = board.split('\n').filter(l => /^\|\s*T-\d+/.test(l)).map(l => {
     const c = l.split('|').map(s => s.trim());
     return { id: c[1], title: c[2].replace(/\[([^\]]+)\].*/, '$1'), status: c[3], deps: (c[4].match(/T-\d+/g) || []) };

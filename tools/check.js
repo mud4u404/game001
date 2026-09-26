@@ -33,10 +33,12 @@ const allowed = [...scopeLine.matchAll(/`([^`]+)`/g)].map(x => x[1]);
 allowed.push(`docs/tasks/${cardName}`, `docs/tasks/shots/${id}/**`);
 const toRe = g => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$');
 const res = allowed.map(toRe);
-try { sh('git rev-parse --verify origin/main'); } catch (e) { fail('找不到 origin/main，先运行 git fetch origin'); process.exit(1); }
-// Three-dot diff: only what this branch changed since it last took in main.
+// Task branches start from the integration branch (see AGENTS.md), not from main.
+const TRUNK = 'origin/claude/inspiring-johnson-7m5bvj';
+try { sh('git rev-parse --verify ' + TRUNK); } catch (e) { fail(`找不到 ${TRUNK}，先运行 git fetch origin`); process.exit(1); }
+// Three-dot diff: only what this branch changed since it last took in the trunk.
 const changed = new Set([
-  ...sh('git diff --name-only origin/main...HEAD').split('\n'),
+  ...sh(`git diff --name-only ${TRUNK}...HEAD`).split('\n'),
   ...sh('git diff --name-only HEAD').split('\n'),
   ...sh('git ls-files --others --exclude-standard').split('\n'),
 ].filter(Boolean));
