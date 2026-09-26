@@ -685,6 +685,52 @@ function m3Grad() {
 MODEL3D.grad = m3Grad;
 
 // ---------- T-25 海王星发射车 neptune ----------
+function m3Neptune() {
+  const T = new THREE.Group();
+  const OL = mat3('#5b6636', 0.6, 0.05), OD = mat3('#474f2a', 0.65, 0.05), LT = mat3('#66733d', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3);
+  // 1. wheels: four axles, three-layer tires, fenders above
+  for (const s of [-1, 1]) {
+    const z = s * 2.95;
+    for (const x of [-6.4, -4.3, 4.4, 6.5]) {
+      part(T, cyl(1.35, 1.35, 0.9, 24), RUB, x, 1.35, z, HALF_PI);
+      part(T, cyl(1.06, 1.06, 1.0, 20), OL, x, 1.35, z, HALF_PI);
+      part(T, cyl(0.32, 0.32, 1.12, 12), STEEL, x, 1.35, z, HALF_PI);
+      part(T, rbox(2.9, 0.16, 1.25, 0.08, 1), DKS, x, 3.0, s * 2.98);
+    }
+  }
+  part(T, rbox(16.6, 0.5, 4.3, 0.08, 1), OD, 0, 1.15, 0);
+  // 2. flat-front wide cab over the front axle: split windshield, door windows, grille, lights, bumper
+  part(T, rbox(2.9, 2.5, 5.3, 0.14, 1), OL, 6.55, 3.0, 0);
+  for (const s of [-1, 1]) part(T, rbox(0.1, 1.15, 2.15, 0.04, 1), GLS, 8.02, 3.85, s * 1.32);
+  for (const s of [-1, 1]) part(T, rbox(0.06, 0.75, 1.5, 0.03, 1), GLS, 6.55, 3.75, s * 2.72);
+  for (let k = 0; k < 5; k++) part(T, new THREE.BoxGeometry(0.12, 0.9, 0.16), DKS, 8.02, 2.35, -0.45 + k * 0.22);
+  for (const s of [-1, 1]) part(T, cyl(0.26, 0.3, 0.35, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 8.0, 2.9, s * 2.2, 0, 0, HALF_PI);
+  part(T, rbox(0.26, 0.4, 5.0, 0.06, 1), DKS, 8.15, 1.35, 0);
+  // 3. equipment module behind the cab: louvres and access doors on the sides
+  part(T, rbox(4.7, 2.4, 5.3, 0.14, 1), OL, 2.6, 2.85, 0);
+  for (const s of [-1, 1]) {
+    for (let k = 0; k < 5; k++) part(T, new THREE.BoxGeometry(0.14, 0.1, 0.06), DKS, 2.6 + k * 0.4, 3.3, s * 2.68);
+    part(T, rbox(1.0, 1.3, 0.08, 0.04, 1), DKS, 1.9, 2.75, s * 2.68);
+  }
+  // 6. launch assembly in the turret group: frame with four 2x2 square tubes, mouths to -x
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-2.8, 5.7, 0); T.add(Tu);
+  part(Tu, rbox(13.2, 0.35, 3.4, 0.08, 1), OD, 0, -1.5, 0);
+  for (const [ty, tz] of [[0.82, 0.82], [0.82, -0.82], [-0.82, 0.82], [-0.82, -0.82]]) {
+    part(Tu, rbox(12.0, 1.4, 1.4, 0.12, 1), OL, 0, ty, tz);
+    for (const bx of [-2.4, 2.4]) part(Tu, rbox(0.3, 1.52, 1.52, 0.05, 1), DKS, bx, ty, tz);
+    part(Tu, rbox(0.12, 1.32, 1.32, 0.03, 1), mat3('#1a1c18', 0.8), -6.02, ty, tz);
+  }
+  for (const s of [-1, 1]) part(Tu, rbox(0.14, 3.2, 0.14, 0.04, 1), STEEL, 0.3, 0, s * 1.62);
+  // 5. two hydraulic outrigger legs down to the ground
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.3, 0.34, 1.9, 12), STEEL, -7.6, 1.0, s * 2.3);
+    part(T, cyl(0.42, 0.42, 0.22, 12), DKS, -7.6, 0.11, s * 2.3);
+  }
+  return T;
+}
+MODEL3D.neptune = m3Neptune;
 
 // ---------- T-26 卡-52 ka52 ----------
 
