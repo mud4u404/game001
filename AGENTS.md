@@ -50,7 +50,7 @@ node tools/shot3d.js /tmp/s3-T-xx                    # 3D 画面冒烟测试：�
 - 第一次运行前需要安装依赖：`npm ci && npx playwright install chromium`。
 - `playtest.js` 的输出以 `ERRORS none` 结尾，并且退出码为 0，才算通过。
 - 卡片要求截图时，只把**卡片点名的那几张**从临时目录复制到 `docs/tasks/shots/T-xx/`，并在执行记录里写上文件名。不要提交其他截图，避免仓库膨胀。
-- 做 3D 模型的卡：用 `node tools/model-shot.js docs/tasks/shots/T-xx <模型名>` 出检视图（四个朝向、与 T-64 并排、游戏中实际大小），**提交前自己逐个对照卡片的零件清单检查截图**，缺了或比例不对就先改。
+- 做 3D 模型的卡：**先读 `docs/ART.md`，按里面的工作顺序做**（外形描述 → 轮廓阶段看剪影 → 细节 → 检查表）。用 `node tools/model-shot.js docs/tasks/shots/T-xx <模型名>` 出检视图：四个朝向（黄色箭头 = 车头）、与 T-64 并排、剪影、游戏中实际大小；有悬空零件时会打印警告并用红框标出。
 - 测试环境没有显卡，3D 用软件渲染，每帧约 1 秒，截图工具已经等足了时间，不要缩短等待。
 
 ## 4. 项目结构
