@@ -451,6 +451,57 @@ function m3Civ() {
 MODEL3D.civ = m3Civ;
 
 // ---------- T-21 D-30 榴弹炮 d30 ----------
+function m3D30() {
+  const T = new THREE.Group();
+  const OL = mat3('#5b6636', 0.6, 0.05), OD = mat3('#474f2a', 0.65, 0.05), LT = mat3('#66733d', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3), BRASS = mat3('#b08d4a', 0.4, 0.6);
+  // 1. three trails at 120°, spades at the ends, one pointing -x
+  for (const [tx, tz] of [[-9.6, 0], [5.0, 8.7], [5.0, -8.7]]) {
+    const tr = new THREE.Group(); tr.position.set(tx * 0.12, 0.4, tz * 0.12); tr.rotation.y = Math.atan2(tz, tx); T.add(tr);
+    const len = Math.hypot(tx, tz) * 0.9;
+    part(tr, rbox(len, 0.5, 0.75, 0.1, 1), OD, len / 2, 0, 0);
+    for (let k = 0; k < 3; k++) part(tr, rbox(0.5, 0.14, 0.8, 0.04, 1), LT, len / 2 + k * 0.8 - 1, 0.28, 0);
+    part(tr, rbox(1.1, 1.3, 1.3, 0.12, 1), OD, len - 0.4, -0.15, 0);
+  }
+  // 2. central jack: disc + short cylinder
+  part(T, cyl(1.35, 1.45, 0.26, 20), OD, 0, 0.13, 0);
+  part(T, cyl(0.55, 0.68, 1.0, 16), STEEL, 0, 0.7, 0);
+  // 3. wheels raised off the ground, hung on both sides
+  for (const s of [-1, 1]) {
+    part(T, cyl(1.05, 1.05, 0.6, 20), RUB, 2.7, 2.55, s * 2.65, HALF_PI);
+    part(T, cyl(0.42, 0.42, 0.78, 12), STEEL, 2.7, 2.55, s * 2.65, HALF_PI);
+  }
+  // 4. cradle, tapering barrel, muzzle brake with side slots, two recoil cylinders
+  const BG = new THREE.Group(); BG.position.set(0.4, 1.85, 0); BG.rotation.z = 0.085; T.add(BG);
+  part(BG, cyl(0.46, 0.58, 2.6, 18), OL, 1.3, 0, 0, 0, 0, HALF_PI);
+  part(BG, cyl(0.24, 0.36, 9.8, 18), STEEL, 7.0, 0, 0, 0, 0, HALF_PI);
+  for (const dy of [0.5, -0.52]) part(BG, cyl(0.19, 0.19, 3.4, 14), OL, 2.4, dy + 0.15, 0, 0, 0, HALF_PI);
+  part(BG, cyl(0.44, 0.44, 1.7, 18), STEEL, 12.3, 0, 0, 0, 0, HALF_PI);
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) part(BG, new THREE.BoxGeometry(0.55, 0.42, 0.22), DKS, 11.7 + k * 0.6, 0.05, s * 0.3);
+  // 5. small shields with a sight opening
+  for (const s of [-1, 1]) part(BG, rbox(2.7, 1.5, 0.1, 0.05, 1), LT, 2.7, 0.25, s * 0.9, 0, 0, s * -0.2);
+  part(BG, rbox(0.5, 0.5, 0.12, 0.04, 1), GLS, 3.2, 0.8, 0);
+  // 6. sight box and two handwheels at the breech
+  part(BG, rbox(0.45, 0.4, 0.35, 0.05, 1), GLS, -0.7, 0.85, 0.85);
+  part(T, cyl(0.3, 0.3, 0.08, 16), DKS, -1.15, 2.15, 1.15, HALF_PI * 0.5, 0, 0);
+  part(T, cyl(0.24, 0.24, 0.08, 16), DKS, -0.55, 2.0, 1.55, 0, HALF_PI, 0);
+  // 7. crew: kneeling No.1 with a shell, standing layer by the sight
+  soldier3(T, -2.3, -1.7, -0.5, { pose: 'kneel', gun: 'none', uni: '#5b6636', vest: '#4a5533', helmet: '#4c5732' });
+  part(T, cyl(0.14, 0.14, 0.95, 12), BRASS, -1.85, 1.8, -2.35, 0.3, 0, HALF_PI);
+  part(T, sph(0.13, 10, 8), mat3('#8a8f93', 0.5), -1.4, 2.0, -2.35);
+  soldier3(T, -0.5, 1.5, 0.15, { gun: 'none', uni: '#5b6636', vest: '#4a5533', helmet: '#4c5732' });
+  // 8. two ammo boxes, one open with two shells
+  part(T, rbox(1.5, 0.55, 0.9, 0.06, 1), OL, -3.5, 0.28, 2.7);
+  part(T, rbox(1.5, 0.55, 0.9, 0.06, 1), OD, -2.3, 0.28, 3.4);
+  part(T, rbox(1.5, 0.08, 0.9, 0.03, 1), OD, -2.3, 0.62, 3.15, -0.95, 0, 0);
+  for (const dz of [-0.2, 0.2]) {
+    part(T, cyl(0.11, 0.11, 0.85, 10), BRASS, -2.3 + dz, 0.78, 3.4, 0.2, 0, HALF_PI);
+    part(T, sph(0.1, 8, 6), mat3('#8a8f93', 0.5), -2.28 + dz + 0.28, 1.0, 3.4);
+  }
+  return T;
+}
+MODEL3D.d30 = m3D30;
 
 // ---------- T-22 BMP-2 bmp2 ----------
 
