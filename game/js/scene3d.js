@@ -17,7 +17,7 @@ function init3D() {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(1);
     renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.94;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const scene = new THREE.Scene();
     // soft sky gradient for reflections and fill light
@@ -27,7 +27,7 @@ function init3D() {
     eg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     env.add(new THREE.Mesh(eg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
     scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
-    scene.add(new THREE.HemisphereLight(lin('#dce9f7'), lin('#40362a'), 0.35));
+    scene.add(new THREE.HemisphereLight(lin('#dce9f7'), lin('#40362a'), 0.42));
     // light from the upper left of the screen, as in the old voxel shading
     const sun = new THREE.DirectionalLight(lin('#ffeed8'), 2.3);
     sun.position.set(-40, 90, 50); sun.target.position.set(70, 0, 70);
@@ -167,7 +167,7 @@ function buildingModel(tile, seed) {
 
 // ---------- tiles ----------
 const TILE3 = {
-  '.': '#8c7a55', r: '#6f6e69', R: '#76766f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a',
+  '.': '#8c7a55', r: '#6a6964', R: '#66665f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a',
 };
 function tileSig(x, y) {
   const t = TILEAT(x, y);
@@ -183,7 +183,9 @@ function buildTile(x, y) {
     const wm = part(g, new THREE.BoxGeometry(TS, 1, TS), mat3(t.t === 'o' ? '#245a82' : '#2d6592', 0.12, 0.1), 0, -2.3, 0);
     wm.castShadow = false;
   } else {
-    part(g, rbox(TS - 0.3, TS - 0.3, 1.2, 0.5), mat3(topC, t.t === 'r' || t.t === 'R' ? 0.85 : 0.95), 0, -0.6, 0, HALF_PI);
+    // slight per-tile tint so fields and roads are not one flat colour (three steps keep materials shared)
+    const tint = ['#000000', '#101010', '#ffffff'][Math.floor(hash(x, y, 17) * 3)];
+    part(g, rbox(TS - 0.3, TS - 0.3, 1.2, 0.5), mat3(tint === '#000000' ? topC : shade(topC, tint === '#ffffff' ? 0.05 : -0.05), t.t === 'r' || t.t === 'R' ? 0.85 : 0.95), 0, -0.6, 0, HALF_PI);
     part(g, rbox(TS - 0.3, TS - 0.3, 6, 0.3), mat3('#3f3427', 1), 0, -4.2, 0, HALF_PI);
     const SNOW = mat3('#edf1f3', 0.75);
     if (t.t === '.' || t.t === 'f') for (let i = 0; i < 6; i++) part(g, sph(0.8 + hash(x, y, i) * 1.5, 12, 6), SNOW, -8 + hash(i, x, y) * 16, -0.1, -8 + hash(y, i, x) * 16).scale.y = 0.2;
