@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const out = process.argv[2] || 'playtest-out';
 require('fs').mkdirSync(out, { recursive: true });
-const url = 'file://' + path.resolve(__dirname, '../game/index.html');
+const url = 'file://' + path.resolve(__dirname, '../game/index.html') + '?2d';
 
 const BOT = async () => {
   const S = window.__sf, B = S.B;

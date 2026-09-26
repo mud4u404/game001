@@ -5,16 +5,21 @@ function frame(now) {
   const t = now / 1000;
   g = ag;
   OX = Math.floor(SCENE === 'title' ? W * 0.63 : W / 2);
+  const use3D = V3.on && SCENE !== 'campaign' && !!B;
+  show3D(use3D);
+  if (use3D) ag.clearRect(0, 0, W, H);
   if (SCENE === 'campaign') renderCampaign(now);
-  else if (B) renderBattle(now, { clean: SCENE !== 'battle' });
+  else if (B) renderBattle(now, { clean: SCENE !== 'battle', three: use3D });
   drawSnow(t);
   shakeAmt *= 0.86;
   const sx = shakeAmt > 0.3 ? Math.round((Math.random() - 0.5) * shakeAmt) : 0, sy = shakeAmt > 0.3 ? Math.round((Math.random() - 0.5) * shakeAmt) : 0;
-  dg.fillStyle = '#0b1016'; dg.fillRect(0, 0, stage.width, stage.height);
+  if (use3D) { dg.clearRect(0, 0, stage.width, stage.height); render3D(sx, sy); }
+  else { dg.fillStyle = '#0b1016'; dg.fillRect(0, 0, stage.width, stage.height); }
   dg.drawImage(artC, sx * PX, sy * PX, W * PX, H * PX);
   requestAnimationFrame(frame);
 }
 window.addEventListener('resize', () => { fitStage(); renderHud(); });
+init3D();
 fitStage();
 showTitle();
 requestAnimationFrame(frame);

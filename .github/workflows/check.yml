@@ -21,6 +21,8 @@ jobs:
         run: node tools/check.js
       - name: 自动试玩整章
         run: node tools/playtest.js playtest-out
+      - name: 3D 画面冒烟测试
+        run: node tools/shot3d.js playtest-out/3d
       - uses: actions/upload-artifact@v4
         if: always()
         with:

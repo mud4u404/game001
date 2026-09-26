@@ -344,6 +344,11 @@ function drawUnitBase(u, t) {
   const [cx0, cy] = center(u.rx, u.ry), cx = Math.round(cx0), air = isAir(u);
   const a = u.alpha;
   if (a < 0.05) return;
+  if (FLOOR3) {
+    const ring = u.team === 'civ' ? '#e8e6dc' : sel === u.id ? (Math.floor(t * 4) % 2 ? '#fff1b0' : '#f2c230') : u.team === 'ua' ? (u.acted && B.phase === 'player' ? '#7d8c99' : '#4aa3ff') : '#ff4a2b';
+    floorLine(u.rx, u.ry, ring, air ? 22 : 36, 4);
+    return;
+  }
   g.globalAlpha = a;
   fillDia(cx, cy, air ? 20 : 30, 'rgba(0,0,0,.35)');
   if (u.team !== 'civ' || true) {
@@ -368,19 +373,23 @@ function actionOrder(u) {
 }
 function drawUnit(u, t) {
   if (u.alpha < 0.05) return;
-  const s = unitSprite(u);
   const [sx, sy] = unitScreen(u);
-  const dim = u.team === 'ua' && u.acted && B.phase === 'player';
-  g.globalAlpha = u.alpha * (dim ? 0.62 : 1);
-  blit(s, sx, sy);
-  if (u.flash > 0) { g.globalAlpha = u.flash; g.globalCompositeOperation = 'lighter'; blit(s, sx, sy); g.globalCompositeOperation = 'source-over'; }
+  let top;
+  if (FLOOR3) top = -unitTopPx(u.type);
+  else {
+    const s = unitSprite(u), dim = u.team === 'ua' && u.acted && B.phase === 'player';
+    top = s.oy;
+    g.globalAlpha = u.alpha * (dim ? 0.62 : 1);
+    blit(s, sx, sy);
+    if (u.flash > 0) { g.globalAlpha = u.flash; g.globalCompositeOperation = 'lighter'; blit(s, sx, sy); g.globalCompositeOperation = 'source-over'; }
+  }
   const spin = t * 38;
   if (u.type === 'ka52') { drawRotor(sx, sy - 16, 30, spin, 3, 'rgba(20,22,24,.8)'); drawRotor(sx, sy - 19, 30, -spin + 0.5, 3, 'rgba(20,22,24,.8)'); }
   if (u.type === 'mi8') { drawRotor(sx, sy - 18, 34, spin, 5, 'rgba(20,22,24,.7)'); const [tx, ty] = vproj([-17, 1, 7], u.face); drawRotor(sx + tx, sy + ty, 7, -spin * 1.5, 3, 'rgba(20,22,24,.8)'); }
   if (u.type === 'orlan') { const [tx, ty] = vproj([-8, 0, 1], u.face); drawRotor(sx + tx, sy + ty, 5, spin * 2, 2, 'rgba(20,22,24,.8)'); }
   g.globalAlpha = u.alpha;
   if (u.team !== 'civ') {
-    const tw = u.max * 8 - 2, hx = sx - Math.floor(tw / 2), hy = Math.round(sy + s.oy - 12);
+    const tw = u.max * 8 - 2, hx = sx - Math.floor(tw / 2), hy = Math.round(sy + top - 12);
     R(hx - 2, hy - 2, tw + 4, 9, '#0b1210');
     for (let i = 0; i < u.max; i++) {
       R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
@@ -397,6 +406,11 @@ function drawUnit(u, t) {
 }
 
 // ---------- overlays ----------
+// Tile highlights go to the 3D floor texture when the 3D renderer is active, so they sit under the units.
+let FLOOR3 = false;
+function tFill(x, y, c) { if (FLOOR3) floorFill(x, y, c); else { const [cx, cy] = center(x, y); fillDia(cx, cy, 40, c); } }
+function tLine(x, y, c, sz) { if (FLOOR3) floorLine(x, y, c, sz || 40); else { const [cx, cy] = center(x, y); outlineDia(cx, cy, sz || 40, c); } }
+function tHatch(x, y, c) { if (FLOOR3) floorHatch(x, y, c); else hatch(x, y, c); }
 function hatch(x, y, col) {
   const sx = OX + (x - y) * TW, sy = OY + (x + y) * TH;
   g.fillStyle = col;
@@ -416,38 +430,43 @@ function currentPreview() {
 function renderBattle(now, opts) {
   const t = now / 1000;
   opts = opts || {};
-  g.drawImage(bgC, 0, 0);
-  fillDia(OX, OY + 160 + 36, 336, 'rgba(0,0,0,.35)');
+  FLOOR3 = !!opts.three;
   for (const u of B.units) { if (!u.moving) { u.flash = Math.max(0, u.flash - 0.05); } }
-
-  for (let s = 0; s < 15; s++) for (let x = 0; x < 8; x++) { const y = s - x; if (y >= 0 && y < 8) drawTile(x, y, t); }
-  for (const d of B.decals) drawDecal(d);
+  if (FLOOR3) floorBegin();
+  else {
+    g.drawImage(bgC, 0, 0);
+    fillDia(OX, OY + 160 + 36, 336, 'rgba(0,0,0,.35)');
+    for (let s = 0; s < 15; s++) for (let x = 0; x < 8; x++) { const y = s - x; if (y >= 0 && y < 8) drawTile(x, y, t); }
+    for (const d of B.decals) drawDecal(d);
+  }
 
   const pulse = reduced ? 0.5 : (Math.sin(t * 5) + 1) / 2;
   if (!opts.clean) {
-    if (B.phase === 'deploy') for (const [x, y] of B.mission.deploy) { const [cx, cy] = center(x, y); fillDia(cx, cy, 40, 'rgba(74,163,255,.18)'); outlineDia(cx, cy, 40, 'rgba(124,192,255,.6)'); }
-    for (const m of B.marks) { hatch(m.x, m.y, UNITS[m.type].cls === 'air' ? 'rgba(255,120,90,.45)' : 'rgba(242,194,48,.55)'); const [cx, cy] = center(m.x, m.y); outlineDia(cx, cy, 40, UNITS[m.type].cls === 'air' ? '#ff7a5a' : '#f2c230'); }
+    if (B.phase === 'deploy') for (const [x, y] of B.mission.deploy) { tFill(x, y, 'rgba(74,163,255,.18)'); tLine(x, y, 'rgba(124,192,255,.6)'); }
+    for (const m of B.marks) { tHatch(m.x, m.y, UNITS[m.type].cls === 'air' ? 'rgba(255,120,90,.45)' : 'rgba(242,194,48,.55)'); tLine(m.x, m.y, UNITS[m.type].cls === 'air' ? '#ff7a5a' : '#f2c230'); }
     const su = sel != null ? B.units.find(u => u.id === sel) : null;
-    if (su && mode === 'move' && B.phase === 'player') for (const p of reach(su).values()) { if (p.x === su.x && p.y === su.y) continue; const [cx, cy] = center(p.x, p.y); fillDia(cx, cy, 40, 'rgba(74,163,255,.30)'); outlineDia(cx, cy, 40, '#7cc0ff'); }
+    if (su && mode === 'move' && B.phase === 'player') for (const p of reach(su).values()) { if (p.x === su.x && p.y === su.y) continue; tFill(p.x, p.y, 'rgba(74,163,255,.30)'); tLine(p.x, p.y, '#7cc0ff'); }
     if (su && mode === 'target' && wsel && B.phase === 'player') {
       const w = WEAPONS[wsel];
-      if (w.kind === 'arc') { const r = spotRange(); for (const o of ua()) { if (o === su) continue; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (Math.abs(x - o.x) + Math.abs(y - o.y) <= r) { const [cx, cy] = center(x, y); fillDia(cx, cy, 40, 'rgba(120,200,255,.06)'); } } }
-      for (const p of weaponTargets(su, wsel)) { const [cx, cy] = center(p.x, p.y); fillDia(cx, cy, 40, 'rgba(242,194,48,.16)'); outlineDia(cx, cy, 40, 'rgba(242,194,48,.85)'); }
+      if (w.kind === 'arc') { const r = spotRange(); for (const o of ua()) { if (o === su) continue; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (Math.abs(x - o.x) + Math.abs(y - o.y) <= r) tFill(x, y, 'rgba(120,200,255,.06)'); } }
+      for (const p of weaponTargets(su, wsel)) { tFill(p.x, p.y, 'rgba(242,194,48,.16)'); tLine(p.x, p.y, 'rgba(242,194,48,.85)'); }
     }
-    if (mode === 'support' && B.phase === 'player') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const [cx, cy] = center(x, y); outlineDia(cx, cy, 40, 'rgba(242,194,48,.35)'); }
+    if (mode === 'support' && B.phase === 'player') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) tLine(x, y, 'rgba(242,194,48,.35)');
     const pv = currentPreview();
-    if (pv) for (const e of pv.eff) { const [cx, cy] = center(e.x, e.y); fillDia(cx, cy, 40, e.w ? 'rgba(255,170,40,.55)' : 'rgba(255,220,120,.22)'); }
+    if (pv) for (const e of pv.eff) tFill(e.x, e.y, e.w ? 'rgba(255,170,40,.55)' : 'rgba(255,220,120,.22)');
     if (B.phase !== 'deploy') for (const a of threats()) {
-      const [cx, cy] = center(a.x, a.y);
-      if (a.land) { fillDia(cx, cy, 40, `rgba(255,140,60,${0.18 + pulse * 0.15})`); outlineDia(cx, cy, 40, '#ff8a3a'); outlineDia(cx, cy, 20, '#ff8a3a'); continue; }
-      fillDia(cx, cy, 40, `rgba(255,74,43,${0.2 + pulse * 0.2})`); outlineDia(cx, cy, 40, '#ff4a2b'); outlineDia(cx, cy, 24, 'rgba(255,120,90,.9)');
+      if (a.land) { tFill(a.x, a.y, `rgba(255,140,60,${0.18 + pulse * 0.15})`); tLine(a.x, a.y, '#ff8a3a'); tLine(a.x, a.y, '#ff8a3a', 20); continue; }
+      tFill(a.x, a.y, `rgba(255,74,43,${0.2 + pulse * 0.2})`); tLine(a.x, a.y, '#ff4a2b'); tLine(a.x, a.y, 'rgba(255,120,90,.9)', 24);
     }
-    if (hover) { const [cx, cy] = center(hover.x, hover.y); outlineDia(cx, cy, 40, 'rgba(255,255,255,.9)'); }
+    if (hover) tLine(hover.x, hover.y, 'rgba(255,255,255,.9)');
   }
   for (const u of B.units) drawUnitBase(u, t);
 
-  // objects on their own layer, painter's order, then outlined
+  // 3D: models are drawn by scene3d.js; only the unit HUD (HP pips, order badges, rotors) stays in 2D
+  if (FLOOR3) for (const u of B.units.slice().sort((a, b) => a.rx + a.ry - b.rx - b.ry)) drawUnit(u, t);
+  // 2D: objects on their own layer, painter's order, then outlined
   const dr = [];
+  if (!FLOOR3) {
   propDrawables(t, dr);
   for (const u of B.units) dr.push({ d: u.rx + u.ry + 0.1 + (isAir(u) ? 0.3 : 0), f: () => drawUnit(u, t) });
   lg.clearRect(0, 0, W, H);
@@ -460,6 +479,7 @@ function renderBattle(now, opts) {
   tg.fillStyle = '#0a0f14'; tg.fillRect(0, 0, W, H);
   for (const [ox, oy] of [[2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [-1, -1], [1, -1], [-1, 1]]) ag.drawImage(tintC, ox, oy);
   ag.drawImage(layC, 0, 0);
+  }
 
   if (!opts.clean && B.phase !== 'deploy') drawIntents(pulse);
   const pv = !opts.clean && currentPreview();

@@ -15,6 +15,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden;font-family:var(--f-ui);font-size:14px;-webkit-font-smoothing:antialiased;user-select:none}
 [hidden]{display:none!important}
+#gl{position:fixed;left:0;top:0;display:block}
 #stage{position:fixed;left:0;top:0;display:block;image-rendering:pixelated;cursor:default}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
@@ -238,6 +239,7 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.banner.show{animation:none;opacity:1}#storyText.in{animation:none;opacity:1}}
 </style>
 
+<canvas id="gl" aria-hidden="true"></canvas>
 <canvas id="stage" aria-label="战场"></canvas>
 
 <section id="title" class="layer">
@@ -345,12 +347,15 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 </section>
 
 
+<script src="vendor/three.min.js"></script>
 <script src="js/util.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/models.js"></script>
+<script src="js/models3d.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/render.js"></script>
+<script src="js/scene3d.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
