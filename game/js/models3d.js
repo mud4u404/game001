@@ -689,6 +689,33 @@ MODEL3D.neptune = m3Neptune;
 // ---------- T-27 米-8 mi8 ----------
 
 // ---------- T-28 奥兰-10 orlan ----------
+function m3Orlan() {
+  const T = new THREE.Group();
+  const FY = mat3('#c9cdd0', 0.5), UW = mat3('#b5babe', 0.5), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  // 1. fuselage: slender spindle — cylinder with rounded nose and tail balls
+  part(T, cyl(0.55, 0.55, 5.2, 16), FY, 0.8, 1.5, 0, 0, 0, HALF_PI);
+  part(T, sph(0.55, 16, 10), FY, 3.6, 1.5, 0).scale.set(1.15, 0.95, 0.95);
+  part(T, sph(0.5, 14, 8), FY, -1.85, 1.55, 0).scale.set(1.1, 0.9, 0.9);
+  // 2. high straight wing with upturned tips and a root fairing
+  part(T, rbox(1.45, 0.1, 11.8, 0.04, 1), FY, 1.2, 2.2, 0);
+  for (const s of [-1, 1]) part(T, rbox(0.7, 0.08, 0.55, 0.03, 1), UW, 1.2, 2.32, s * 6.15, s * -0.3, 0, 0);
+  part(T, rbox(1.3, 0.32, 1.3, 0.1, 1), FY, 1.2, 2.0, 0);
+  // 3. T-tail: vertical fin with a bevelled horizontal plate on top
+  part(T, rbox(0.95, 1.15, 0.09, 0.04, 1), FY, -2.05, 2.35, 0);
+  part(T, rbox(0.85, 0.09, 2.3, 0.04, 1), UW, -2.05, 2.95, 0);
+  // 4. pusher propeller: engine cowl and two blades in rotorX
+  part(T, cyl(0.44, 0.5, 0.72, 14), DKS, -2.55, 1.55, 0, 0, 0, HALF_PI);
+  const RX = new THREE.Group(); RX.name = 'rotorX'; RX.position.set(-2.98, 1.55, 0); T.add(RX);
+  for (const s of [-1, 1]) part(RX, rbox(0.34, 1.9, 0.07, 0.03, 1), DKS, 0, s * 0.9, 0);
+  // 5. EO pod under the belly reaching y = 0, thin pitot tube under the nose
+  part(T, sph(0.33, 14, 10), FY, 2.7, 0.34, 0).scale.set(1.25, 1.0, 1.0);
+  part(T, cyl(0.2, 0.24, 0.14, 12), GLS, 2.7, 0.3, 0, 0, 0, HALF_PI);
+  part(T, cyl(0.03, 0.03, 0.9, 6), DKS, 3.6, 1.1, 0, 0, 0, HALF_PI);
+  // 6. short antenna on the back
+  part(T, cyl(0.03, 0.035, 0.55, 6), DKS, 0.3, 2.35, 0);
+  return T;
+}
+MODEL3D.orlan = m3Orlan;
 
 // ---------- T-29 无人艇 magura 与巡逻艇 raptor ----------
 
