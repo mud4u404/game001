@@ -46,6 +46,10 @@ function init3D() {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(8 * TS, 8 * TS), new THREE.MeshBasicMaterial({ map: floorTex, transparent: true, depthWrite: false, toneMapped: false }));
     floor.rotation.x = -HALF_PI; floor.position.set(3.5 * TS, 0.12, 3.5 * TS); floor.renderOrder = 2;
     scene.add(floor);
+    // fixed pool of point lights for explosions and burning wrecks (a constant light count avoids shader recompiles)
+    const flashes = [];
+    for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(lin('#ffb257'), 0, 90, 2); scene.add(l); flashes.push({ l, t0: 0, dur: 1, peak: 0 }); }
+    Object.assign(V3, { flashes, fires: [] });
     Object.assign(V3, { on: true, canvas, renderer, scene, cam, sun, bgTex, board, units, floorC, fg, floorTex, tiles: new Map(), objs: new Map(), battle: null, decals: 0 });
   } catch (e) {
     console.warn('3D renderer unavailable, using 2D', e);
@@ -298,11 +302,38 @@ function floorHatch(x, y, c) {
   g.restore();
 }
 
+// ---------- lights ----------
+// Explosion flash at tile (x, y), size 1..3, alt in art px.
+function flash3D(x, y, size, alt) {
+  if (!V3.on || !V3.flashes) return;
+  const f = V3.flashes.reduce((a, b) => (a.t0 + a.dur < b.t0 + b.dur ? a : b));
+  f.l.position.set(x * TS, 3 + (alt || 0) / KY + size, y * TS);
+  f.t0 = performance.now(); f.dur = (260 + size * 140) * Math.max(SPEED, 0.2); f.peak = 2.2 + size * 1.4;
+}
+function stepLights(now) {
+  for (const f of V3.flashes) {
+    const k = (now - f.t0) / f.dur;
+    f.l.intensity = k >= 0 && k < 1 ? f.peak * (1 - k) * (1 - k) : 0;
+  }
+  // burning wrecks flicker: reuse an idle light for up to two of them
+  let n = 0;
+  for (let y = 0; y < 8 && n < 2; y++) for (let x = 0; x < 8 && n < 2; x++) {
+    if (!TILEAT(x, y).wreck) continue;
+    const f = V3.flashes.find(q => q.l.intensity === 0 && !q.used);
+    if (!f) break;
+    f.used = true; n++;
+    f.l.position.set(x * TS, 3, y * TS);
+    f.l.intensity = 0.9 + Math.sin(now / 70 + x * 3) * 0.25 + Math.sin(now / 23 + y) * 0.15;
+  }
+  for (const f of V3.flashes) f.used = false;
+}
+
 // ---------- frame ----------
 function render3D(sx, sy) {
   if (!V3.on) return;
   syncBoard();
   syncUnits();
+  stepLights(performance.now());
   V3.floorTex.needsUpdate = true;
   place3D();
   V3.canvas.style.transform = sx || sy ? `translate(${sx * PX / (window.devicePixelRatio || 1)}px,${sy * PX / (window.devicePixelRatio || 1)}px)` : '';

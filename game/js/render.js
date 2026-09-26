@@ -12,6 +12,7 @@ const FIRE = ['#fff6c8', '#ffd35a', '#ff9a2e', '#e8521f', '#7a2a14'];
 function explode(x, y, size, alt) {
   const [cx, cy0] = center(x, y), cy = cy0 - (alt || 0) - 6;
   FLASH.push({ x: cx, y: cy, r: 10 + size * 10, life: 10, max: 10 });
+  if (typeof flash3D === 'function') flash3D(x, y, size, alt);
   for (let i = 0; i < 12 * size; i++) {
     const a = Math.random() * Math.PI * 2, s = 0.6 + Math.random() * (1.2 + size);
     addP({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6 - 0.8, drag: 0.9, life: 14 + Math.random() * 16, kind: 'fire', s: 3 + Math.floor(Math.random() * 3) });
