@@ -51,6 +51,24 @@ function profile(pts, d, bevel) {
 }
 const cyl = (r1, r2, h, n) => new THREE.CylinderGeometry(r1, r2, h, n || 20);
 const sph = (r, ws, hs) => new THREE.SphereGeometry(r, ws || 20, hs || 12);
+// Smooth body of revolution along x: pts = [[x, radius], ...] from tail to nose. sy / sz stretch the
+// cross-section (sy > 1 makes it taller than wide). Good for fuselages, drop tanks, missiles.
+function lathe(pts, sy, sz, segs) {
+  const g = new THREE.LatheGeometry(pts.map(([x, r]) => new THREE.Vector2(Math.max(0.001, r), x)), segs || 28);
+  g.rotateZ(-HALF_PI);
+  g.scale(1, sy || 1, sz || 1);
+  return g;
+}
+// Rotor: n blades of length L and chord c around the local y axis, with a hub. Put it in a group named rotorY / rotorYr.
+function rotor(parent, n, L, c, col, hubR) {
+  const B = mat3(col || '#2d302a', 0.6, 0.2);
+  part(parent, cyl(hubR || 0.45, hubR || 0.45, 0.35, 16), mat3('#3a3d36', 0.5, 0.4), 0, 0, 0);
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, bl = new THREE.Group(); bl.rotation.y = a; parent.add(bl);
+    part(bl, rbox(L, 0.12, c, 0.05, 1), B, L / 2 + (hubR || 0.45) * 0.6, 0, 0).rotation.z = -0.02;
+    part(bl, new THREE.BoxGeometry(0.5, 0.14, c * 1.02), mat3('#8a8f86', 0.5), L + (hubR || 0.45) * 0.6 - 0.25, 0, 0);
+  }
+}
 // Track loop: links along a rounded loop from x0 (rear) to x1 (front), wheel radius R centred at height cy, side z.
 function trackLoop(parent, x0, x1, cy, R, z, width, col) {
   const pts = [], step = 0.52;
@@ -685,8 +703,106 @@ function m3Neptune() {
 MODEL3D.neptune = m3Neptune;
 
 // ---------- T-26 卡-52 ka52 ----------
+// Built by the reviewer (the card needed a fuselage skeleton). Nose at +x, coaxial rotors.
+function m3Ka52() {
+  const H = new THREE.Group();
+  const BODY = mat3('#4f5646', 0.55, 0.1), DARK = mat3('#33372e', 0.6, 0.2), BELLY = mat3('#7d858a', 0.6, 0.1);
+  const GLASS = mat3('#223044', 0.1, 0.3), MET = mat3('#5d625c', 0.45, 0.5), BK = mat3('#23251f', 0.6, 0.3);
+  const y0 = 3.1;
+  // fuselage: slim, tall cross-section, tapering into the tail boom
+  part(H, lathe([[-10.4, 0.28], [-8, 0.42], [-5.5, 0.62], [-3.6, 1.15], [-1.8, 1.65], [0.5, 1.8], [3, 1.75], [5, 1.55], [6.6, 1.2], [7.8, 0.75], [8.6, 0.25]], 1.35, 0.92), BODY, 0, y0, 0);
+  part(H, lathe([[-3, 0.9], [0, 1.25], [3, 1.2], [5.5, 0.9]], 0.55, 0.95), BELLY, 0, y0 - 1.5, 0);
+  // side-by-side cockpit under one large canopy, framed
+  const cp = part(H, sph(1, 28, 16), GLASS, 5.4, y0 + 1.25, 0); cp.scale.set(2.5, 1.05, 1.55);
+  part(H, new THREE.BoxGeometry(4.6, 0.12, 0.12), DARK, 5.4, y0 + 2.3, 0);
+  for (const x of [4.1, 6.4]) { const f = part(H, new THREE.TorusGeometry(1.35, 0.08, 6, 20, Math.PI), DARK, x, y0 + 1.25, 0, 0, HALF_PI, 0); f.scale.set(1, 0.85, 1.1); }
+  // nose sensor ball
+  part(H, sph(0.62, 18, 12), DARK, 7.4, y0 - 1.05, 0);
+  part(H, new THREE.BoxGeometry(0.2, 0.4, 0.55), GLASS, 7.95, y0 - 1.05, 0);
+  // engine nacelles with intakes and angled exhausts
+  for (const s of [-1, 1]) {
+    part(H, lathe([[-2.6, 0.45], [-1.5, 0.72], [1.5, 0.75], [2.6, 0.6]], 1.05, 1), BODY, 0, y0 + 2.05, s * 1.35);
+    part(H, cyl(0.52, 0.52, 0.12, 18), BK, 2.65, y0 + 2.05, s * 1.35, 0, 0, HALF_PI);
+    const ex = part(H, cyl(0.42, 0.36, 1.1, 14), DARK, -3.0, y0 + 2.15, s * 1.6, 0, 0, HALF_PI); ex.rotation.y = s * 0.45;
+  }
+  // stub wings with pylons: Vikhr tubes outboard, B-8 rocket pods inboard
+  for (const s of [-1, 1]) {
+    const w = part(H, rbox(1.8, 0.24, 3.4, 0.1), BODY, 0.6, y0 - 0.3, s * 3.2); w.rotation.x = s * 0.08;
+    part(H, rbox(1.1, 0.5, 0.8, 0.1), DARK, 0.9, y0 - 0.2, s * 4.9);
+    part(H, new THREE.BoxGeometry(0.9, 0.5, 0.2), DARK, 0.6, y0 - 0.65, s * 2.5);
+    part(H, lathe([[-1.2, 0.2], [-1, 0.45], [1.2, 0.45], [1.35, 0.3]], 1, 1, 18), mat3('#4a4e44', 0.55, 0.2), 0.6, y0 - 1.15, s * 2.5);
+    part(H, cyl(0.36, 0.36, 0.06, 16), BK, 1.97, y0 - 1.15, s * 2.5, 0, 0, HALF_PI);
+    part(H, new THREE.BoxGeometry(0.9, 0.35, 0.2), DARK, 0.6, y0 - 0.55, s * 4.3);
+    for (const [dy, dz] of [[-0.2, -0.2], [-0.2, 0.2], [-0.58, -0.2], [-0.58, 0.2]]) part(H, cyl(0.16, 0.16, 3.2, 10), mat3('#6b705a', 0.5, 0.1), 0.8, y0 - 0.85 + dy, s * 4.3 + dz, 0, 0, HALF_PI);
+  }
+  // 30 mm cannon on the right side
+  part(H, rbox(2.6, 0.6, 0.6, 0.15), DARK, 1.6, y0 - 0.95, -1.55);
+  part(H, cyl(0.1, 0.12, 4.2, 10), BK, 4.6, y0 - 0.95, -1.55, 0, 0, HALF_PI);
+  // tail: stabiliser with twin fins at its tips
+  part(H, rbox(1.5, 0.14, 3.8, 0.06), BODY, -8.7, y0 + 0.2, 0);
+  for (const s of [-1, 1]) { const f = part(H, profile([[-1, 0], [0.6, 0], [0.9, 2.2], [-0.4, 2.2]], 0.14, 0.03), BODY, -8.8, y0 - 0.6, s * 1.9); f.rotation.x = -s * 0.08; }
+  part(H, profile([[-1.2, 0], [0.4, 0], [0.2, 1.3], [-1.0, 1.4]], 0.16, 0.03), BODY, -9.6, y0 + 0.2, 0);
+  // coaxial rotors: mast, lower (counter-rotating) and upper hubs
+  part(H, cyl(0.3, 0.38, 3.2, 14), MET, 0.6, y0 + 3.4, 0);
+  part(H, rbox(2.2, 0.8, 1.6, 0.3), BODY, 0.4, y0 + 2.2, 0);
+  const lo = new THREE.Group(); lo.name = 'rotorYr'; lo.position.set(0.6, y0 + 3.6, 0); H.add(lo); rotor(lo, 3, 8.6, 0.6);
+  const up = new THREE.Group(); up.name = 'rotorY'; up.position.set(0.6, y0 + 4.8, 0); up.rotation.y = Math.PI / 3; H.add(up); rotor(up, 3, 8.6, 0.6);
+  part(H, sph(0.28, 12, 8), MET, 0.6, y0 + 5.15, 0);
+  return H;
+}
+MODEL3D.ka52 = m3Ka52;
 
 // ---------- T-27 米-8 mi8 ----------
+// Built by the reviewer. Nose at +x; five-blade main rotor, tail rotor on the left of the boom.
+function m3Mi8() {
+  const H = new THREE.Group();
+  const BODY = mat3('#5a5f4b', 0.6, 0.08), DARK = mat3('#3f4234', 0.65, 0.15), GLASS = mat3('#223044', 0.1, 0.3);
+  const MET = mat3('#5d625c', 0.45, 0.5), RUB = mat3('#1e201d', 0.9), BK = mat3('#23251f', 0.6, 0.3);
+  const y0 = 3.5;
+  // cabin fuselage: round glazed nose, long cabin, rounded clamshell rear, tail boom
+  part(H, lathe([[-13.2, 0.32], [-10, 0.45], [-7, 0.62], [-5.6, 1.1], [-4.6, 1.85], [-3.4, 2.15], [5.5, 2.15], [7.2, 2.0], [8.6, 1.55], [9.5, 0.9], [9.9, 0.2]], 1.08, 1.0), BODY, 0, y0, 0);
+  // nose glazing: upper front quarter as glass with frames
+  const ng = part(H, new THREE.SphereGeometry(1, 28, 16, 0, Math.PI, 0, HALF_PI), GLASS, 8.2, y0 + 0.1, 0, 0, HALF_PI, 0); ng.scale.set(1.95, 1.85, 1.85);
+  for (const a of [-0.55, 0, 0.55]) { const f = part(H, new THREE.BoxGeometry(2.1, 0.08, 0.08), DARK, 8.9, y0 + 1.1, a * 1.6); f.rotation.z = -0.55; }
+  part(H, new THREE.TorusGeometry(1.95, 0.07, 6, 24, Math.PI), DARK, 7.6, y0 + 0.05, 0, 0, HALF_PI, 0);
+  for (const s of [-1, 1]) part(H, rbox(1.2, 0.9, 0.08, 0.1, 1), GLASS, 6.4, y0 + 0.9, s * 2.02);
+  // round cabin windows both sides, sliding door on the left, clamshell seam at the rear
+  for (const s of [-1, 1]) for (let i = 0; i < 5; i++) part(H, cyl(0.34, 0.34, 0.1, 16), GLASS, -2.8 + i * 1.35, y0 + 0.75, s * 2.14, HALF_PI);
+  part(H, new THREE.BoxGeometry(1.8, 2.5, 0.06), DARK, 4.4, y0 - 0.1, 2.16);
+  part(H, new THREE.BoxGeometry(1.6, 2.3, 0.06), BODY, 4.4, y0 - 0.1, 2.19);
+  part(H, new THREE.BoxGeometry(0.08, 3.4, 0.08), DARK, -5.0, y0 - 0.2, 0);
+  // engines on the roof: dust-protection intakes in front, exhausts bent outwards
+  part(H, rbox(9.5, 1.2, 3.0, 0.5), BODY, 1.0, y0 + 2.35, 0);
+  for (const s of [-1, 1]) {
+    part(H, lathe([[-2.5, 0.5], [-1.5, 0.72], [3, 0.72], [4.2, 0.6]], 1.05, 1), BODY, 0, y0 + 2.95, s * 0.85);
+    const dp = part(H, sph(1, 20, 12), mat3('#6b705a', 0.7), 4.9, y0 + 2.95, s * 0.85); dp.scale.set(0.9, 0.75, 0.72);
+    const ex = part(H, cyl(0.42, 0.36, 1.6, 14), BK, -3.1, y0 + 2.9, s * 1.35, 0, 0, HALF_PI); ex.rotation.y = s * 0.6;
+  }
+  part(H, rbox(2.4, 1.1, 1.8, 0.35), BODY, 0.3, y0 + 3.6, 0);
+  // external fuel tanks with brackets
+  for (const s of [-1, 1]) {
+    part(H, lathe([[-2.2, 0.2], [-1.8, 0.62], [1.8, 0.62], [2.3, 0.2]], 1, 1, 20), BODY, 1.0, y0 - 1.3, s * 2.75);
+    for (const x of [0, 2]) part(H, new THREE.BoxGeometry(0.2, 0.7, 0.5), DARK, x, y0 - 0.9, s * 2.35);
+  }
+  // landing gear: twin nose wheels, main wheels on struts
+  part(H, cyl(0.1, 0.1, 1.6, 8), MET, 7.4, y0 - 2.2, 0);
+  for (const s of [-1, 1]) part(H, cyl(0.42, 0.42, 0.28, 16), RUB, 7.4, 0.42, s * 0.35, HALF_PI);
+  for (const s of [-1, 1]) {
+    const st = part(H, cyl(0.1, 0.1, 2.4, 8), MET, -0.8, 1.6, s * 2.5); st.rotation.x = s * 0.5;
+    for (const d of [-0.2, 0.2]) part(H, cyl(0.58, 0.58, 0.3, 18), RUB, -0.8, 0.58, s * 3.1 + d, HALF_PI);
+  }
+  // tail boom end: fin, small stabilisers, tail rotor
+  part(H, profile([[-1.4, 0], [0.8, 0], [0.2, 2.6], [-1.2, 2.8]], 0.18, 0.04), BODY, -12.4, y0 + 0.1, 0);
+  for (const s of [-1, 1]) part(H, rbox(1.2, 0.12, 1.4, 0.05), BODY, -10.6, y0 - 0.1, s * 0.9);
+  const tr = new THREE.Group(); tr.name = 'rotorZ'; tr.position.set(-12.6, y0 + 2.2, 0.35); H.add(tr);
+  part(tr, cyl(0.25, 0.25, 0.3, 12), MET, 0, 0, 0, HALF_PI);
+  for (let i = 0; i < 3; i++) { const b = new THREE.Group(); b.rotation.z = i / 3 * Math.PI * 2; tr.add(b); part(b, rbox(0.3, 1.9, 0.08, 0.04, 1), mat3('#2d302a', 0.6, 0.2), 0, 1.0, 0.1); }
+  // five-blade main rotor
+  part(H, cyl(0.32, 0.4, 1.4, 14), MET, 0.3, y0 + 4.6, 0);
+  const mr = new THREE.Group(); mr.name = 'rotorY'; mr.position.set(0.3, y0 + 5.3, 0); H.add(mr); rotor(mr, 5, 10, 0.7, '#2d302a', 0.6);
+  return H;
+}
+MODEL3D.mi8 = m3Mi8;
 
 // ---------- T-28 奥兰-10 orlan ----------
 function m3Orlan() {
