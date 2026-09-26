@@ -391,15 +391,21 @@ function drawUnit(u, t) {
   g.globalAlpha = u.alpha;
   if (u.team !== 'civ') {
     const tw = u.max * 8 - 2, hx = sx - Math.floor(tw / 2), hy = Math.round(sy + top - 12);
-    R(hx - 2, hy - 2, tw + 4, 9, '#0b1210');
-    for (let i = 0; i < u.max; i++) {
-      R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
-      if (i < u.hp) R(hx + i * 8, hy, 6, 1, u.team === 'ua' ? '#b8f59a' : '#ffb3a3');
+    if (HD) {
+      rrect(hx - 2, hy - 2, tw + 4, 9, 3); g.fillStyle = 'rgba(11,18,16,.85)'; g.fill();
+      for (let i = 0; i < u.max; i++) { rrect(hx + i * 8, hy, 6, 5, 1.5); g.fillStyle = i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33'; g.fill(); }
+    } else {
+      R(hx - 2, hy - 2, tw + 4, 9, '#0b1210');
+      for (let i = 0; i < u.max; i++) {
+        R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
+        if (i < u.hp) R(hx + i * 8, hy, 6, 1, u.team === 'ua' ? '#b8f59a' : '#ffb3a3');
+      }
     }
     const on = actionOrder(u);
     if (on) {
       const bw = on >= 10 ? txtW(on, 2) + 6 : 14, bx = hx - 6 - bw, by = hy - 5;
-      R(bx, by, bw, 14, '#c9d2d8'); R(bx + 1, by + 1, bw - 2, 12, '#0f1821');
+      if (HD) { rrect(bx, by, bw, 14, 3); g.fillStyle = '#c9d2d8'; g.fill(); rrect(bx + 1, by + 1, bw - 2, 12, 2.5); g.fillStyle = '#0f1821'; g.fill(); }
+      else { R(bx, by, bw, 14, '#c9d2d8'); R(bx + 1, by + 1, bw - 2, 12, '#0f1821'); }
       txt(on, bx + (bw - txtW(on, 2)) / 2, by + 2, '#ffffff', 2);
     }
   }
@@ -508,10 +514,10 @@ function drawIntents(pulse) {
       if (a.land) { badge(tx, ty - 4, '!', '#3a1a06', '#ff8a3a', '#ffe0c0'); continue; }
       const w = WEAPONS[a.w];
       if (w.kind === 'grad') {
-        for (let i = 1; i < 20; i++) { const k = i / 20, x = ex + (tx - ex) * k, y = ey - 6 + (ty - ey) * k - Math.sin(k * Math.PI) * 80; if (i % 2) { R(x - 1, y - 1, 5, 5, '#0a0f14'); R(x, y, 3, 3, '#ff6a4a'); } }
+        for (let i = 1; i < 20; i++) { const k = i / 20, x = ex + (tx - ex) * k, y = ey - 6 + (ty - ey) * k - Math.sin(k * Math.PI) * 80; if (i % 2) { if (HD) { disc(x + 1.5, y + 1.5, 2.6, '#0a0f14'); disc(x + 1.5, y + 1.5, 1.6, '#ff6a4a'); } else { R(x - 1, y - 1, 5, 5, '#0a0f14'); R(x, y, 3, 3, '#ff6a4a'); } } }
       } else if (w.kind === 'line') {
         const n = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
-        for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); const lift = isAir(e) ? unitAlt(e) * (1 - i / n) : 0; R(px - 4, py - 4 - lift, 8, 8, '#0a0f14'); R(px - 3, py - 3 - lift, 6, 6, '#ff5a3a'); }
+        for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); const lift = isAir(e) ? unitAlt(e) * (1 - i / n) : 0; if (HD) { disc(px, py - lift, 4.2, '#0a0f14'); disc(px, py - lift, 3, '#ff5a3a'); } else { R(px - 4, py - 4 - lift, 8, 8, '#0a0f14'); R(px - 3, py - 3 - lift, 6, 6, '#ff5a3a'); } }
       } else {
         const [vx, vy] = screenDir(e.aim.dir);
         line(ex + vx * 12, ey - 6 + vy * 12, ex + vx * 30, ey - 2 + vy * 30, '#0a0f14', 5);
@@ -560,7 +566,8 @@ function drawFx(now) {
     if (p.kind === 'smoke') { g.globalAlpha = Math.min(0.75, k * 1.2); c = c || '#5a5a5a'; }
     else g.globalAlpha = Math.min(1, k * 2);
     const s = Math.round(p.s);
-    R(p.x - s / 2, p.y - s / 2, s, s, c);
+    if (HD) disc(p.x, p.y, p.kind === 'smoke' ? p.s * 0.75 : p.s * 0.55, c);
+    else R(p.x - s / 2, p.y - s / 2, s, s, c);
   }
   g.globalAlpha = 1;
   g.font = 'bold 12px "Noto Sans SC", sans-serif';
@@ -579,5 +586,5 @@ function drawFx(now) {
 const flakes = Array.from({ length: 140 }, () => ({ x: Math.random() * 2000, y: Math.random() * 1200, s: 0.3 + Math.random() * 0.7, p: Math.random() * 6, z: Math.random() < 0.3 ? 2 : 1 }));
 function drawSnow(t) {
   if (reduced) return;
-  for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.25; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } if (f.x < W) R(f.x, f.y, f.z, f.z, 'rgba(235,242,248,.8)'); }
+  for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.25; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } if (f.x < W) { if (HD) disc(f.x, f.y, f.z * 0.55, 'rgba(235,242,248,.75)'); else R(f.x, f.y, f.z, f.z, 'rgba(235,242,248,.8)'); } }
 }
