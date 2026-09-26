@@ -302,6 +302,26 @@ function floorHatch(x, y, c) {
   g.restore();
 }
 
+// ---------- fly-overs ----------
+// The TB2 of an air strike: the rules keep it as a 2D projectile (art-space x, y); here it gets a 3D body
+// flying about 60 units above the ground point under that art position.
+const TB2_ALT = 60;
+function syncPlanes() {
+  V3.planes = V3.planes || new Map();
+  const seen = new Set();
+  for (const p of PROJ) {
+    if (p.kind !== 'tb2') continue;
+    seen.add(p);
+    let o = V3.planes.get(p);
+    if (!o) { o = m3TB2(); o.traverse(q => { if (q.name === 'rotorX') o.userData.prop = q; }); V3.planes.set(p, o); V3.units.add(o); }
+    const d = (p.x - OX) / TW, s = (p.y + TB2_ALT * KY - OY - TH) / TH;
+    o.position.set((s + d) / 2 * TS, TB2_ALT, (s - d) / 2 * TS);
+    o.rotation.y = Math.PI / 4;
+    o.userData.prop.rotation.x = performance.now() * 0.05;
+  }
+  for (const [p, o] of V3.planes) if (!seen.has(p)) { V3.units.remove(o); V3.planes.delete(p); }
+}
+
 // ---------- lights ----------
 // Explosion flash at tile (x, y), size 1..3, alt in art px.
 function flash3D(x, y, size, alt) {
@@ -333,6 +353,7 @@ function render3D(sx, sy) {
   if (!V3.on) return;
   syncBoard();
   syncUnits();
+  syncPlanes();
   stepLights(performance.now());
   V3.floorTex.needsUpdate = true;
   place3D();

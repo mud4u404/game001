@@ -354,6 +354,25 @@ function m3House(seed, dmg) {
 }
 MODEL3D['bld:h'] = m3House;
 
+// ---------- support ----------
+// Bayraktar TB2 for the air strike fly-over: slim fuselage, long straight wing, inverted-V tail, pusher prop.
+function m3TB2() {
+  const P = new THREE.Group();
+  const GR = mat3('#c3c8cc', 0.45, 0.1), DK = mat3('#3a3e42', 0.5, 0.3), GLASS = mat3('#223044', 0.1, 0.3);
+  part(P, lathe([[-4.2, 0.2], [-3.4, 0.55], [-1, 0.8], [2.6, 0.85], [4.4, 0.6], [5.2, 0.15]], 1.1, 1), GR, 0, 0, 0);
+  part(P, rbox(1.9, 0.18, 24, 0.08, 1), GR, 0.6, 0.55, 0);
+  for (const s of [-1, 1]) {
+    part(P, cyl(0.12, 0.12, 7, 8), GR, -4.1, 0.55, s * 2.3, 0, 0, HALF_PI);
+    const t = part(P, rbox(1.4, 0.12, 2.8, 0.05, 1), GR, -7.5, 1.2, s * 3.2); t.rotation.x = -s * 0.7;
+    part(P, rbox(0.6, 0.35, 0.3, 0.1, 1), DK, 0.6, 0.2, s * 5.5);
+  }
+  part(P, sph(0.5, 16, 10), DK, 3.4, -0.75, 0);
+  part(P, new THREE.BoxGeometry(0.25, 0.3, 0.4), GLASS, 3.85, -0.8, 0);
+  const pr = new THREE.Group(); pr.name = 'rotorX'; pr.position.set(-4.4, 0, 0); P.add(pr);
+  for (const a of [0, Math.PI]) { const b = new THREE.Group(); b.rotation.x = a; pr.add(b); part(b, rbox(0.12, 1.5, 0.3, 0.05, 1), DK, 0, 0.75, 0); }
+  return P;
+}
+
 // ---------- task sections ----------
 // Each task card adds its builder and MODEL3D registration inside its own section below, so cards merge cleanly.
 

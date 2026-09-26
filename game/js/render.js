@@ -538,7 +538,7 @@ function drawIntents(pulse) {
 }
 function drawFx(now) {
   for (const p of PROJ) {
-    if (p.kind === 'tb2') { blit(sprite('tb2', mTB2, [1, 0]), p.x, p.y); continue; }
+    if (p.kind === 'tb2') { if (!HD) blit(sprite('tb2', mTB2, [1, 0]), p.x, p.y); continue; }
     const [x, y] = projPos(p, p.k), [bx, by] = projPos(p, Math.max(0, p.k - 0.06));
     if (p.kind === 'shell') { line(bx, by, x, y, '#fff1b0', 2); R(x - 2, y - 2, 4, 4, '#ffffff'); }
     else if (p.kind === 'tracer') { line(bx, by, x, y, '#ffcf5a', 2); }
