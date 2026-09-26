@@ -790,6 +790,69 @@ function m3Ka52() {
 MODEL3D.ka52 = m3Ka52;
 
 // ---------- T-27 米-8 mi8 ----------
+function m3Mi8() {
+  const T = new THREE.Group();
+  const OL = mat3('#5a5f4b', 0.6, 0.05), OD = mat3('#3f4234', 0.65, 0.05), LT = mat3('#686d58', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  // 7. landing gear: main wheel groups with struts, two nose wheels
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.42, 0.42, 0.3, 14), RUB, 0.4, 0.42, s * 2.35, HALF_PI);
+    part(T, cyl(0.42, 0.42, 0.3, 14), RUB, 1.35, 0.42, s * 2.35, HALF_PI);
+    part(T, rbox(0.18, 2.6, 0.18, 0.05, 1), DKS, 0.9, 1.6, s * 2.35, 0, 0, s * 0.35);
+  }
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.34, 0.34, 0.26, 12), RUB, 5.2, 0.35, s * 0.95, HALF_PI);
+    part(T, rbox(0.14, 1.9, 0.14, 0.05, 1), DKS, 5.2, 1.35, s * 0.95, 0, 0, s * 0.3);
+  }
+  // 4. fuselage: long cylindrical cabin, glass nose, tapered tail
+  part(T, cyl(1.78, 1.62, 11.5, 20), OL, 0.4, 3.05, 0, 0, 0, HALF_PI);
+  part(T, new THREE.SphereGeometry(1.78, 22, 14), OL, 6.2, 3.0, 0).scale.set(1.25, 1.0, 1.0);
+  part(T, cyl(1.55, 0.85, 4.6, 16), OL, 8.05, 3.15, 0, 0, 0, HALF_PI);
+  // 3. rounded glass nose: panes and frame strips, cockpit side windows
+  part(T, new THREE.SphereGeometry(1.62, 20, 12, 0, Math.PI * 2, 0, HALF_PI * 0.85), GLS, 6.9, 3.15, 0).scale.set(1.05, 0.85, 1.02);
+  for (const dy of [0, 0.5]) part(T, rbox(0.08, 0.08, 3.1, 0.03, 1), DKS, 7.45, 3.3 + dy, 0);
+  part(T, rbox(0.06, 0.75, 0.08, 0.03, 1), DKS, 7.3, 3.3, 1.3);
+  for (const s of [-1, 1]) part(T, rbox(0.05, 0.6, 0.7, 0.03, 1), GLS, 5.6, 3.6, s * 1.55);
+  // 4. five portholes on the left side, sliding door front-left with frame
+  for (let k = 0; k < 5; k++) part(T, cyl(0.28, 0.28, 0.06, 12), GLS, 0.1 + k * 1.05, 3.35, 1.8, HALF_PI, 0, 0);
+  part(T, rbox(1.45, 1.95, 0.09, 0.05, 1), OD, 3.55, 2.85, 1.79);
+  part(T, rbox(0.07, 1.8, 0.1, 0.02, 1), DKS, 2.85, 2.85, 1.8);
+  part(T, rbox(0.07, 1.8, 0.1, 0.02, 1), DKS, 4.3, 2.85, 1.8);
+  // 4. clamshell rear doors with a centre seam
+  for (const s of [-1, 1]) part(T, rbox(1.3, 3.1, 0.1, 0.05, 1), OD, 10.45, 3.0, s * 0.82, 0, 0, s * 0.12);
+  part(T, rbox(0.06, 3.2, 1.72, 0.03, 1), DKS, 10.55, 3.0, 0);
+  // 5. two engines on top: dust-intake covers at the front, exhausts bent outward
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.6, 0.68, 2.7, 16), OL, -0.3, 4.85, s * 0.85, 0, 0, HALF_PI);
+    part(T, sph(0.72, 16, 10), OD, 1.15, 4.95, s * 0.85).scale.set(1.15, 0.9, 1.0);
+    part(T, cyl(0.3, 0.34, 1.3, 12), DKS, -2.0, 4.95, s * 1.15, 0, 0, s * 0.5);
+  }
+  // 6. external fuel tanks on both sides
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.55, 0.55, 3.4, 16), LT, 0.8, 1.95, s * 2.6, 0, 0, HALF_PI);
+    part(T, rbox(0.16, 1.1, 0.2, 0.05, 1), DKS, 0.8, 1.5, s * 2.6);
+  }
+  // 8. tail boom tapering to a small fin
+  part(T, cyl(0.85, 0.5, 5.0, 16), OL, 9.6, 3.2, 0, 0, 0, HALF_PI);
+  part(T, rbox(0.1, 1.5, 0.55, 0.05, 1), OL, 12.3, 3.6, 0);
+  // 1. five-blade main rotor on rotorY
+  part(T, cyl(0.3, 0.36, 1.35, 12), DKS, -0.2, 5.05, 0);
+  part(T, sph(0.45, 14, 10), DKS, -0.2, 5.95, 0);
+  const RY = new THREE.Group(); RY.name = 'rotorY'; RY.position.set(-0.2, 6.15, 0); T.add(RY);
+  for (let k = 0; k < 5; k++) {
+    const bl = part(RY, rbox(9.7, 0.08, 0.6, 0.03, 1), DKS, 4.8, 0, 0, 0, 0, -0.06);
+    bl.rotation.y = k * Math.PI * 2 / 5;
+  }
+  // 2. three-blade tail rotor on rotorZ at the boom end, right side
+  const RZ = new THREE.Group(); RZ.name = 'rotorZ'; RZ.position.set(12.05, 3.6, -0.85); T.add(RZ);
+  part(RZ, cyl(0.14, 0.14, 0.5, 10), DKS, 0, 0, 0, 0, 0, 0);
+  for (let k = 0; k < 3; k++) {
+    const bl = part(RZ, rbox(0.42, 2.0, 0.07, 0.03, 1), DKS, 0, 0.95, 0, 0, 0, 0);
+    bl.rotation.z = k * Math.PI * 2 / 3;
+  }
+  return T;
+}
+MODEL3D.mi8 = m3Mi8;
 
 // ---------- T-28 奥兰-10 orlan ----------
 
