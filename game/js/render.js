@@ -384,7 +384,8 @@ function drawUnit(u, t) {
     if (u.flash > 0) { g.globalAlpha = u.flash; g.globalCompositeOperation = 'lighter'; blit(s, sx, sy); g.globalCompositeOperation = 'source-over'; }
   }
   const spin = t * 38;
-  if (u.type === 'ka52') { drawRotor(sx, sy - 16, 30, spin, 3, 'rgba(20,22,24,.8)'); drawRotor(sx, sy - 19, 30, -spin + 0.5, 3, 'rgba(20,22,24,.8)'); }
+  if (FLOOR3 && MODEL3D[u.type]) { /* 3D models spin their own rotors */ }
+  else if (u.type === 'ka52') { drawRotor(sx, sy - 16, 30, spin, 3, 'rgba(20,22,24,.8)'); drawRotor(sx, sy - 19, 30, -spin + 0.5, 3, 'rgba(20,22,24,.8)'); }
   if (u.type === 'mi8') { drawRotor(sx, sy - 18, 34, spin, 5, 'rgba(20,22,24,.7)'); const [tx, ty] = vproj([-17, 1, 7], u.face); drawRotor(sx + tx, sy + ty, 7, -spin * 1.5, 3, 'rgba(20,22,24,.8)'); }
   if (u.type === 'orlan') { const [tx, ty] = vproj([-8, 0, 1], u.face); drawRotor(sx + tx, sy + ty, 5, spin * 2, 2, 'rgba(20,22,24,.8)'); }
   g.globalAlpha = u.alpha;

@@ -66,6 +66,10 @@ function trackLoop(parent, x0, x1, cy, R, z, width, col) {
   return link;
 }
 
+// Registry: unit type -> builder. Buildings use 'bld:' + tile letter and receive (seed, damaged);
+// props use 'prop:forest' (seed) and 'prop:bridge'. Each model registers itself right after its builder.
+const MODEL3D = {};
+
 // ---------- Ukrainian units ----------
 // Reference model: follow its structure and level of detail for every new vehicle.
 function m3T64() {
@@ -137,11 +141,13 @@ function m3T64() {
   for (const x of [0.8, 1.5]) part(G, cyl(0.42, 0.42, 0.34, 24), mat3('#f2c230', 0.45), x, 0, 0, 0, 0, HALF_PI);
   return T;
 }
+MODEL3D.t64 = m3T64;
 
+// ---------- Russian units ----------
 // BTR-82A: eight-wheel amphibious APC, and the command variant without the turret.
 function m3Btr(cmd) {
   const T = new THREE.Group();
-  const OL = mat3('#6b705a', 0.6, 0.05), OD = mat3('#4a4d3c', 0.65, 0.05), OL2 = mat3('#7a7f68', 0.55, 0.05);
+  const OL = mat3('#5a5f4b', 0.6, 0.05), OD = mat3('#3f4234', 0.65, 0.05), OL2 = mat3('#686d58', 0.55, 0.05);
   const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
   // 1. running gear: four axles, eight three-layer wheels, a door gap between axles 2 and 3
   for (const s of [-1, 1]) {
@@ -212,10 +218,157 @@ function m3Btr(cmd) {
   }
   return T;
 }
+MODEL3D.btr = () => m3Btr(false);
+MODEL3D.cmd = () => m3Btr(true);
 
-// Registry: unit type -> builder. Buildings use 'bld:' + tile letter and receive (seed, damaged).
-const MODEL3D = {
-  t64: m3T64,
-  btr: () => m3Btr(false),
-  cmd: () => m3Btr(true),
+// ---------- people ----------
+// Reference figure for every infantry and civilian model. About 4.4 units tall standing.
+// o: { uni, vest, helmet, skin, band, pose: 'stand' | 'kneel', gun: 'rifle' | 'rpg' | 'mg' | 'none', hat } -> Group facing +x.
+function soldier3(parent, x, z, ry, o) {
+  o = o || {};
+  const S = new THREE.Group(); S.position.set(x, 0, z); S.rotation.y = ry || 0; parent.add(S);
+  const UNI = mat3(o.uni || '#5d6b3e', 0.9), VEST = mat3(o.vest || '#4a5533', 0.85), SK = mat3(o.skin || '#d6ad86', 0.7);
+  const HEL = mat3(o.helmet || '#4c5732', 0.6), BK = mat3('#232420', 0.6, 0.3), BOOT = mat3('#2a2620', 0.8);
+  const kneel = o.pose === 'kneel';
+  if (kneel) {
+    part(S, rbox(0.55, 1.4, 0.5, 0.2), UNI, -0.2, 0.3, 0.3, 0, 0, HALF_PI);
+    part(S, rbox(0.55, 1.5, 0.5, 0.2), UNI, 0.35, 0.75, -0.3);
+    part(S, rbox(0.7, 0.3, 0.5, 0.12), BOOT, 0.45, 0.15, -0.3);
+  } else for (const s of [-1, 1]) {
+    part(S, rbox(0.55, 1.7, 0.55, 0.22), UNI, 0, 0.85, s * 0.33);
+    part(S, rbox(0.8, 0.32, 0.55, 0.12), BOOT, 0.12, 0.16, s * 0.33);
+  }
+  const hy = kneel ? 1.35 : 1.75;
+  part(S, rbox(0.9, 1.5, 1.25, 0.3), VEST, 0, hy + 0.75, 0);
+  for (let k = 0; k < 3; k++) part(S, rbox(0.22, 0.4, 0.3, 0.06, 1), mat3('#3c4529', 0.9), 0.5, hy + 0.55, -0.4 + k * 0.4);
+  part(S, rbox(0.5, 0.8, 1.0, 0.15), mat3('#3c4529', 0.9), -0.62, hy + 0.9, 0);
+  for (const s of [-1, 1]) part(S, rbox(0.42, 1.25, 0.42, 0.18), UNI, 0.35, hy + 0.9, s * 0.72, 0, 0, -0.9);
+  if (o.band !== null) part(S, new THREE.BoxGeometry(0.3, 0.26, 0.44), mat3(o.band || '#f2c230', 0.6), 0.02, hy + 1.2, 0.72);
+  part(S, sph(0.42, 18, 12), SK, 0.05, hy + 1.85, 0);
+  if (o.hat) part(S, cyl(0.46, 0.5, 0.35, 16), mat3(o.hat, 0.9), 0.02, hy + 2.12, 0);
+  else part(S, new THREE.SphereGeometry(0.52, 20, 10, 0, Math.PI * 2, 0, HALF_PI * 1.05), HEL, 0.02, hy + 1.92, 0).scale.set(1.05, 0.9, 1.0);
+  const gun = o.gun || 'rifle';
+  if (gun === 'rifle' || gun === 'mg') {
+    const R = new THREE.Group(); R.position.set(0.9, hy + 1.15, 0.25); R.rotation.z = kneel ? 0.05 : -0.15; S.add(R);
+    part(R, new THREE.BoxGeometry(gun === 'mg' ? 2.8 : 2.4, 0.18, 0.12), BK, 0.2, 0, 0);
+    part(R, new THREE.BoxGeometry(0.22, 0.45, 0.1), BK, 0.1, -0.25, 0, 0, 0, 0.2);
+    if (gun === 'mg') { part(R, new THREE.BoxGeometry(0.5, 0.35, 0.3), BK, 0.2, -0.28, 0); part(R, cyl(0.05, 0.05, 0.6, 6), BK, 1.3, -0.3, 0.12, 0, 0, 0.4); }
+  } else if (gun === 'rpg') {
+    part(S, cyl(0.16, 0.16, 3.2, 12), mat3('#3d4a2c', 0.6), 0.2, hy + 1.65, -0.55, 0, 0, HALF_PI);
+    part(S, cyl(0.3, 0.12, 0.8, 12), mat3('#3d4a2c', 0.6), 2.0, hy + 1.65, -0.55, 0, 0, HALF_PI);
+  }
+  return S;
+}
+
+// ---------- trees ----------
+function pine3(parent, x, z, h, seed) {
+  const N = mat3('#2c4a31', 0.85), N2 = mat3('#35583b', 0.85), SNOW = mat3('#eef2f4', 0.7);
+  part(parent, cyl(0.35, 0.5, 3.4, 10), mat3('#5a3d28', 0.9), x, 1.7, z);
+  const n = Math.max(3, Math.round(h / 2.6));
+  for (let i = 0; i < n; i++) {
+    const t = i / n, r = h * 0.3 * (1 - t * 0.85), y = 2.4 + t * (h - 3.5);
+    const c = part(parent, new THREE.ConeGeometry(r, h * 0.3, 11), i % 2 ? N2 : N, x, y + h * 0.15, z);
+    c.rotation.y = hash(seed, i, 1) * 3; c.rotation.z = (hash(seed, i, 2) - 0.5) * 0.08;
+    part(parent, new THREE.ConeGeometry(r * 0.72, h * 0.12, 11), SNOW, x, y + h * 0.26, z).rotation.y = c.rotation.y;
+  }
+}
+// Bare winter birch: white trunk with dark marks and a few thin branches.
+function birch3(parent, x, z, h, seed) {
+  const BARK = mat3('#e6e2d6', 0.8), MARK = mat3('#2b2a26', 0.9), TW = mat3('#6a5a48', 0.9);
+  part(parent, cyl(0.28, 0.4, h, 10), BARK, x, h / 2, z);
+  for (let i = 0; i < 5; i++) part(parent, new THREE.BoxGeometry(0.1, 0.18, 0.62), MARK, x + 0.28, 1 + i * h * 0.16, z, 0, hash(seed, i, 5) * 3, 0);
+  for (let i = 0; i < 6; i++) {
+    const a = hash(seed, i, 7) * 6.28, y = h * (0.45 + i * 0.09), L = 1.6 + hash(i, seed, 8) * 1.4;
+    const b = part(parent, cyl(0.05, 0.1, L, 5), TW, x + Math.cos(a) * L * 0.4, y + L * 0.3, z + Math.sin(a) * L * 0.4);
+    b.rotation.z = -Math.cos(a) * 0.9; b.rotation.x = Math.sin(a) * 0.9;
+  }
+}
+MODEL3D['prop:forest'] = seed => {
+  const g = new THREE.Group();
+  const spots = [[-5, -4], [3, 3], [5, -5], [-3, 5], [-6, 2], [1, -7]];
+  spots.forEach(([x, z], i) => {
+    const h = 8 + hash(seed, i, 3) * 8;
+    if (hash(seed, i, 4) < 0.2) birch3(g, x, z, h * 0.8, seed + i); else pine3(g, x, z, h, seed + i);
+  });
+  return g;
 };
+
+// ---------- buildings ----------
+// Reference building: village house. Wall and roof colours vary by seed (same palettes as the voxel house).
+function m3House(seed, dmg) {
+  const H = new THREE.Group();
+  const WL = HOUSE_WALL[Math.floor(hash(seed, 1, 1) * HOUSE_WALL.length)], [RA, RB] = HOUSE_ROOF[Math.floor(hash(seed, 2, 2) * HOUSE_ROOF.length)];
+  const WALL = mat3(WL, 0.9), TRIM = mat3('#f1ede3', 0.8), ROOF = mat3(RA, 0.7), ROOF2 = mat3(RB, 0.7), WOOD = mat3('#6b5238', 0.85);
+  const GLASS = dmg ? mat3('#1d222a', 0.3) : mat3('#f6d57a', 0.25, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.8 });
+  part(H, rbox(12.4, 1.0, 10.4, 0.2), mat3('#8d7b62', 0.95), 0, 0.5, 0);
+  part(H, rbox(12, 6.2, 10, 0.12), WALL, 0, 4.0, 0);
+  function win(x, y, z, ry) {
+    const W = new THREE.Group(); W.position.set(x, y, z); W.rotation.y = ry; H.add(W);
+    part(W, new THREE.BoxGeometry(1.9, 1.9, 0.1), GLASS, 0, 0, 0);
+    for (const [w, h, dx, dy] of [[2.3, 0.22, 0, 1.05], [2.5, 0.26, 0, -1.08], [0.22, 2.2, -1.05, 0], [0.22, 2.2, 1.05, 0], [0.12, 1.9, 0, 0], [1.9, 0.12, 0, 0.3]]) part(W, new THREE.BoxGeometry(w, h, 0.22), TRIM, dx, dy, 0.08);
+    for (const s of [-1, 1]) part(W, rbox(0.9, 2.1, 0.12, 0.05, 1), mat3('#3f6b8f', 0.7), s * 1.7, 0, 0.1);
+  }
+  win(-3, 4.3, 5.05, 0); win(2.8, 4.3, 5.05, 0); win(6.05, 4.3, -2.4, HALF_PI); win(6.05, 4.3, 2.4, HALF_PI);
+  part(H, rbox(1.6, 3.0, 0.2, 0.05, 1), WOOD, -0.1, 2.5, 5.08);
+  part(H, new THREE.BoxGeometry(2.4, 0.2, 1.4), TRIM, -0.1, 1.05, 5.6);
+  const slope = Math.atan2(4.0, 6.0);
+  for (const s of [-1, 1]) {
+    const R = new THREE.Group(); R.position.set(0, 11.05, 0); R.rotation.x = s * slope; H.add(R);
+    for (let k = 0; k < 7; k++) {
+      if (dmg && s === 1 && k > 1 && k < 5 && hash(seed, k, 9) < 0.8) continue;   // shell hole in the roof
+      part(R, new THREE.BoxGeometry(13.4, 0.26, 1.18), k % 2 ? ROOF : ROOF2, 0, 0.04 * k, s * (0.55 + k * 1.02)).rotation.x = s * 0.06;
+    }
+    if (!dmg || s === -1) part(R, new THREE.BoxGeometry(13.0, 0.18, 4.4), mat3('#eef2f5', 0.7), 0, 0.3, s * 2.0);
+  }
+  part(H, new THREE.BoxGeometry(13.6, 0.4, 0.6), ROOF2, 0, 11.05, 0);
+  const gable = new THREE.Shape(); gable.moveTo(-5, 0); gable.lineTo(5, 0); gable.lineTo(0, 4.0); gable.closePath();
+  for (const s of [-1, 1]) part(H, new THREE.ExtrudeGeometry(gable, { depth: 0.2, bevelEnabled: false }), WALL, s * 5.9, 7.05, 0, 0, HALF_PI);
+  part(H, rbox(1.5, 4.2, 1.5, 0.1), mat3('#7a4a3a', 0.9), 2.6, 10.8, -2.2);
+  part(H, new THREE.BoxGeometry(1.9, 0.25, 1.9), mat3('#5c3a2e', 0.9), 2.6, 12.95, -2.2);
+  for (let i = 0; i < 7; i++) part(H, rbox(0.36, 2.4, 0.36, 0.08, 1), WOOD, -8 + i * 2.7, 1.2, 8.2);
+  for (const y of [0.9, 1.9]) part(H, new THREE.BoxGeometry(17.2, 0.22, 0.14), WOOD, 0.1, y, 8.2);
+  if (dmg) {
+    const SOOT = mat3('#1a1714', 1);
+    part(H, new THREE.BoxGeometry(3.2, 3.6, 0.1), SOOT, 2.8, 4.6, 5.12);
+    for (let i = 0; i < 6; i++) part(H, rbox(0.9 + hash(seed, i, 1), 0.5, 0.8, 0.15, 1), mat3('#8a8276', 0.95), 3 + hash(seed, i, 2) * 4, 0.3, 6 + hash(seed, i, 3) * 2).rotation.y = hash(i, seed, 4) * 3;
+  }
+  return H;
+}
+MODEL3D['bld:h'] = m3House;
+
+// ---------- task sections ----------
+// Each task card adds its builder and MODEL3D registration inside its own section below, so cards merge cleanly.
+
+// ---------- T-17 反坦克组 atgm ----------
+
+// ---------- T-18 国土防卫步兵班 tdf ----------
+
+// ---------- T-19 俄军空降兵 vdv ----------
+
+// ---------- T-20 撤离的平民 civ ----------
+
+// ---------- T-21 D-30 榴弹炮 d30 ----------
+
+// ---------- T-22 BMP-2 bmp2 ----------
+
+// ---------- T-23 T-72B3 t72 ----------
+
+// ---------- T-24 BM-21 冰雹 grad ----------
+
+// ---------- T-25 海王星发射车 neptune ----------
+
+// ---------- T-26 卡-52 ka52 ----------
+
+// ---------- T-27 米-8 mi8 ----------
+
+// ---------- T-28 奥兰-10 orlan ----------
+
+// ---------- T-29 无人艇 magura 与巡逻艇 raptor ----------
+
+// ---------- T-30 赫鲁晓夫楼 bld:b ----------
+
+// ---------- T-31 教堂 bld:c ----------
+
+// ---------- T-32 变电站 bld:S 与机库 bld:H ----------
+
+// ---------- T-33 废墟 bld:rubble 与断桥 prop:bridge ----------

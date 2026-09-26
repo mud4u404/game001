@@ -8,20 +8,20 @@
 1. 同步代码：
    ```
    git fetch origin
-   git checkout main && git pull origin main
+   git checkout -B trunk origin/claude/inspiring-johnson-7m5bvj
    ```
-2. 读看板 `docs/tasks/BOARD.md`（以 `origin/main` 上的版本为准），按以下优先级挑任务：
+2. 读看板 `docs/tasks/BOARD.md`（以集成分支 `origin/claude/inspiring-johnson-7m5bvj` 上的版本为准），按以下优先级挑任务：
    1. 状态为 **需修改** 的任务：切到它的分支 `git checkout zcode/T-xx && git pull origin zcode/T-xx`，
       读卡片最下方最新一轮“审查意见”，逐条修改。
    2. 否则，挑编号最小、状态为 **待开发**、远端还没有 `zcode/T-xx` 分支、并且“依赖”一栏的任务都已是 **已完成** 的任务：
-      `git checkout -b zcode/T-xx origin/main`。
+      `git checkout -b zcode/T-xx origin/claude/inspiring-johnson-7m5bvj`。
    3. 两种都没有：回复“没有可做的任务”，然后结束。
 3. 读任务卡 `docs/tasks/T-xx-*.md`，只做卡片要求的事。
 4. 自测（见第 3 节），必须全部通过。
 5. 在任务卡的“执行记录”里追加一段（不要改其他人写的内容）：改了什么、自测结果、需要审查方决定的问题。
 6. 提交并推送：
    ```
-   git merge origin/main        # 先合入最新主干，有冲突就在本分支解决
+   git merge origin/claude/inspiring-johnson-7m5bvj   # 先合入最新集成分支，有冲突就在本分支解决
    git add -A
    git commit -m "T-xx: 一句话说明"
    git push -u origin zcode/T-xx
@@ -31,7 +31,8 @@
 ## 2. 硬性规则
 
 - **只改任务卡“改动范围”里列出的文件**，外加该卡片文件本身和 `docs/tasks/shots/T-xx/`。改了范围外的文件，自动检查会直接判失败。
-- **永远不要**推送到 `main`，不要改 `docs/tasks/BOARD.md`，不要删除或改写别人写的执行记录和审查意见。
+- **主干是集成分支 `claude/inspiring-johnson-7m5bvj`**：审查方在这里合并通过的卡、更新看板；`main` 只在阶段性里程碑时由负责人合并。
+- **永远不要**推送到 `main` 或集成分支，不要改 `docs/tasks/BOARD.md`，不要删除或改写别人写的执行记录和审查意见。
 - 拿不准的地方（需求不清、要改范围外的文件、史实不确定）：在执行记录里写清楚问题，推送后停下，不要自己猜。
 - 不引入外部库、外部图片或音频。唯一例外是仓库里固定版本的 three.js（`game/vendor/three.min.js`，r128），不要升级或替换它。
 - 美术：新模型一律写成 3D 精修模型（`game/js/models3d.js`），照 `m3T64` 范本的结构和精细度，用文件顶部的工具函数（`mat3`、`part`、`rbox`、`profile`、`cyl`、`trackLoop`）搭建；旧的体素模型（`game/js/models.js`）只作兜底，不再新增。音效用 WebAudio 合成（`game/js/audio.js`）。
@@ -73,7 +74,8 @@ node tools/shot3d.js /tmp/s3-T-xx                    # 3D 画面冒烟测试：�
 关键约定：
 - 坐标是 8×8 网格，`x` 向屏幕右下，`y` 向屏幕左下。`center(x, y)` 返回地块中心的屏幕坐标。
 - 体素模型的 `+x` 是车头方向，`z` 向上，一个体素在屏幕上占 2 个美术像素。
-- 3D 模型：一格 = 20 个单位，`+x` 是车头，`+y` 向上，站在 `y = 0`、以格子中心为原点。炮塔放进名为 `turret` 的组（残骸会去掉它）。在 `MODEL3D` 里用单位类型名注册即可替换对应的体素模型。
+- 3D 模型：一格 = 20 个单位，`+x` 是车头，`+y` 向上，站在 `y = 0`、以格子中心为原点。炮塔放进名为 `turret` 的组（残骸会去掉它）。旋翼、螺旋桨放进名为 `rotorY`（绕竖轴）、`rotorYr`（反向）、`rotorX`、`rotorZ` 的组，游戏会自动转动。
+- `models3d.js` 末尾为每张卡预留了一段 `// ---------- T-xx ... ----------`：**只在自己那一段里写代码**，写完用 `MODEL3D.类型名 = 函数;` 注册。范本：车辆看 `m3T64`，人物用 `soldier3()`，建筑看 `m3House`，树用 `pine3()` / `birch3()`。
 - 浏览器地址加 `?2d` 可以强制使用旧的 2D 渲染（playtest 就是这样跑的）。
 - 游戏逻辑用 `await` 等待动画完成（`tween`、`fly`、`sleep`），测试时把 `SPEED` 调到接近 0 来跳过动画。
 
@@ -92,7 +94,7 @@ node tools/shot3d.js /tmp/s3-T-xx                    # 3D 画面冒烟测试：�
 3. 回到第 1 步，继续等待。
 
 安全阀（遇到任何一条就停止自动模式，回复原因，等待人类指示）：
-- 本次自动模式已经完成 **5 张卡**。
+- 本次自动模式已经完成 **12 张卡**。
 - 同一张卡连续 2 次自测不通过，或者遇到拿不准、需要审查方决定的问题。
 - 推送失败、`git fetch` 连续失败、测试环境损坏等无法自行解决的问题。
 - 人类说“停止”。

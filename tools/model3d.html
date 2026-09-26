@@ -14,19 +14,22 @@ canvas{display:block}
 <body>
 <div id="info"></div>
 <canvas id="cv"></canvas>
+<canvas id="stage" hidden></canvas>
 <script src="../game/vendor/three.min.js"></script>
 <script src="../game/js/util.js"></script>
+<script src="../game/js/gfx.js"></script>
+<script src="../game/js/models.js"></script>
 <script src="../game/js/models3d.js"></script>
 <script>
 'use strict';
-// Model viewer: tools/model3d.html?m=<MODEL3D key>
+// Model viewer: tools/model3d.html?m=<MODEL3D key>[&seed=3][&dmg=1]  (seed and damaged are passed to buildings)
 // Top row: the model close up from the four facings the game uses. Bottom right: the same model at the
 // size it has in the game (one tile about 1/12 of the screen width), on a tile, next to the reference T-64.
-const key = new URLSearchParams(location.search).get('m') || 't64';
+const Q = new URLSearchParams(location.search), key = Q.get('m') || 't64', seed = +(Q.get('seed') || 3), dmg = Q.get('dmg') === '1';
 const cv = document.getElementById('cv');
-const W = 1600, H = 900;
+const VW = 1600, VH = 900;
 const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
-renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.setSize(VW, VH); renderer.setPixelRatio(1);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -67,15 +70,15 @@ function isoCam(half, target) {
 function view(scene, cam, x, y, w, h) {
   const half = cam.userData.half;
   cam.left = -half * w / h; cam.right = half * w / h; cam.top = half; cam.bottom = -half; cam.updateProjectionMatrix();
-  renderer.setViewport(x, H - y - h, w, h); renderer.setScissor(x, H - y - h, w, h);
+  renderer.setViewport(x, VH - y - h, w, h); renderer.setScissor(x, VH - y - h, w, h);
   renderer.render(scene, cam);
 }
 function label(text, x, y) { const d = document.createElement('div'); d.className = 'lab'; d.textContent = text; d.style.left = x + 'px'; d.style.top = y + 'px'; document.body.appendChild(d); }
 
-const build = MODEL3D[key];
-if (!build) { document.getElementById('info').innerHTML = `MODEL3D 里没有 <b>${key}</b>`; throw new Error('no model ' + key); }
+const build0 = MODEL3D[key], build = () => build0(seed, dmg);
+if (!build0) { document.getElementById('info').innerHTML = `MODEL3D 里没有 <b>${key}</b>`; throw new Error('no model ' + key); }
 const probe = build(), box = new THREE.Box3().setFromObject(probe), sz = box.getSize(new THREE.Vector3());
-document.getElementById('info').innerHTML = `<b>${key}</b> · 尺寸 长 ${sz.x.toFixed(1)} × 高 ${sz.y.toFixed(1)} × 宽 ${sz.z.toFixed(1)}（一格 = 20）`;
+document.getElementById('info').innerHTML = `<b>${key}</b>${dmg ? '（受损）' : ''} · 尺寸 长 ${sz.x.toFixed(1)} × 高 ${sz.y.toFixed(1)} × 宽 ${sz.z.toFixed(1)}（一格 = 20）`;
 // four facings, close up
 const FACES = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 FACES.forEach(([fx, fz], i) => {

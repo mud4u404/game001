@@ -238,7 +238,8 @@ function syncUnits() {
     if (!rec || rec.type !== u.type) {
       if (rec) V3.units.remove(rec.obj);
       const obj = unitModel(u.type);
-      rec = { obj, type: u.type, mats: ownMaterials(obj) };
+      rec = { obj, type: u.type, mats: ownMaterials(obj), spin: [] };
+      obj.traverse(o => { if (/^rotor[XYZ]/.test(o.name)) rec.spin.push(o); });
       V3.objs.set(u, rec); V3.units.add(obj);
     }
     const [fx, fz] = u.face, rec5 = u.recoil * 5 / KA;
@@ -246,6 +247,8 @@ function syncUnits() {
     rec.obj.position.set(u.rx * TS - fx * rec5 * 1.4, alt, u.ry * TS - fz * rec5 * 1.4);
     rec.obj.rotation.y = -Math.atan2(fz, fx);
     rec.obj.visible = u.alpha > 0.05;
+    // rotors: name a group rotorY / rotorYr (counter-rotating) / rotorX / rotorZ to spin it about that local axis
+    for (const o of rec.spin) { const k = (o.name.endsWith('r') ? -1 : 1) * performance.now() * 0.03; o.rotation[o.name[5].toLowerCase()] = k; }
     const dim = u.team === 'ua' && u.acted && B.phase === 'player' ? 0.55 : 1;
     const fade = u.alpha < 0.999;
     for (const m of rec.mats) {

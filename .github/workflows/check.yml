@@ -1,7 +1,7 @@
 name: check
 on:
   push:
-    branches: ['zcode/**', 'main']
+    branches: ['zcode/**', 'main', 'claude/inspiring-johnson-7m5bvj']
   pull_request:
     branches: [main]
 jobs:
