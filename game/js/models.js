@@ -274,7 +274,7 @@ const hullOf = v => v.filter(p => p[2] <= 4);
 const turretOf = v => v.filter(p => p[2] >= 5).shift(0, 0, -5);
 
 const UNIT_MODEL = { t64: mT64, atgm: mAtgm, d30: mD30, t72: mT72, btr: () => mBtr(false), cmd: () => mBtr(true), vdv: mVdv, grad: mGrad, ka52: mKa52, mi8: mMi8, orlan: mOrlan, civ: mCiv, magura: mMagura, neptune: mNeptune, raptor: mRaptor, tdf: mTdf, bmp2: mBmp2 };
-const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-9, 0, 7], raptor: [12, 0, 4], tdf: [7, 1, 4], bmp2: [10, 0, 5] };
+const MUZZLE = { t64: [13, 0, 6], t72: [13, 0, 6], d30: [13, 0, 4], btr: [9, 0, 7], atgm: [4, -1, 6], vdv: [4, -1, 6], grad: [3, 0, 10], ka52: [3, 4, 1], neptune: [-9, 0, 7], raptor: [7, 0, 3], tdf: [7, 1, 4], bmp2: [10, 0, 5] };
 
 // --- buildings & props ---
 function mApt(seed, dmg) {
