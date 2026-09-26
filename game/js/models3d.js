@@ -376,6 +376,31 @@ function m3Atgm() {
 MODEL3D.atgm = m3Atgm;
 
 // ---------- T-18 国土防卫步兵班 tdf ----------
+function m3Tdf() {
+  const T = new THREE.Group();
+  const SB1 = mat3('#a49271', 0.95), SB2 = mat3('#96856a', 0.95);
+  // 1. machine gunner kneeling behind a small sandbag pile
+  soldier3(T, 2, 0, -0.18, { pose: 'kneel', gun: 'mg', vest: '#4a5533' });
+  for (const [bx, by, bz, w, d, rz] of [[3.45, 0.24, -0.5, 1.5, 1.0, 0.1], [3.6, 0.6, -0.15, 1.25, 0.8, -0.08], [3.3, 0.26, 0.55, 1.1, 0.7, 0.16]]) {
+    const bag = part(T, sph(0.5, 10, 8), SB1, bx, by, bz); bag.scale.set(w, 0.5, d); bag.rotation.y = rz;
+    part(T, sph(0.5, 10, 8), SB2, bx + 0.12, by + 0.18, bz - 0.1).scale.set(w * 0.7, 0.4, d * 0.7);
+  }
+  // 2. RPG-7 gunner standing, rocket bag on the back with two warheads peeking out
+  soldier3(T, -2, -3, 0.22, { gun: 'rpg', vest: '#3f4a3a' });
+  part(T, rbox(0.8, 1.15, 0.6, 0.12, 1), mat3('#4a5533', 0.85), -3.15, 2.35, -3);
+  for (const dz of [-0.14, 0.14]) {
+    part(T, cyl(0.14, 0.14, 0.6, 10), mat3('#3d4a2c', 0.6), -3.2, 3.1, -3 + dz, 0.3, 0, 0.12);
+    part(T, sph(0.16, 10, 8), mat3('#5d6448', 0.6), -3.26, 3.42, -3 + dz);
+  }
+  // 3. rifleman standing, wearing a beanie
+  soldier3(T, -2, 3, -0.26, { gun: 'rifle', vest: '#57553f', hat: '#3a3f36' });
+  // 4. ammo box and a folded blue-yellow flag on the ground
+  part(T, rbox(1.4, 0.5, 0.9, 0.06, 1), mat3('#3b3f33', 0.7), 0.6, 0.25, -3.45);
+  part(T, rbox(1.3, 0.13, 0.85, 0.05, 1), mat3('#f2c230', 0.7), -0.4, 0.09, 3.6);
+  part(T, rbox(1.3, 0.13, 0.85, 0.05, 1), mat3('#2f6fd1', 0.7), -0.4, 0.21, 3.6);
+  return T;
+}
+MODEL3D.tdf = m3Tdf;
 
 // ---------- T-19 俄军空降兵 vdv ----------
 
