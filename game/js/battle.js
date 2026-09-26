@@ -63,6 +63,7 @@ function newBattle(mi, picks) {
     if (M.squad[rec.type] && !seenTypes[rec.type]) pos = { x: M.squad[rec.type][0], y: M.squad[rec.type][1] };
     if (!pos || unitAt(pos.x, pos.y)) pos = deploySpot(u, M);
     u.x = pos.x; u.y = pos.y;
+    u.rx = u.x; u.ry = u.y;
     seenTypes[rec.type] = true;
     u.rid = rec.rid;
     B.units.push(u);
