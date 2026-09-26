@@ -1,7 +1,7 @@
 'use strict';
 // ---------- battle state & rules ----------
 let B = null;       // current battle
-let CAMP = null;    // campaign progress (grid, aid, upgrades, flags)
+let CAMP = null;    // campaign progress (aid, upgrades, flags)
 
 const inB = (x, y) => x >= 0 && y >= 0 && x < 8 && y < 8;
 const TILEAT = (x, y) => B.tiles[y][x];
@@ -24,13 +24,14 @@ function mkUnit(type, x, y) {
   if (type === 't64') { u.hp = u.max = d.hp + CAMP.up.t64hp; }
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
+  if (type === 'bmp2') { u.ammo.kon = 1; }
   return u;
 }
 function newBattle(mi) {
   const M = MISSIONS[mi];
   B = {
     mission: M, mi, turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
-    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, gridLost: 0, dmgTaken: 0 },
+    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0 },
     nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {},
   };
   for (let y = 0; y < 8; y++) {
@@ -176,7 +177,7 @@ function scoreAttack(e, tiles) {
     if (a.land) continue;
     const v = unitAt(a.x, a.y), t = TILEAT(a.x, a.y), dmg = dmgAgainst(a.w, a.x, a.y);
     if (v && v !== e) { if (v.team === 'ua') s += 7 + dmg * 1.5; else if (v.team === 'ru') s -= 10; }
-    else if (bldAlive(t) && BLD[t.t].grid) s += 9;
+    else if (bldAlive(t) && BLD[t.t].civil) s += 9;
   }
   return s;
 }
@@ -209,7 +210,7 @@ async function aiPlan() {
         if (o.land) {
           if (!landable(p.x, p.y)) continue;
           let dmin = 99;
-          for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const t = TILEAT(x, y); if (bldAlive(t) && BLD[t.t].grid) dmin = Math.min(dmin, Math.abs(x - p.x) + Math.abs(y - p.y)); }
+          for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const t = TILEAT(x, y); if (bldAlive(t) && BLD[t.t].civil) dmin = Math.min(dmin, Math.abs(x - p.x) + Math.abs(y - p.y)); }
           s += 12 - dmin * 2 - ua().filter(u => dist(u, p) <= 1).length * 6;
         } else {
           e.aim = o;
@@ -259,9 +260,9 @@ function damageBuilding(x, y, d) {
   const t = TILEAT(x, y), info = BLD[t.t];
   t.hp = Math.max(0, t.hp - d);
   floatText(x, y, '-' + d, '#ffb199', 40);
-  if (info.grid) {
-    CAMP.grid = Math.max(0, CAMP.grid - 1); B.stats.gridLost++;
-    toast(`${info.name} ${coord(x, y)} 被击中 · 电网 -1`, 'bad');
+  if (info.civil) {
+    B.stats.bldHit++;
+    toast(`${info.name} ${coord(x, y)} 被击中`, 'bad');
     shake(3);
   }
   if (t.hp === 0) { explode(x, y, 3, 10); AUDIO.crash(); }
@@ -287,8 +288,8 @@ async function killUnit(o, src, how) {
     toast(`${d.name} 被摧毁`, 'good');
     if (!B.said.firstKill) { B.said.firstKill = 1; bark('kill', src); }
   } else if (o.team === 'civ') {
-    B.stats.civLost++; CAMP.grid = Math.max(0, CAMP.grid - 1); B.stats.gridLost++;
-    toast('一批平民遇难 · 电网 -1', 'bad');
+    B.stats.civLost++;
+    toast('一批平民遇难', 'bad');
   } else toast(how === 'expend' ? `${d.name} 完成攻击` : `${d.name} 被摧毁`, how === 'expend' ? '' : 'bad');
   if (how === 'drown' || how === 'expend') { await animSink(o); }
   else if (d.cls === 'air') await animCrash(o);
@@ -366,7 +367,6 @@ function afterAction() {
   if (B.phase === 'player' && ua().every(u => u.acted) && !B.said.allDone) { B.said.allDone = 1; hint('所有单位都已行动 · 按“结束回合”'); }
 }
 function checkDefeat() {
-  if (CAMP.grid <= 0) { endMission('grid'); return true; }
   if (!ua().length) { endMission('wiped'); return true; }
   return false;
 }
@@ -376,12 +376,12 @@ function snapshot() {
   B.snap = null;
   const s = JSON.stringify(B);
   B.mission = keep;
-  return { s, grid: CAMP.grid };
+  return { s };
 }
 function restoreSnapshot(snap) {
   const keep = B.mission, left = B.resetLeft - 1;
   B = JSON.parse(snap.s);
-  B.mission = keep; B.resetLeft = left; CAMP.grid = snap.grid;
+  B.mission = keep; B.resetLeft = left;
   for (const u of B.units) { u.rx = u.x; u.ry = u.y; }
   B.snap = snap;
 }
@@ -496,11 +496,17 @@ function spawnCivilians() {
   const cv = B.mission.civ;
   if (!cv) return;
   while (B.civNext < cv.groups.length && cv.groups[B.civNext] <= B.turn) {
-    const [x, y] = cv.path[0];
-    if (unitAt(x, y)) break;
-    const c = mkUnit('civ', x, y); c.face = [-1, 0]; c.pathIdx = 0;
+    // spawn at the path start, or sidestep to path[1]/path[2] while enemies squat there
+    let at = null;
+    for (let idx = 0; idx < Math.min(3, cv.path.length); idx++) {
+      const [x, y] = cv.path[idx];
+      if (!unitAt(x, y)) { at = { x, y, idx }; break; }
+    }
+    if (!at) break;
+    const c = mkUnit('civ', at.x, at.y); c.face = [-1, 0]; c.pathIdx = at.idx;
     B.units.push(c);
     B.civNext++;
+    if (at.idx > 0) toast('平民绕开敌军，从旁边的路口出发', '');
   }
 }
 async function moveCivilians() {
@@ -534,7 +540,7 @@ function endMission(reason) {
   B.phase = 'end'; busy = false; sel = null; mode = null;
   const M = B.mission;
   const res = { reason, objectives: [], aid: 0, consequence: null };
-  const lostAll = reason === 'wiped', gridOut = reason === 'grid';
+  const lostAll = reason === 'wiped';
   for (const o of M.objectives) {
     const r = o.eval(B), done = !lostAll && (r.inverse ? r.cur <= r.max : r.cur >= r.max);
     res.objectives.push({ text: o.text, kind: o.kind, done, reward: o.reward, r });
@@ -542,12 +548,10 @@ function endMission(reason) {
   }
   const primaryOk = res.objectives.filter(o => o.kind === 'primary').every(o => o.done);
   res.win = primaryOk;
-  if (!lostAll && !gridOut) {
+  if (!lostAll) {
     const c = M.consequence(B);
-    if (c) { res.consequence = c; CAMP.flags[c.flag] = true; if (c.grid) CAMP.grid = Math.max(0, CAMP.grid + c.grid); }
+    if (c) { res.consequence = c; CAMP.flags[c.flag] = true; }
   }
-  res.repair = 0;
-  if (!lostAll && !gridOut && CAMP.grid > 0 && CAMP.grid < CAMP.gridMax) { CAMP.grid++; res.repair = 1; }
   res.civilians = 0;
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;

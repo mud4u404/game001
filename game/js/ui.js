@@ -2,7 +2,7 @@
 // ---------- screens ----------
 let SCENE = 'title';
 const $ = id => document.getElementById(id);
-const SCREENS = ['title', 'story', 'campaign', 'briefing', 'hud', 'debrief', 'gameover'];
+const SCREENS = ['title', 'story', 'campaign', 'briefing', 'hud', 'debrief'];
 function show(...ids) { for (const s of SCREENS) $(s).hidden = !ids.includes(s); }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -105,7 +105,7 @@ function showTitle() {
   const save = store.get('sunflower-v1');
   $('btnContinue').hidden = !(save && save.mission < MISSIONS.length);
 }
-function freshCamp() { return { grid: 7, gridMax: 7, aid: 0, mission: 0, flags: {}, up: { jav: 0, sting: 0, t64hp: 0, spot: 0, tb2: 0, grid: 0 }, log: [] }; }
+function freshCamp() { return { aid: 0, mission: 0, flags: {}, up: { jav: 0, sting: 0, t64hp: 0, spot: 0, tb2: 0 }, log: [], pre: null }; }
 
 // ---------- story cards ----------
 async function playStory(lines, after) {
@@ -219,7 +219,6 @@ function showCampaign() {
   const ch = CHAPTERS[chapterOf(CAMP.mission)];
   $('cTitle').textContent = ch.name;
   $('cSub').textContent = ch.sub;
-  $('cGrid').innerHTML = gridCells();
   $('cAid').textContent = CAMP.aid;
   $('cList').innerHTML = MISSIONS.map((m, k) => ({ m, k })).filter(({ m }) => m.chapter === chapterOf(CAMP.mission)).map(({ m, k }) => `
     <div class="mrow ${k < i ? 'done' : k === i ? 'cur' : 'locked'}">
@@ -233,7 +232,6 @@ function showCampaign() {
     ${Object.keys(CAMP.flags).length ? `<p class="warn">${CAMP.flags.runwayOpen ? '霍斯托梅尔跑道未被破坏：会出现更多空降兵。' : ''}</p>` : ''}` : '';
   $('btnBrief').hidden = !M;
 }
-function gridCells() { let s = ''; for (let i = 0; i < CAMP.gridMax; i++) s += `<i class="${i < CAMP.grid ? 'on' : ''}"></i>`; return `<span class="cells ${CAMP.grid <= 3 ? 'warn' : ''}">${s}</span><b class="num">${CAMP.grid}</b>`; }
 
 // ---------- briefing dialogue ----------
 let dlg = null;
@@ -289,7 +287,6 @@ function beginDeploy() {
 // ---------- battle HUD ----------
 function renderHud() {
   if (!B || SCENE !== 'battle') return;
-  $('hGrid').innerHTML = gridCells();
   $('hTurn').innerHTML = `<b class="num">${Math.min(B.turn, B.maxTurn)}</b><span>/ ${B.maxTurn}</span>`;
   $('hMission').textContent = `${B.mission.code} ${B.mission.name}`;
   $('hObjs').innerHTML = B.mission.objectives.map(o => {
@@ -350,7 +347,7 @@ function renderTip() {
     if (on) html += `<p>行动顺序：第 ${on} 个${B.barrage.length ? '（场外炮火最先落下）' : ''}</p>`;
   }
   const bl = BLD[t.t];
-  if (bl) html += bldAlive(t) ? `<h5>${esc(bl.name)} ${pipsHtml(t.hp, t.max)}</h5><p>${bl.pop ? `约 ${bl.pop} 名居民。` : ''}${bl.grid ? '被击中一次，电网 -1。' : '军事设施。'}</p>` : `<h5>废墟</h5>`;
+  if (bl) html += bldAlive(t) ? `<h5>${esc(bl.name)} ${pipsHtml(t.hp, t.max)}</h5><p>${bl.pop ? `约 ${bl.pop} 名居民。` : ''}${bl.civil ? '民用建筑。' : '军事设施。'}</p>` : `<h5>废墟</h5>`;
   else html += `<h5>${esc(TILE[t.t].name)}${t.crater ? ' · 弹坑' : ''}</h5><p>${esc(TILE[t.t].note)}</p>`;
   if (t.wreck) html += `<p>残骸：阻挡移动和直射火力。</p>`;
   for (const a of threats().filter(a => a.x === x && a.y === y)) {
@@ -475,12 +472,11 @@ function showDebrief(res) {
   lastResult = res;
   const M = B.mission;
   CAMP.aid += res.aid;
-  const wiped = res.reason === 'wiped', gridOut = res.reason === 'grid' || CAMP.grid <= 0;
-  if (gridOut) { store.del('sunflower-v1'); setTimeout(() => { SCENE = 'campaign'; show('gameover'); }, 1200 * SPEED); return; }
+  const wiped = res.reason === 'wiped';
   setTimeout(() => {
     SCENE = 'campaign';
     show('debrief');
-    const title = wiped ? '小队覆灭' : res.win ? '任务完成' : '任务部分完成';
+    const title = wiped ? '小队覆灭' : res.win ? '任务完成' : '任务未完成';
     $('dbTitle').innerHTML = `<span class="mcode big">${M.code}</span><div><small>${esc(M.name)}</small><h2 class="${wiped ? 'bad' : res.win ? 'good' : 'mid'}">${title}</h2></div>`;
     $('dbText').textContent = wiped ? '特遣队失去了全部作战单位。可以重新部署，再推演一次这场战斗。' : res.win ? M.outcome.win : M.outcome.partial;
     $('dbObjs').innerHTML = res.objectives.map(o => `<li class="${o.done ? 'ok' : 'bad'}"><i></i><span>${esc(o.text)}</span>${o.reward ? `<em>${o.done ? '援助 +' + o.reward : '—'}</em>` : ''}</li>`).join('');
@@ -488,39 +484,39 @@ function showDebrief(res) {
     $('dbStats').innerHTML = `
       <div><b class="num">${res.civilians}</b><span>守护的平民</span></div>
       <div><b class="num">${s.kills}</b><span>击毁敌军</span></div>
-      <div><b class="num">${s.gridLost}</b><span>电网损失</span></div>
-      <div><b class="num">${CAMP.grid}/${CAMP.gridMax}</b><span>电网剩余</span></div>`;
+      <div><b class="num">${s.bldHit}</b><span>建筑被击中</span></div>
+      <div><b class="num">${s.evac}</b><span>平民撤离</span></div>`;
     const notes = [];
     if (res.consequence) notes.push(res.consequence.text);
-    if (res.repair) notes.push('后方抢修队连夜作业：电网 +1。');
     $('dbConseq').hidden = !notes.length;
     $('dbConseq').textContent = notes.join(' ');
     $('dbConseq').classList.toggle('calm', !res.consequence);
-    $('btnRetry').hidden = !wiped;
-    $('btnNext').textContent = wiped ? '放弃并继续' : CAMP.mission + 1 >= MISSIONS.length ? '完成战区' : '返回战役地图';
+    const retryable = !res.win;
+    $('btnRetry').hidden = !retryable;
+    $('btnRetry').textContent = '重新部署';
+    $('btnNext').textContent = res.win ? (CAMP.mission + 1 >= MISSIONS.length ? '完成战区' : '返回战役地图') : '接受结果，继续';
     renderShop();
   }, 900 * SPEED);
 }
 function renderShop() {
   $('shopAid').textContent = CAMP.aid;
   $('shop').innerHTML = UPGRADES.map(up => {
-    const lvl = CAMP.up[up.id] || 0, maxed = up.id === 'grid' ? CAMP.grid >= CAMP.gridMax : lvl >= up.max;
+    const lvl = CAMP.up[up.id] || 0, maxed = lvl >= up.max;
     return `<button type="button" class="up" data-up="${up.id}" ${maxed || CAMP.aid < up.cost ? 'disabled' : ''}>
-      <span class="uname">${esc(up.name)}${up.id !== 'grid' && up.max > 1 ? ` <small>${lvl}/${up.max}</small>` : ''}</span>
-      <span class="udesc">${esc(up.desc)}</span><span class="ucost">${maxed ? (up.id === 'grid' ? '电网已满' : '已装备') : `援助 ${up.cost}`}</span></button>`;
+      <span class="uname">${esc(up.name)}${up.max > 1 ? ` <small>${lvl}/${up.max}</small>` : ''}</span>
+      <span class="udesc">${esc(up.desc)}</span><span class="ucost">${maxed ? '已装备' : `援助 ${up.cost}`}</span></button>`;
   }).join('');
 }
 function buy(id) {
   const up = UPGRADES.find(u => u.id === id);
   if (!up || CAMP.aid < up.cost) return;
-  if (id === 'grid') { if (CAMP.grid >= CAMP.gridMax) return; CAMP.grid++; }
-  else { if ((CAMP.up[id] || 0) >= up.max) return; CAMP.up[id] = (CAMP.up[id] || 0) + 1; }
+  if ((CAMP.up[id] || 0) >= up.max) return;
+  CAMP.up[id] = (CAMP.up[id] || 0) + 1;
   CAMP.aid -= up.cost; AUDIO.select();
   renderShop();
 }
 function continueCampaign() {
-  if (lastResult && lastResult.reason !== 'wiped') CAMP.mission++;
-  else if (lastResult && lastResult.reason === 'wiped') CAMP.mission++;
+  if (lastResult) CAMP.mission++;
   store.set('sunflower-v1', CAMP);
   const a = chapterOf(Math.max(0, CAMP.mission - 1));
   const b = chapterOf(CAMP.mission);
@@ -535,7 +531,7 @@ $('btnContinue').onclick = () => { AUDIO.init(); AUDIO.click(); CAMP = Object.as
 $('btnBrief').onclick = () => { AUDIO.click(); showBriefing(); };
 $('briefing').addEventListener('click', ev => { if (dlg && !ev.target.closest('button')) nextLine(); });
 $('btnSkip').onclick = ev => { ev.stopPropagation(); showMissionCard(); };
-$('btnDeploy').onclick = () => { AUDIO.click(); beginDeploy(); };
+$('btnDeploy').onclick = () => { AUDIO.click(); CAMP.pre = JSON.parse(JSON.stringify(Object.assign({}, CAMP, { pre: null }))); beginDeploy(); };
 $('btnStart').onclick = () => { AUDIO.click(); sel = null; mode = null; $('deploy').hidden = true; startBattle(); };
 $('btnEnd').onclick = () => { AUDIO.click(); enemyPhase(); };
 $('btnReset').onclick = () => { if (B.phase !== 'player' || busy || B.resetLeft <= 0) return; restoreSnapshot(B.snap); sel = null; mode = null; toast('启用作战预案：本回合重新部署', ''); renderHud(); };
@@ -547,8 +543,11 @@ $('unitCard').addEventListener('click', ev => {
 });
 $('shop').addEventListener('click', ev => { const b = ev.target.closest('[data-up]'); if (b) buy(b.dataset.up); });
 $('btnNext').onclick = () => { AUDIO.click(); continueCampaign(); };
-$('btnRetry').onclick = () => { AUDIO.click(); showBriefing(); showMissionCard(); };
-$('btnRestart').onclick = () => { AUDIO.click(); CAMP = freshCamp(); showTitle(); };
+$('btnRetry').onclick = () => {
+  AUDIO.click();
+  CAMP = Object.assign(freshCamp(), CAMP.pre);
+  showBriefing(); showMissionCard();
+};
 $('btnSound').onclick = () => { AUDIO.init(); AUDIO.setMuted(!AUDIO.muted); $('btnSound').textContent = AUDIO.muted ? '声音：关' : '声音：开'; };
 $('btnMusic').onclick = () => { AUDIO.init(); AUDIO.toggleMusic(!AUDIO.musicOn); $('btnMusic').textContent = AUDIO.musicOn ? '音乐：开' : '音乐：关'; };
 $('btnSpeed').onclick = () => { SPEED = SPEED === 1 ? 0.55 : 1; $('btnSpeed').textContent = SPEED === 1 ? '动画：标准' : '动画：快速'; };

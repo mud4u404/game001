@@ -16,6 +16,8 @@ const UNITS = {
   orlan: { name: '奥兰-10 侦察无人机', team: 'ru', cls: 'air', hp: 1, move: 5, mob: 'air', atk: null, alt: 44, spotter: true },
   magura:  { name: '海上无人艇', short: '无人艇', team: 'ua', cls: 'la', hp: 1, move: 5, mob: 'sea', weapons: ['seaRam'], pilot: 'olena', desc: '装满炸药的无人快艇。撞击目标后引爆，自身随之损失。' },
   neptune: { name: '“海王星”发射车', short: '海王星', team: 'ua', cls: 'soft', hp: 2, move: 3, mob: 'wheel', weapons: ['neptune'], pilot: 'dmytro', desc: '岸基反舰导弹发射车，只能攻击水面舰艇。' },
+  tdf:     { name: '国土防卫步兵班', short: '步兵班', team: 'ua', cls: 'inf', hp: 3, move: 3, mob: 'foot', weapons: ['pkm', 'rpg'], pilot: 'roman', desc: '基辅本地人组成的国土防卫部队步兵班。熟悉每一条街道，可以进入森林。' },
+  bmp2:    { name: 'BMP-2 步兵战车', short: 'BMP-2', team: 'ua', cls: 'la', hp: 3, move: 4, mob: 'track', weapons: ['a42', 'konkurs'], pilot: 'serhiy', desc: '第72机械化旅的步兵战车。机关炮能对空，还带 1 发反坦克导弹。' },
   raptor:  { name: '03160 型“猛禽”巡逻艇', team: 'ru', cls: 'la', hp: 2, move: 5, mob: 'sea', atk: 'kord', armor: true },
   civ:   { name: '撤离的平民', team: 'civ', cls: 'inf', hp: 1, move: 3, mob: 'foot', stable: true },
 };
@@ -39,6 +41,9 @@ const WEAPONS = {
   grad:    { name: '122毫米火箭齐射', kind: 'grad', min: 3, range: 5, dmg: { ha: 1, la: 1, soft: 1, inf: 1, bld: 1 }, fx: 'grad' },
   vikhr:   { name: '“旋风”反坦克导弹', kind: 'line', range: 4, overForest: true, dmg: { ha: 3, la: 3, soft: 3, inf: 1, bld: 1 }, fx: 'atgm' },
   kord:    { name: '12.7毫米机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 2, la: 1, ha: 0, bld: 1 }, fx: 'mg' },
+  pkm:     { name: 'PKM 通用机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 1, la: 0, ha: 0, bld: 0 }, fx: 'mg', desc: '射程 3。压制步兵，对装甲无效。' },
+  a42:     { name: '2A42 30毫米机关炮', kind: 'line', range: 4, hitsAir: true, dmg: { ha: 1, la: 2, soft: 2, inf: 2, air: 1, bld: 1 }, fx: 'mg', desc: '射程 4。可以打直升机和无人机。' },
+  konkurs: { name: '9M113“竞赛”反坦克导弹', kind: 'line', range: 5, ammo: 'kon', dmg: { ha: 3, la: 3, soft: 2, inf: 1, bld: 1 }, fx: 'atgm', desc: '直射导弹，射程 5，每场任务 1 发。' },
   msta:    { name: '152毫米炮火', dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, fx: 'barrage' },
 };
 
@@ -56,11 +61,11 @@ const TILE = {
   d: { name: '断桥', note: '只剩木板便桥，只有步兵能通过' },
 };
 const BLD = {
-  h: { name: '民房', hp: 1, pop: 4, grid: true },
-  b: { name: '赫鲁晓夫楼', hp: 2, pop: 120, grid: true },
-  c: { name: '教堂', hp: 1, pop: 25, grid: true },
-  S: { name: '变电站', hp: 2, pop: 0, grid: true },
-  H: { name: '机库', hp: 3, pop: 0, grid: false },
+  h: { name: '民房', hp: 1, pop: 4, civil: true },
+  b: { name: '赫鲁晓夫楼', hp: 2, pop: 120, civil: true },
+  c: { name: '教堂', hp: 1, pop: 25, civil: true },
+  S: { name: '变电站', hp: 2, pop: 0, civil: true },
+  H: { name: '机库', hp: 3, pop: 0, civil: false },
 };
 
 // ---------- characters ----------
@@ -70,7 +75,9 @@ const CHARS = {
   taras:  { name: '塔拉斯·梅利尼克', call: '教授', role: '反坦克组组长', face: { skin: '#e0b896', hair: '#8a8378', style: 'helmet', beard: '#9a9388', glasses: true, uniform: '#5f6f3c' } },
   ivanna: { name: '伊万娜·霍尔丁 中尉', call: '计算器', role: 'D-30 炮班长', face: { skin: '#ecc4a0', hair: '#b0763c', style: 'beanie', uniform: '#56603a' } },
   olena:  { name: '奥列娜·克拉夫丘克 中士', call: '海燕', role: '无人艇操作员', face: { skin: '#e8c0a0', hair: '#2a2420', style: 'beanie', headset: true, uniform: '#2f3b4a' } },
-  dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#4a3a2a', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
+  dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#2e2620', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
+  roman:  { name: '罗曼·特卡琴科', call: '邮差', role: '国土防卫步兵班长', face: { skin: '#dcb08a', hair: '#5a4632', style: 'helmet', beard: '#5a4632', uniform: '#5f6f3c' } },
+  serhiy: { name: '谢尔希·莫罗兹 中士', call: '铁匠', role: 'BMP-2 车长', face: { skin: '#e0b896', hair: '#2e2620', style: 'tanker', uniform: '#4d5733' } },
   radio:  { name: '无线电截获', call: '截获', role: '俄军频道', face: { radio: true } },
 };
 
@@ -90,9 +97,9 @@ const MISSIONS = [
     ],
     barrage: null,
     objectives: [
-      { id: 'runway', kind: 'primary', text: '炮击跑道，制造 3 个弹坑', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'R' && t.crater), max: 3 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 4 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 4), max: 4 }) },
-      { id: 'heli', kind: 'bonus', text: '击落 2 架直升机', reward: 1, eval: B => ({ cur: B.stats.heli, max: 2 }) },
+      { id: 'runway', kind: 'primary', text: '炮击跑道，制造 3 个弹坑', reward: 5, eval: B => ({ cur: countTiles(B, t => t.t === 'R' && t.crater), max: 3 }) },
+      { id: 'heli', kind: 'bonus', text: '击落 2 架直升机', reward: 2, eval: B => ({ cur: B.stats.heli, max: 2 }) },
+      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
     ],
     brief: [
       ['oksana', '“向日葵”，这里是“基石”。空降兵已经占领了霍斯托梅尔机场西侧跑道，第一波大约两百人，全是直升机运来的。'],
@@ -126,8 +133,9 @@ const MISSIONS = [
     barrage: { from: 1, count: 1 },
     civ: { path: [[6, 6], [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6]], groups: [1, 2, 3], speed: 3 },
     objectives: [
-      { id: 'evac', kind: 'primary', text: '护送至少 2 批平民过河', reward: 1, eval: B => ({ cur: B.stats.evac, max: 2 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 5 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 5), max: 5 }) },
+      { id: 'evac', kind: 'primary', text: '护送至少 2 批平民过河', reward: 5, eval: B => ({ cur: B.stats.evac, max: 2 }) },
+      { id: 'evac3', kind: 'bonus', text: '3 批平民全部过河', reward: 2, eval: B => ({ cur: B.stats.evac, max: 3 }) },
+      { id: 'sub', kind: 'bonus', text: '变电站完好', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'S' && bldAlive(t)), max: 1 }) },
       { id: 'orlan', kind: 'bonus', text: '击落奥兰-10 无人机', reward: 1, eval: B => ({ cur: B.stats.orlan, max: 1 }) },
     ],
     brief: [
@@ -143,7 +151,7 @@ const MISSIONS = [
       win: '那几天，数千名居民踩着断桥下的木板撤离了伊尔平。士兵们在桥下接过老人和孩子，一个一个送到对岸。',
       partial: '撤离路线被炮火切断，许多居民被困在了伊尔平城内。',
     },
-    consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：电网 -1。', grid: -1 }),
+    consequence: B => (B.stats.evac >= 2 ? null : { flag: 'civFail', text: '撤离失败：民防准备不足。' }),
   },
   {
     id: 'skybyn', code: '1-3', name: '斯凯宾伏击', date: '2022年3月10日 上午', place: '布罗瓦里方向 · 斯凯宾村', chapter: 0,
@@ -162,9 +170,10 @@ const MISSIONS = [
     extraWaves: { runwayOpen: [{ turn: 2, units: [['vdv', 7, 1]] }] },
     barrage: { from: 3, count: 1 },
     objectives: [
-      { id: 'armor', kind: 'primary', text: '击毁 4 辆装甲车辆', reward: 1, eval: B => ({ cur: B.stats.armor, max: 4 }) },
-      { id: 'block', kind: 'primary', text: '最多 1 辆车突破西侧', reward: 0, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
+      { id: 'block', kind: 'primary', text: '最多 1 辆车突破西侧', reward: 5, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
+      { id: 'armor', kind: 'bonus', text: '击毁 4 辆装甲车辆', reward: 2, eval: B => ({ cur: B.stats.armor, max: 4 }) },
       { id: 'cmd', kind: 'bonus', text: '击毁团指挥车', reward: 1, eval: B => ({ cur: B.stats.cmd, max: 1 }) },
+      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 1 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 1, inverse: true }) },
     ],
     brief: [
       ['oksana', '侦察报告：一个坦克团的纵队正沿公路从东北开往布罗瓦里。三十多辆装甲车，车距很近。'],
@@ -194,9 +203,10 @@ const MISSIONS = [
     ],
     barrage: null,
     objectives: [
-      { id: 'naval', kind: 'primary', text: '击沉 2 艘巡逻艇', reward: 1, eval: B => ({ cur: B.stats.naval, max: 2 }) },
-      { id: 'hold', kind: 'primary', text: '坚守到第 4 回合结束', reward: 0, eval: B => ({ cur: Math.min(B.turn - (B.phase === 'end' ? 0 : 1), 4), max: 4 }) },
+      { id: 'landing', kind: 'primary', text: '上岸的敌军不超过 1 个', reward: 5, eval: B => ({ cur: B.units.filter(u => u.team === 'ru' && !u.dead && !isAir(u) && !isWater(TILEAT(u.x, u.y))).length, max: 1, inverse: true }) },
+      { id: 'naval', kind: 'bonus', text: '击沉 2 艘巡逻艇', reward: 2, eval: B => ({ cur: B.stats.naval, max: 2 }) },
       { id: 'heli', kind: 'bonus', text: '击落卡-52', reward: 1, eval: B => ({ cur: B.stats.heli, max: 1 }) },
+      { id: 'city', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
     ],
     brief: [
       ['oksana', '“向日葵”，敖德萨外海发现俄军巡逻艇。它们在替登陆部队侦察海滩和雷区。'],
@@ -221,7 +231,6 @@ const UPGRADES = [
   { id: 't64hp', name: '加挂反应装甲', desc: 'T-64BV 生命值 +1。', cost: 2, max: 1 },
   { id: 'spot', name: '空中侦察分队', desc: '民用四旋翼无人机为炮兵校射：观察范围 3 → 5。', cost: 2, max: 1 },
   { id: 'tb2', name: 'TB2 再出动', desc: '每场任务多一次 TB2 打击。', cost: 2, max: 1 },
-  { id: 'grid', name: '抢修电网', desc: '电网 +1。', cost: 1, max: 99 },
 ];
 
 const PROLOGUE = [
