@@ -504,8 +504,135 @@ function m3D30() {
 MODEL3D.d30 = m3D30;
 
 // ---------- T-22 BMP-2 bmp2 ----------
+function m3Bmp2() {
+  const T = new THREE.Group();
+  const OL = mat3('#5b6636', 0.6, 0.05), OD = mat3('#474f2a', 0.65, 0.05), LT = mat3('#66733d', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3);
+  // 1. running gear: six road wheels, three return rollers, toothed drive sprocket, idler, tracks
+  for (const s of [-1, 1]) {
+    const z = s * 2.75;
+    for (let i = 0; i < 6; i++) {
+      const x = -4.9 + i * 1.95;
+      part(T, cyl(1.15, 1.15, 0.85, 24), RUB, x, 1.25, z, HALF_PI);
+      part(T, cyl(0.9, 0.9, 0.95, 20), OL, x, 1.25, z, HALF_PI);
+      part(T, cyl(0.3, 0.3, 1.05, 12), STEEL, x, 1.25, z, HALF_PI);
+    }
+    for (let i = 0; i < 3; i++) part(T, cyl(0.3, 0.3, 0.6, 12), DKS, -3.4 + i * 3.2, 2.6, z, HALF_PI);
+    part(T, cyl(0.85, 0.85, 0.8, 20), OL, 6.15, 1.5, z, HALF_PI);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; part(T, new THREE.BoxGeometry(0.24, 0.24, 0.7), DKS, 6.15 + Math.cos(a) * 1.0, 1.5 + Math.sin(a) * 1.0, z, 0, 0, a); }
+    part(T, cyl(1.0, 1.0, 0.8, 20), OL, -6.3, 1.6, z, HALF_PI);
+    trackLoop(T, -6.3, 6.15, 1.35, 1.15, z, 1.9);
+  }
+  // 2. hull: low wedge with the long corrugated glacis
+  part(T, profile([[-7.0, 1.1], [6.3, 1.0], [7.15, 2.3], [3.8, 3.95], [-7.0, 3.95]], 5.0), OL, 0, 0, 0);
+  const rib = new THREE.Group(); rib.position.set(5.35, 2.5, 0); rib.rotation.z = -0.745; T.add(rib);
+  for (let k = 0; k < 6; k++) part(rib, new THREE.BoxGeometry(0.26, 0.09, 4.5), LT, 0, k * 0.52, 0);
+  // 3. side fender strip, rear doors with windows and handles
+  for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(14.2, 0.14, 0.85), DKS, 0.05, 4.02, s * 2.9);
+  for (const s of [-1, 1]) {
+    part(T, rbox(1.7, 2.7, 0.14, 0.06, 1), OD, -7.05, 2.45, s * 1.25);
+    part(T, rbox(0.55, 0.4, 0.08, 0.03, 1), GLS, -7.12, 3.35, s * 1.25);
+    part(T, new THREE.BoxGeometry(0.1, 0.4, 0.08), DKS, -6.7, 2.6, s * 1.25 + s * 0.09);
+  }
+  // 4. four troop hatches behind the turret, driver hatch and periscopes at the front roof
+  for (const [hx, hz] of [[-2.3, 1.25], [-2.3, -1.25], [-4.1, 1.25], [-4.1, -1.25]]) part(T, rbox(1.5, 0.12, 1.25, 0.05, 1), LT, hx, 4.05, hz);
+  part(T, cyl(0.62, 0.66, 0.16, 22), OL, 4.35, 4.1, -1.15);
+  part(T, rbox(0.7, 0.14, 0.14, 0.03, 1), DKS, 4.9, 4.18, -0.55);
+  // 5. turret offset to the left: flat beveled profile, smoke dischargers on both sides
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-0.8, 4.05, 0.85); T.add(Tu);
+  part(Tu, profile([[-1.8, 0], [1.9, 0.22], [2.15, 1.0], [0.9, 1.5], [-1.55, 1.5], [-1.95, 0.7]], 2.6), OL, 0, 0, 0);
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) part(Tu, cyl(0.15, 0.15, 0.5, 12), DKS, -0.9, 1.0, s * (1.05 + k * 0.38), 0.5 * s, 0, HALF_PI * 0.72);
+  // 6. 2A42 30 mm cannon: root sleeve, long thin barrel, perforated muzzle brake
+  part(Tu, rbox(1.5, 0.85, 1.1, 0.18, 1), OD, 1.35, 0.95, 0);
+  part(Tu, cyl(0.3, 0.3, 2.0, 14), DKS, 2.0, 0.95, 0, 0, 0, HALF_PI);
+  part(Tu, cyl(0.09, 0.12, 10.6, 14), STEEL, 7.3, 0.95, 0, 0, 0, HALF_PI);
+  part(Tu, cyl(0.2, 0.2, 1.1, 14), DKS, 12.0, 0.95, 0, 0, 0, HALF_PI);
+  for (let k = 0; k < 4; k++) part(Tu, new THREE.BoxGeometry(0.14, 0.14, 0.5), DKS, 11.75, 0.95, -0.3 + k * 0.2);
+  // 7. 9M113 Konkurs launcher tube on a mount atop the turret
+  part(Tu, rbox(0.7, 0.4, 0.5, 0.06, 1), DKS, -0.5, 1.75, -0.35);
+  const K = new THREE.Group(); K.position.set(-0.5, 2.0, -0.35); K.rotation.z = 0.12; Tu.add(K);
+  part(K, cyl(0.22, 0.22, 5.4, 14), mat3('#8a8a5c', 0.6, 0.05), 1.9, 0, 0, 0, 0, HALF_PI);
+  part(K, cyl(0.26, 0.26, 0.3, 14), DKS, -0.7, 0, 0, 0, 0, HALF_PI);
+  part(K, cyl(0.26, 0.26, 0.3, 14), mat3('#6d6d48', 0.6), 4.5, 0, 0, 0, 0, HALF_PI);
+  // 8. headlights at the bow, exhaust on the right rear
+  for (const s of [-1, 1]) part(T, cyl(0.24, 0.28, 0.4, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 6.95, 2.95, s * 1.8, 0, 0, HALF_PI);
+  part(T, rbox(1.25, 0.5, 0.9, 0.08, 1), DKS, -6.4, 3.6, -2.15);
+  return T;
+}
+MODEL3D.bmp2 = m3Bmp2;
 
 // ---------- T-23 T-72B3 t72 ----------
+function m3T72b3() {
+  const T = new THREE.Group();
+  const OL = mat3('#5a5f4b', 0.6, 0.05), OD = mat3('#3f4234', 0.65, 0.05), LT = mat3('#686d58', 0.55, 0.05), ERA = mat3('#646a53', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const GLS = mat3('#223044', 0.1, 0.3), BAR = mat3('#4a5040', 0.55, 0.1);
+  // 1. running gear: six LARGE road wheels, rear drive sprocket, front idler — the clearest T-72 tell
+  for (const s of [-1, 1]) {
+    const z = s * 4.45;
+    for (let i = 0; i < 6; i++) {
+      const x = -6.1 + i * 2.5;
+      part(T, cyl(1.4, 1.4, 0.95, 24), RUB, x, 1.55, z, HALF_PI);
+      part(T, cyl(1.14, 1.14, 1.0, 20), OD, x, 1.55, z, HALF_PI);
+      part(T, cyl(0.32, 0.32, 1.08, 10), STEEL, x, 1.55, z, HALF_PI);
+    }
+    for (let i = 0; i < 3; i++) part(T, cyl(0.33, 0.33, 0.7, 12), DKS, -5.2 + i * 4.4, 2.95, z, HALF_PI);
+    part(T, cyl(1.0, 1.0, 0.9, 20), OL, -8.1, 1.75, z, HALF_PI);
+    part(T, cyl(1.1, 1.1, 0.9, 20), DKS, 7.95, 1.75, z, HALF_PI);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; part(T, new THREE.BoxGeometry(0.28, 0.28, 0.8), DKS, 7.95 + Math.cos(a) * 1.18, 1.75 + Math.sin(a) * 1.18, z, 0, 0, a); }
+    trackLoop(T, -8.1, 7.9, 1.75, 1.4, z, 2.1);
+  }
+  // 2. side skirts: front three Kontakt-5 sections, rear plain rubber skirt
+  for (const s of [-1, 1]) {
+    part(T, new THREE.BoxGeometry(18.4, 0.16, 2.6), OL, 0.2, 3.25, s * 4.55);
+    for (let i = 0; i < 3; i++) part(T, rbox(2.9, 1.15, 0.16, 0.06, 1), ERA, -5.9 + i * 3.1, 3.0, s * 5.72);
+    part(T, rbox(8.6, 1.0, 0.14, 0.06, 1), OD, 3.4, 3.0, s * 5.72);
+  }
+  // 3. hull and one big Kontakt-5 plate on the glacis: two rows of four flat blocks
+  part(T, profile([[-8.9, 1.5], [8.1, 1.35], [9.6, 2.9], [6.9, 4.1], [-8.7, 4.1], [-9.0, 3.4]], 7.0), OL, 0, 0, 0);
+  const gl = new THREE.Group(); gl.position.set(8.25, 3.52, 0); gl.rotation.z = -0.475; T.add(gl);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) part(gl, rbox(1.75, 0.62, 1.5, 0.08, 1), ERA, -0.95 + r * 1.85, 0.32, -2.25 + c * 1.5);
+  for (const s of [-1, 1]) part(T, cyl(0.28, 0.32, 0.4, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 9.3, 3.1, s * 3.4, 0, 0, HALF_PI);
+  for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(0.6, 0.35, 0.8), DKS, 9.7, 2.1, s * 2.4);
+  // 4. turret: rounder, lower cast dome; V-shaped wedge ERA on the front sides
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-0.9, 4.1, 0); T.add(Tu);
+  part(Tu, cyl(3.9, 4.05, 0.4, 40), OD, 0, 0.2, 0);
+  part(Tu, new THREE.SphereGeometry(4.1, 48, 24, 0, Math.PI * 2, 0, HALF_PI), OL, 0.2, 0.32, 0).scale.set(1.18, 0.46, 1.0);
+  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const w = part(Tu, rbox(1.45, 0.8, 0.5, 0.08, 1), ERA, 2.2 + k * 0.7, 1.25 - k * 0.1, s * (2.55 - k * 0.15));
+    w.rotation.y = s * -0.5; w.rotation.x = s * 0.35; w.rotation.z = -0.18;
+  }
+  // 6. smoke dischargers in an arc on the front sides, four per side
+  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) part(Tu, cyl(0.2, 0.2, 0.85, 12), DKS, 1.3 - k * 0.3, 1.25, s * (3.25 + Math.abs(k - 1.5) * -0.28), 0.4 * s, 0, HALF_PI * 0.72);
+  // 5. turret top: commander cupola with a remote 12.7 mm MG, Sosna-U gunner sight with two panes
+  part(Tu, cyl(1.0, 1.1, 0.55, 26), OL, -1.35, 2.05, 1.3);
+  part(Tu, cyl(0.88, 0.88, 0.14, 26), LT, -1.35, 2.38, 1.3);
+  part(Tu, rbox(0.5, 0.45, 0.4, 0.05, 1), DKS, -1.15, 2.75, 1.3);
+  part(Tu, cyl(0.08, 0.08, 3.2, 10), DKS, -0.6, 2.8, 1.3, 0, 0, HALF_PI);
+  part(Tu, rbox(0.6, 0.4, 0.9, 0.05, 1), DKS, -1.95, 2.75, 1.3);
+  part(Tu, rbox(1.0, 0.65, 0.75, 0.1, 1), OD, 0.95, 2.25, -0.9);
+  part(Tu, new THREE.BoxGeometry(0.08, 0.4, 0.26), GLS, 1.36, 2.3, -1.05);
+  part(Tu, new THREE.BoxGeometry(0.08, 0.4, 0.26), GLS, 1.36, 2.3, -0.75);
+  // 7. turret rear: stowage box and a horizontal breathing tube
+  part(Tu, rbox(2.6, 1.25, 5.2, 0.15, 1), OD, -4.0, 1.0, 0);
+  part(Tu, cyl(0.28, 0.28, 5.3, 14), DKS, -3.4, 1.05, 0, 0, 0, HALF_PI);
+  // 8. rear fuel drums
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.72, 0.72, 3.0, 22), mat3('#46502a', 0.55, 0.2), -9.55, 3.9, s * 1.8, HALF_PI);
+    for (const d of [-1.3, 1.3]) part(T, cyl(0.76, 0.76, 0.1, 22), DKS, -9.55, 3.9, s * 1.8 + d, HALF_PI);
+  }
+  // 9. 125 mm gun: mantlet, thermal sleeve bands, bore evacuator, muzzle — no identification tape
+  part(Tu, rbox(1.7, 1.5, 2.3, 0.3, 2), OD, 4.0, 1.15, 0);
+  const G = new THREE.Group(); G.position.set(4.6, 1.15, 0); Tu.add(G);
+  part(G, cyl(0.34, 0.4, 11.4, 24), BAR, 5.7, 0, 0, 0, 0, HALF_PI);
+  for (let k = 0; k < 5; k++) part(G, cyl(0.43, 0.43, 0.14, 24), DKS, 1.2 + k * 2.1, 0, 0, 0, 0, HALF_PI);
+  part(G, cyl(0.58, 0.58, 1.9, 28), BAR, 6.3, 0, 0, 0, 0, HALF_PI);
+  for (const d of [-0.95, 0.95]) part(G, cyl(0.6, 0.55, 0.12, 28), DKS, 6.3 + d, 0, 0, 0, 0, HALF_PI);
+  part(G, cyl(0.4, 0.38, 0.5, 24), DKS, 11.45, 0, 0, 0, 0, HALF_PI);
+  return T;
+}
+MODEL3D.t72 = m3T72b3;
 
 // ---------- T-24 BM-21 冰雹 grad ----------
 
