@@ -1071,5 +1071,83 @@ function m3BldC(seed, dmg) {
 MODEL3D['bld:c'] = m3BldC;
 
 // ---------- T-32 变电站 bld:S 与机库 bld:H ----------
+function m3Substation(seed, dmg) {
+  const T = new THREE.Group();
+  const STEEL = mat3('#8a9096', 0.5, 0.6), TR = mat3('#6d7a6a', 0.7, 0.1), INS = mat3('#c9c2b0', 0.5), OL = mat3('#5b6636', 0.6, 0.05), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3), LIT = mat3('#f6d57a', 0.25, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.8 });
+  const INS2 = mat3('#7a4a2a', 0.5), FEN = mat3('#5d625c', 0.5, 0.4), GRAV = mat3('#8d8a80', 0.95);
+  const BURNT = mat3('#141614', 0.9), OIL = mat3('#14161a', 0.85, 0, { transparent: true, opacity: 0.8 });
+  part(T, rbox(17, 0.1, 15, 0.05, 1), GRAV, 0, 0.05, 0);
+  // two transformers with cooling fins and bushings
+  for (const tx of [-2.6, 2.6]) {
+    const burnt = dmg && tx < 0;
+    part(T, rbox(3.3, 2.7, 2.7, 0.1, 1), burnt ? BURNT : TR, tx, 1.5, 0);
+    for (let k = 0; k < 6; k++) for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(0.08, 2.2, 0.24), burnt ? BURNT : STEEL, tx + s * 1.72, 1.5, -0.85 + k * 0.34);
+    for (let b = 0; b < 3; b++) for (let d = 0; d < 3; d++)
+      part(T, cyl(0.14 - d * 0.02, 0.16 - d * 0.02, 0.12, 10), burnt ? BURNT : (d === 0 ? INS : INS2), tx - 0.9 + b * 0.9, 3.15 + d * 0.3, 0);
+  }
+  // two portal frames with lattice columns, cross beams and insulator strings; wires to the transformers
+  for (const fx of [-4.6, 4.6]) {
+    const F = new THREE.Group(); F.position.set(fx, 0, 0); T.add(F);
+    const fallen = dmg && fx < 0;
+    for (const s of [-1, 1]) {
+      const col = part(F, cyl(0.12, 0.14, 9.6, 8), STEEL, 0, 4.8, s * 2.4);
+      if (fallen) { col.rotation.z = s * 1.25; col.position.y = 3.4; col.position.x -= 1.4; }
+    }
+    if (!fallen) {
+      for (const s of [-1, 1]) for (let k = 0; k < 4; k++) {
+        part(F, rbox(0.06, 0.06, 4.8, 0.02, 1), FEN, 0, 1.2 + k * 2.2, 0, k % 2 ? 0.5 : -0.5, 0, 0);
+      }
+      part(F, rbox(0.4, 0.3, 5.2, 0.06, 1), STEEL, 0, 9.6, 0);
+      for (const s of [-1, 1]) for (let d = 0; d < 3; d++) part(F, cyl(0.18 - d * 0.03, 0.2 - d * 0.03, 0.1, 10), INS, 0, 9.2 - d * 0.32, s * 2.4);
+      for (const s of [-1, 1]) part(T, cyl(0.045, 0.045, Math.abs(fx) - 1.4, 6), FEN, (fx - 1.4) / 2 + 0.7, 8.6, s * 1.6, 0, 0, HALF_PI);
+    }
+  }
+  // small control house with a door and a window
+  part(T, rbox(2.7, 2.1, 2.1, 0.1, 1), OL, 5.9, 1.1, -5.4);
+  part(T, rbox(0.08, 1.3, 0.7, 0.03, 1), DKS, 5.9, 0.7, -4.7);
+  part(T, rbox(0.06, 0.55, 0.8, 0.03, 1), GLS, 5.9, 1.35, -5.9);
+  // wire fence around the perimeter
+  for (const [fx, fz, len, ry] of [[0, 7.4, 17, 0], [0, -7.4, 17, 0], [8.4, 0, 15, HALF_PI], [-8.4, 0, 15, HALF_PI]]) {
+    const L = new THREE.Group(); L.position.set(fx, 0, fz); L.rotation.y = ry; T.add(L);
+    for (let k = 0; k < Math.floor(len / 2.4) + 1; k++) part(L, cyl(0.05, 0.05, 1.9, 6), FEN, -len / 2 + k * 2.4, 0.95, 0);
+    for (const hy of [0.7, 1.6]) part(L, new THREE.BoxGeometry(len, 0.05, 0.05), FEN, 0, hy, 0);
+  }
+  // damaged: oil stain on the gravel
+  if (dmg) part(T, cyl(2.6, 2.9, 0.06, 18), OIL, -3.4, 0.09, 0.8).scale.set(1, 1, 0.7);
+  return T;
+}
+function m3Hangar(seed, dmg) {
+  const T = new THREE.Group();
+  const ARCH = mat3('#9aa0a3', 0.5, 0.4), WALLH = mat3('#8f948f', 0.8), DKI = mat3('#1b1e22', 0.9), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  const SNOW = mat3('#eef2f4', 0.75), APRON = mat3('#9d9a92', 0.9), YEL = mat3('#c9a53a', 0.7);
+  const H = new THREE.Group(); H.position.set(0, 0, 0); T.add(H);
+  // half-cylinder arch roof built from lengthwise segments; ribs at every segment edge
+  const segW = 17 / 8;
+  for (let sgi = 0; sgi < 8; sgi++) {
+    const sx = -8.5 + segW * (sgi + 0.5);
+    if (dmg && (sgi === 2 || sgi === 5)) continue;
+    part(H, new THREE.CylinderGeometry(7.05, 7.05, segW * 1.002, 24, 1, true, 0, Math.PI), ARCH, sx, 0.1, 0, 0, 0, HALF_PI);
+    part(H, new THREE.CylinderGeometry(7.18, 7.18, 0.35, 24, 1, true, 0, Math.PI), DKS, -8.5 + segW * sgi + 0.05, 0.1, 0, 0, 0, HALF_PI);
+  }
+  // snow strips on the arch top
+  for (const sx of [-5.5, 0, 5.5]) part(H, new THREE.CylinderGeometry(7.22, 7.22, 1.6, 20, 1, true, Math.PI * 0.32, Math.PI * 0.36), SNOW, sx, 0.1, 0, 0, 0, HALF_PI);
+  // side walls, closed back wall, side door and a row of high windows
+  for (const s of [-1, 1]) part(H, rbox(17, 2.3, 0.3, 0.05, 1), WALLH, 0, 1.15, s * 6.85);
+  part(H, rbox(0.25, 7.0, 13.9, 0.08, 1), WALLH, -8.45, 3.4, 0);
+  part(H, rbox(0.1, 2.1, 0.9, 0.04, 1), DKS, -8.52, 1.05, 5.6);
+  for (let k = 0; k < 6; k++) part(H, rbox(0.06, 0.7, 1.1, 0.03, 1), GLS, 8.47, 5.9, -4 + k * 1.6);
+  // front: two sliding doors half open, dark interior visible
+  part(H, rbox(0.2, 6.4, 13.8, 0.06, 1), DKI, 8.35, 3.2, 0);
+  part(H, rbox(0.16, 5.9, 3.4, 0.05, 1), WALLH, 8.3, 2.95, -2.4);
+  part(H, rbox(0.16, 5.9, 3.4, 0.05, 1), WALLH, 8.3, 2.95, 2.5);
+  if (dmg) { const dr = part(H, rbox(0.14, 5.7, 3.2, 0.05, 1), WALLH, 8.25, 2.6, 3.9); dr.rotation.x = -0.85; dr.rotation.y = 0.5; }
+  // concrete apron with a yellow edge marking
+  part(H, rbox(18.5, 0.1, 6.5, 0.05, 1), APRON, 0, 0.05, 10.5);
+  part(H, rbox(18.5, 0.09, 0.22, 0.02, 1), YEL, 0, 0.09, 13.6);
+  if (dmg) for (const [px, pz] of [[3.2, 3.6], [5.4, 1.9]]) part(H, rbox(1.6, 0.24, 1.9, 0.05, 1), WALLH, px, 0.12, pz);
+  return T;
+}
+MODEL3D['bld:S'] = m3Substation;
+MODEL3D['bld:H'] = m3Hangar;
 
 // ---------- T-33 废墟 bld:rubble 与断桥 prop:bridge ----------
