@@ -108,7 +108,13 @@ function modelFor(key, build3, buildVox) {
   if (!src) { src = build3 ? build3() : voxGroup('v:' + key, buildVox); MODELCACHE.set(key, src); }
   return src.clone(true);
 }
-function unitModel(type) { return modelFor('u:' + type, MODEL3D[type], UNIT_MODEL[type]); }
+// Hand-built infantry is drawn 1.3x life size so squads stay readable next to vehicles (voxel fallbacks are already oversized).
+const INF_SCALE = 1.3;
+function unitModel(type) {
+  const o = modelFor('u:' + type, MODEL3D[type], UNIT_MODEL[type]);
+  if (MODEL3D[type] && UNITS[type] && UNITS[type].cls === 'inf') o.scale.multiplyScalar(INF_SCALE);
+  return o;
+}
 // Height of a unit model in art px, for placing the HP bar.
 const TOPPX = new Map();
 function unitTopPx(type) {
