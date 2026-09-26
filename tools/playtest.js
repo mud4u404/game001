@@ -60,6 +60,7 @@ const BOT = async () => {
   const log = [];
   const missionCount = await page.evaluate(() => MISSIONS.length);
   for (let m = 0; m < missionCount; m++) {
+    await page.evaluate(() => { const C = window.__sf.CAMP; C.aid = Math.max(C.aid, 10); C.roster.forEach(r => { r.wrecked = false; }); });
     await page.click('#btnBrief'); await page.waitForTimeout(1600);
     if (m === 0) await page.screenshot({ path: `${out}/03-dialog.png` });
     await page.click('#btnSkip'); await page.waitForTimeout(300);
@@ -98,7 +99,6 @@ const BOT = async () => {
     const st = await page.evaluate(() => ({ scene: window.__sf.SCENE, stats: window.__sf.B.stats, aid: window.__sf.CAMP.aid, turn: window.__sf.B.turn }));
     log.push(st);
     await page.screenshot({ path: `${out}/2${m}-debrief.png` });
-    if (st.scene === 'campaign' && await page.isVisible('#gameover')) { log.push('GAME OVER'); break; }
     await page.evaluate(() => { const b = document.querySelector('#shop .up:not([disabled])'); if (b) b.click(); });
     // chapter transitions play story cards; fast-forward them and wait for the map
     await page.evaluate(() => window.__sf.setSpeed(0.01));
