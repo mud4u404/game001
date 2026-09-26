@@ -1151,3 +1151,54 @@ MODEL3D['bld:S'] = m3Substation;
 MODEL3D['bld:H'] = m3Hangar;
 
 // ---------- T-33 废墟 bld:rubble 与断桥 prop:bridge ----------
+function m3Rubble(seed) {
+  const T = new THREE.Group();
+  const CON1 = mat3('#9a958a', 0.85), CON2 = mat3('#7f7a70', 0.85), BRICK = mat3('#8f5a45', 0.85);
+  const REB = mat3('#3a3530', 0.6, 0.4), BURNT = mat3('#1f1c19', 0.9), SNOW = mat3('#eef2f4', 0.75);
+  const mats = [CON1, CON2, BRICK];
+  // 1. a pile of randomly tilted concrete slabs and bricks
+  for (let k = 0; k < 13; k++) {
+    const w = 1.1 + hash(seed, k, 1) * 2.2, h = 0.3 + hash(seed, k, 2) * 0.35, d = 0.7 + hash(seed, k, 3) * 1.1;
+    const a = hash(seed, k, 4) * Math.PI * 2, rr = hash(seed, k, 5) * 2.6;
+    const sl = part(T, rbox(w, h, d, 0.05, 1), mats[k % 3], Math.cos(a) * rr, h / 2 + hash(seed, k, 6) * 2.6, Math.sin(a) * rr);
+    sl.rotation.y = hash(seed, k, 7) * Math.PI; sl.rotation.z = (hash(seed, k, 8) - 0.5) * 0.8; sl.rotation.x = (hash(seed, k, 9) - 0.5) * 0.5;
+  }
+  // 2. wall remnant with a window hole, built from uneven segments
+  part(T, rbox(0.5, 3.6, 1.6, 0.06, 1), CON1, -2.9, 1.8, -0.9);
+  part(T, rbox(0.5, 2.2, 1.4, 0.06, 1), CON2, -2.7, 1.1, 1.0);
+  part(T, rbox(0.5, 1.1, 3.6, 0.06, 1), CON1, -2.8, 3.2, 0.1);
+  for (let k = 0; k < 4; k++) part(T, rbox(0.45, 0.4 + hash(seed, k, 11) * 0.5, 0.4, 0.04, 1), CON2, -2.8, 0.2 + hash(seed, k, 12) * 0.3, -1.9 + k * 1.1);
+  // 3. bent exposed rebar
+  for (const [bx, bz, by] of [[-1.4, 0.9, 1.2], [-2.2, 1.5, 2.6], [-0.8, -1.4, 0.9]]) {
+    part(T, cyl(0.05, 0.05, 1.5, 6), REB, bx, by, bz, 0, 0, HALF_PI * 0.75);
+    part(T, cyl(0.045, 0.045, 0.9, 6), REB, bx + 0.35, by + 0.75, bz + 0.2, 0, 0, -0.4);
+  }
+  // scattered snow and a scorched patch
+  for (let k = 0; k < 4; k++) part(T, rbox(1.1 + hash(seed, k, 13) * 0.8, 0.05, 0.8, 0.03, 1), SNOW, -1.2 + hash(seed, k, 14) * 3.4, 2.3 + hash(seed, k, 15) * 1.6, (hash(seed, k, 16) - 0.5) * 4.4);
+  part(T, rbox(3.4, 0.05, 2.6, 0.03, 1), BURNT, 1.8, 0.03, -1.2);
+  return T;
+}
+function m3BridgeRuin() {
+  const T = new THREE.Group();
+  const CON1 = mat3('#9a958a', 0.85), CON2 = mat3('#7f7a70', 0.85), REB = mat3('#3a3530', 0.6, 0.4);
+  const PLANK = mat3('#8a6a48', 0.9), SNOW = mat3('#eef2f4', 0.75);
+  // piers reaching out of the water
+  for (const px of [-2.5, 2.5]) part(T, rbox(1.7, 5.0, 2.5, 0.1, 1), CON2, px, -0.5, 0);
+  // two broken deck segments: one still on the piers, the other slanting into the water
+  part(T, rbox(8.6, 0.45, 3.7, 0.06, 1), CON1, -2.6, 2.15, 0);
+  const seg = part(T, rbox(6.4, 0.45, 3.7, 0.06, 1), CON1, 4.9, 0.6, 0); seg.rotation.z = -0.55;
+  part(T, rbox(8.7, 0.1, 3.74, 0.03, 1), SNOW, -2.6, 2.42, 0);
+  // railings left on the deck edge, rebar sticking out of the breaks
+  for (const [rx, ry2] of [[-6.2, 2.5], [-4.2, 2.5], [-2.2, 2.5], [-0.3, 2.5]]) part(T, rbox(0.12, 0.55, 0.12, 0.03, 1), CON2, rx, ry2 + 0.25, 1.7);
+  part(T, rbox(6.2, 0.1, 0.1, 0.03, 1), CON2, -3.1, 2.95, 1.7);
+  for (const [bx, by, bz] of [[1.35, 2.35, 1.2], [1.35, 2.35, -1.2], [1.6, 1.0, 1.4]]) part(T, cyl(0.05, 0.05, 1.3, 6), REB, bx, by, bz, 0.3, 0, 0.2);
+  for (const [bx, by, bz] of [[4.0, 1.35, 1.5], [4.3, 1.1, -1.4]]) part(T, cyl(0.05, 0.05, 1.5, 6), REB, bx, by, bz, 0, 0, 1.35);
+  // the plank footbridge under the broken bridge: planks on posts along +x with a handrail
+  for (let k = 0; k < 9; k++) part(T, rbox(1.15, 0.12, 1.7, 0.03, 1), PLANK, -4.5 + k * 1.15, -1.38, 0);
+  for (const px of [-3.9, -1.6, 0.7, 3.0, 4.9]) part(T, rbox(0.28, 1.05, 0.28, 0.04, 1), mat3('#6b5238', 0.9), px, -1.25, 0.72);
+  part(T, rbox(9.9, 0.09, 0.09, 0.03, 1), PLANK, 0.5, -0.62, 0.72);
+  for (const px of [-3.9, -1.6, 0.7, 3.0]) part(T, rbox(0.09, 0.7, 0.09, 0.03, 1), PLANK, px, -1.02, 0.72);
+  return T;
+}
+MODEL3D['bld:rubble'] = m3Rubble;
+MODEL3D['prop:bridge'] = m3BridgeRuin;
