@@ -138,7 +138,84 @@ function m3T64() {
   return T;
 }
 
+// BTR-82A: eight-wheel amphibious APC, and the command variant without the turret.
+function m3Btr(cmd) {
+  const T = new THREE.Group();
+  const OL = mat3('#6b705a', 0.6, 0.05), OD = mat3('#4a4d3c', 0.65, 0.05), OL2 = mat3('#7a7f68', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  // 1. running gear: four axles, eight three-layer wheels, a door gap between axles 2 and 3
+  for (const s of [-1, 1]) {
+    const z = s * 3.3;
+    for (const x of [-5.4, -2.8, 1.2, 3.8]) {
+      part(T, cyl(1.35, 1.35, 1.0, 24), RUB, x, 1.35, z, HALF_PI);
+      part(T, cyl(0.82, 0.82, 1.15, 20), OL, x, 1.35, z, HALF_PI);
+      part(T, cyl(0.32, 0.32, 1.22, 12), STEEL, x, 1.35, z, HALF_PI);
+    }
+    // 5. fender flaps over the wheels
+    for (const x of [-5.4, -2.8, 1.2, 3.8]) part(T, rbox(3.3, 0.18, 1.15, 0.08, 1), DKS, x, 2.95, s * 2.98);
+  }
+  // 2. boat hull: rising bottom bow, sloped upper glacis, slightly tapered rear
+  part(T, profile([[-7.7, 1.0], [6.1, 1.0], [7.9, 2.6], [7.5, 3.4], [-7.4, 3.4], [-7.7, 2.2]], 5.4), OL, 0, 0, 0);
+  // 3. upper side plates sloping inward, 4. roof plate with a small bevel
+  part(T, profile([[-7.35, 3.4], [7.15, 3.4], [6.75, 4.4], [-6.95, 4.4]], 4.6), OL2, 0, 0, 0);
+  part(T, rbox(13.6, 0.24, 4.55, 0.1, 1), OL, -0.1, 4.5, 0);
+  // 6. side doors between axles 2 and 3, with a handle
+  for (const s of [-1, 1]) {
+    part(T, rbox(1.55, 2.0, 0.16, 0.06, 1), OD, -0.8, 2.3, s * 2.72);
+    part(T, new THREE.BoxGeometry(0.12, 0.4, 0.08), DKS, -0.35, 2.55, s * 2.82);
+  }
+  // 7. five observation windows per side on the upper plates
+  for (const s of [-1, 1]) for (let i = 0; i < 5; i++) part(T, rbox(0.9, 0.55, 0.12, 0.04, 1), GLS, -5.4 + i * 2.35, 3.9, s * 2.4);
+  // 8. bow: folded wave breaker, headlights, tow hooks
+  const wb = part(T, rbox(3.6, 0.14, 4.5, 0.05, 1), OL2, 6.7, 3.05, 0, 0, 0, -0.62);
+  wb.rotation.x = 0.06;
+  for (const s of [-1, 1]) {
+    part(T, cyl(0.26, 0.3, 0.4, 14), mat3('#d9dcc6', 0.3, 0.2, { emissive: lin('#3a3a2a') }), 7.75, 2.85, s * 2.15, 0, 0, HALF_PI);
+    part(T, new THREE.BoxGeometry(0.5, 0.3, 0.7), DKS, 7.85, 1.75, s * 1.55);
+  }
+  // 9. driver's and commander's hatches on the front roof
+  for (const [hx, hz] of [[4.7, -1.35], [3.0, 1.35]]) {
+    part(T, cyl(0.72, 0.75, 0.18, 24), OL2, hx, 4.68, hz);
+    part(T, cyl(0.6, 0.6, 0.1, 24), OD, hx, 4.8, hz);
+  }
+  // 11. rear: engine grille slats, sooty exhaust box, stowage box
+  for (let i = 0; i < 7; i++) part(T, new THREE.BoxGeometry(0.16, 0.1, 4.1), DKS, -6.7 + i * 0.5, 4.66, 0);
+  part(T, rbox(1.7, 0.72, 1.1, 0.08, 1), DKS, -6.6, 4.4, -1.75);
+  part(T, rbox(0.9, 0.3, 0.8, 0.05, 1), mat3('#1a1c18', 0.8), -6.35, 4.15, -1.75);
+  part(T, rbox(2.6, 0.7, 1.5, 0.1, 1), OL2, -7.05, 2.8, 0);
+  // 10/12. turret group: BPPU with 30 mm cannon, or the command cupola
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(0.8, 4.6, 0); T.add(Tu);
+  part(Tu, cyl(1.7, 1.75, 0.16, 28), OD, 0, 0.08, 0);
+  if (!cmd) {
+    part(Tu, profile([[-1.9, 0.1], [2.15, 0.3], [2.35, 1.2], [1.05, 1.8], [-1.65, 1.8], [-2.1, 0.95]], 3.0), OL, 0, 0.1, 0);
+    // 30 mm cannon: root sleeve, long thin barrel, muzzle brake; coaxial machine gun beside it
+    const G = new THREE.Group(); G.position.set(1.25, 1.35, 0); Tu.add(G);
+    const BAR = mat3('#4e5731', 0.55, 0.1);
+    part(G, cyl(0.3, 0.3, 1.7, 18), DKS, 1.85, 0, 0, 0, 0, HALF_PI);
+    part(G, cyl(0.16, 0.19, 6.6, 16), BAR, 5.0, 0, 0, 0, 0, HALF_PI);
+    part(G, cyl(0.27, 0.27, 0.95, 18), DKS, 7.65, 0, 0, 0, 0, HALF_PI);
+    part(G, cyl(0.075, 0.075, 5.4, 10), DKS, 4.3, -0.42, 0.46, 0, 0, HALF_PI);
+    part(Tu, rbox(0.78, 0.55, 0.72, 0.08, 1), OD, 0.35, 1.98, 0.55);
+    part(Tu, new THREE.BoxGeometry(0.1, 0.4, 0.55), GLS, 0.78, 2.0, 0.55);
+    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) part(Tu, cyl(0.16, 0.16, 0.55, 12), DKS, -1.15, 1.15, s * (1.25 + k * 0.42), 0.5 * s, 0, HALF_PI * 0.72);
+    part(Tu, cyl(0.04, 0.05, 2.7, 6), DKS, -1.7, 2.75, -1.05);
+  } else {
+    part(Tu, rbox(2.3, 1.35, 2.7, 0.14, 1), OL, -0.2, 0.7, 0);
+    part(Tu, cyl(1.15, 1.25, 0.5, 24), OL2, -0.2, 1.55, 0);
+    part(Tu, cyl(0.95, 0.95, 0.14, 24), OD, -0.2, 1.86, 0);
+    part(Tu, new THREE.BoxGeometry(0.1, 0.4, 0.55), GLS, 1.15, 1.35, 0.8);
+    part(T, rbox(2.1, 0.95, 1.45, 0.1, 1), OD, -4.4, 5.05, 1.3);
+    for (const ax of [5.4, -0.6, -6.2]) {
+      part(T, cyl(0.14, 0.14, 0.55, 10), DKS, ax, 4.85, -1.65);
+      part(T, cyl(0.045, 0.05, 7.0, 6), DKS, ax, 8.55, -1.65);
+    }
+  }
+  return T;
+}
+
 // Registry: unit type -> builder. Buildings use 'bld:' + tile letter and receive (seed, damaged).
 const MODEL3D = {
   t64: m3T64,
+  btr: () => m3Btr(false),
+  cmd: () => m3Btr(true),
 };
