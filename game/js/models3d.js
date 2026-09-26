@@ -425,6 +425,30 @@ function m3Vdv() {
 MODEL3D.vdv = m3Vdv;
 
 // ---------- T-20 撤离的平民 civ ----------
+function m3Civ() {
+  const T = new THREE.Group();
+  // 1. elderly woman: headscarf, neck wrap, cloth bag in hand
+  const EW = soldier3(T, 0.5, -2.8, -0.1, { gun: 'none', band: null, uni: '#2f3035', vest: '#7a4b3a', skin: '#e0b896', hat: '#8a3a3a' });
+  part(EW, cyl(0.5, 0.56, 0.2, 14), mat3('#8a3a3a', 0.9), 0.02, 3.55, 0);
+  part(EW, rbox(0.55, 0.5, 0.55, 0.1, 1), mat3('#6b6a5e', 0.85), 0.65, 2.35, 0.55);
+  // 2. man: suitcase in one hand, other hand resting toward the child's shoulder
+  const MN = soldier3(T, 2.6, 0.2, 0, { gun: 'none', band: null, uni: '#3b3a36', vest: '#3d4f6b', skin: '#d6ad86', hat: '#2e2620' });
+  part(MN, rbox(0.5, 0.75, 1.05, 0.08, 1), mat3('#4a3626', 0.7), 0.75, 1.35, -0.8);
+  part(MN, new THREE.BoxGeometry(0.1, 0.08, 0.4), mat3('#2a2620', 0.7), 0.75, 1.78, -0.8);
+  part(MN, rbox(0.14, 0.55, 0.14, 0.04, 1), mat3('#3d4f6b', 0.8), 0.2, 2.85, 0.7, 0.45, 0, -0.55);
+  // 3. woman: backpack, holding the child's hand
+  const WM = soldier3(T, -1.1, 2.7, 0.08, { gun: 'none', band: null, uni: '#2f3035', vest: '#6b6a5e', skin: '#e0b896', hat: '#4a3a2a' });
+  part(WM, rbox(0.6, 0.8, 0.45, 0.1, 1), mat3('#57553f', 0.85), -0.55, 2.9, 0);
+  part(WM, rbox(0.12, 0.55, 0.12, 0.04, 1), mat3('#6b6a5e', 0.8), 0.38, 2.85, 0.52, 0, 0, -0.6);
+  // 4. child: scaled 0.65, red wool hat, hugging a teddy bear
+  const CH = soldier3(T, 1.3, 2.3, 0.05, { gun: 'none', band: null, uni: '#3b3a36', vest: '#8a7a52', skin: '#e0b896', hat: '#b03a30' });
+  CH.scale.set(0.65, 0.65, 0.65);
+  part(CH, sph(0.26, 12, 8), mat3('#8a5a3a', 0.8), 0.55, 2.62, 0.35);
+  part(CH, sph(0.17, 10, 8), mat3('#8a5a3a', 0.8), 0.74, 2.88, 0.35);
+  for (const dz of [-0.1, 0.1]) part(CH, sph(0.07, 8, 6), mat3('#8a5a3a', 0.8), 0.74, 3.02, 0.35 + dz);
+  return T;
+}
+MODEL3D.civ = m3Civ;
 
 // ---------- T-21 D-30 榴弹炮 d30 ----------
 
