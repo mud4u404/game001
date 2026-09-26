@@ -938,6 +938,82 @@ MODEL3D.magura = m3Magura;
 MODEL3D.raptor = m3Raptor;
 
 // ---------- T-30 赫鲁晓夫楼 bld:b ----------
+function m3BldB(seed, dmg) {
+  const B = new THREE.Group();
+  const WALL = mat3('#cbc5b5', 0.85), SEAM = mat3('#9d978a', 0.85), ROOFC = mat3('#7d796f', 0.7), FR = mat3('#e8e4da', 0.8), SNOW = mat3('#eef2f4', 0.75);
+  const LIT = mat3('#f6d57a', 0.25, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.8 }), DKW = mat3('#2d3440', 0.3);
+  const RAIL1 = mat3('#b9b3a4', 0.8), RAIL2 = mat3('#8e8a7e', 0.8), DKS = mat3('#2d302a', 0.6, 0.3);
+  const FL = 3.1, FH = 15.5;
+  const breakX = dmg ? -4.2 : -8.15, w1 = 8.15 - breakX, cx1 = (breakX + 8.15) / 2;
+  const topH = dmg ? 3 * FL : FH;
+  function win(x, y, z, ry, lit) {
+    const W = new THREE.Group(); W.position.set(x, y, z); W.rotation.y = ry; B.add(W);
+    part(W, new THREE.BoxGeometry(1.45, 1.65, 0.1), lit ? LIT : DKW, 0, 0, 0);
+    for (const [w, h, dx, dy] of [[1.75, 0.14, 0, 0.9], [1.75, 0.14, 0, -0.9], [0.14, 1.85, -0.76, 0], [0.14, 1.85, 0.76, 0]]) part(W, new THREE.BoxGeometry(w, h, 0.13), FR, dx, dy, 0.02);
+  }
+  // 1. main body with a small bevel; the damaged end keeps only the lower three floors
+  part(B, rbox(w1, FH, 11, 0.18), WALL, cx1, FH / 2, 0);
+  if (dmg) part(B, rbox(4.0, topH, 11, 0.18), WALL, -6.15, topH / 2, 0);
+  // 2. panel seams: horizontal strips at each floor line, a few vertical strips
+  for (let f = 1; f <= Math.floor(topH / FL); f++) part(B, new THREE.BoxGeometry(w1, 0.11, 11.05), SEAM, cx1, f * FL, 0);
+  if (dmg) part(B, new THREE.BoxGeometry(4.0, 0.11, 11.05), SEAM, -6.15, topH, 0);
+  for (const vx of [-4.0, 0.2, 4.4]) part(B, new THREE.BoxGeometry(0.1, FH, 11.08), SEAM, vx, FH / 2, 0);
+  // 3+4. windows and balconies, floor by floor
+  const winXs = [];
+  for (let k = 0; k < 5; k++) winXs.push(breakX + 1.7 + k * (w1 - 3.4) / 4);
+  for (let f = 0; f < 5; f++) {
+    const y = f * FL + 1.75, gone = dmg && f >= 3;
+    winXs.forEach((wx, wi) => {
+      if (gone) return;
+      const dark = dmg && wx < breakX + 3.4;
+      win(wx, y, 5.56, 0, !dark && hash(seed, f, wi) < 0.34);
+      win(wx, y, -5.56, Math.PI, !dark && hash(seed, f + 5, wi) < 0.34);
+    });
+    for (const wx of [breakX + 2.2, breakX + w1 / 2 - 0.4, breakX + w1 - 2.2]) {
+      if (gone) continue;
+      const yy = f * FL + 0.12;
+      part(B, rbox(2.3, 0.16, 1.35, 0.06, 1), WALL, wx, yy + 0.05, 5.55);
+      part(B, new THREE.BoxGeometry(2.3, 0.9, 0.12), hash(seed, f, wx) < 0.5 ? RAIL1 : RAIL2, wx, yy + 0.6, 6.15);
+      for (const dx of [-1.1, 1.1]) part(B, new THREE.BoxGeometry(0.12, 0.9, 1.3), WALL, wx + dx, yy + 0.6, 5.98);
+      win(wx - 0.6, y, 5.56, 0, false);
+    }
+    if (!gone) { win(7.9, y, 2.3, HALF_PI, hash(seed, f, 7) < 0.34); win(7.9, y, -2.3, HALF_PI, hash(seed, f, 8) < 0.34); }
+    if (dmg && f < 3) win(-7.6, y, 5.56, 0, false);
+  }
+  // 5. two entrances on the +x side with concrete canopies and a small lamp
+  for (const dz of [2.2, -2.2]) {
+    part(B, rbox(0.14, 2.3, 1.25, 0.05, 1), DKS, 8.16, 1.15, dz);
+    part(B, rbox(0.95, 0.14, 1.8, 0.05, 1), SEAM, 8.45, 2.45, dz);
+    part(B, new THREE.BoxGeometry(0.12, 0.16, 0.16), LIT, 8.35, 2.7, dz + dz * 0.35);
+  }
+  // 6. roof: parapet, stairwell exits, vent pipes, TV antennas, snow
+  part(B, rbox(w1, 0.5, 0.3, 0.05, 1), ROOFC, cx1, FH + 0.2, 5.6);
+  part(B, rbox(w1, 0.5, 0.3, 0.05, 1), ROOFC, cx1, FH + 0.2, -5.6);
+  part(B, rbox(0.3, 0.5, 11.0, 0.05, 1), ROOFC, 8.0, FH + 0.2, 0);
+  part(B, rbox(0.3, 0.5, 11.0, 0.05, 1), ROOFC, breakX + 0.15, FH + 0.2, 0);
+  part(B, rbox(w1 - 0.4, 0.09, 10.6, 0.04, 1), SNOW, cx1, FH + 0.52, 0);
+  for (const [ex, ez] of [[2.2, 1.6], [-1.8, -1.4]]) part(B, rbox(1.7, 1.15, 1.5, 0.1, 1), WALL, ex, FH + 0.55, ez);
+  for (const [vx, vz] of [[4.6, 2.4], [3.4, -2.2], [-0.6, 2.8], [-2.4, -2.6]]) part(B, cyl(0.18, 0.18, 0.85, 10), ROOFC, vx, FH + 0.6, vz);
+  for (const [ax, az] of [[0.4, -2.0], [-2.6, 2.2]]) {
+    part(B, cyl(0.05, 0.05, 2.6, 6), DKS, ax, FH + 1.4, az);
+    part(B, new THREE.BoxGeometry(1.3, 0.05, 0.05), DKS, ax, FH + 2.1, az);
+  }
+  // 7. damaged state: tilted slabs, rebar, soot marks, rubble at the base
+  if (dmg) {
+    part(B, rbox(4.0, 0.09, 10.6, 0.04, 1), SNOW, -6.15, topH + 0.05, 0);
+    for (const [sx, sy, sz, rz, rx] of [[-4.6, topH + 0.6, 1.2, 0.5, 0.3], [-5.6, topH + 0.3, -1.4, -0.4, 0.2], [-4.4, topH + 0.15, -0.4, 0.2, -0.35]]) {
+      const sl = part(B, rbox(3.3, 0.35, 2.2, 0.06, 1), WALL, sx, sy, sz); sl.rotation.z = rz; sl.rotation.x = rx;
+    }
+    for (const [cx2, cy2, cz2] of [[-4.35, topH + 1.3, 0.8], [-4.4, topH + 1.1, -1.1], [-4.5, topH + 0.9, 0.1]])
+      part(B, cyl(0.05, 0.05, 1.4, 6), DKS, cx2, cy2, cz2, 0.3, 0, 0.2);
+    for (const [sx, sy, sz] of [[-5.8, 8.6, 5.6], [-6.4, 7.4, 5.6]]) part(B, new THREE.BoxGeometry(2.6, 1.5, 0.1), DKS, sx, sy, sz);
+    for (const [rx2, rz2, rr] of [[-7.2, 1.2, 0.9], [-6.4, -1.6, 0.7], [-5.2, 0.6, 0.5], [-7.6, -0.8, 0.6], [-5.9, 2.2, 0.45]]) {
+      const rub = part(B, rbox(rr * 2, rr, rr * 1.6, 0.06, 1), SEAM, rx2, rr / 2, rz2); rub.rotation.y = hash(rx2, rz2, seed) * 3;
+    }
+  }
+  return B;
+}
+MODEL3D['bld:b'] = m3BldB;
 
 // ---------- T-31 教堂 bld:c ----------
 
