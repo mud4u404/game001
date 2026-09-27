@@ -1290,23 +1290,27 @@ function m3BridgeRuin() {
   const T = new THREE.Group();
   const CON1 = mat3('#9a958a', 0.85), CON2 = mat3('#7f7a70', 0.85), REB = mat3('#3a3530', 0.6, 0.4);
   const PLANK = mat3('#8a6a48', 0.9), SNOW = mat3('#eef2f4', 0.75);
-  // piers reaching out of the water
-  for (const px of [-2.5, 2.5]) part(T, rbox(1.7, 5.0, 2.5, 0.1, 1), CON2, px, -0.5, 0);
-  // two broken deck segments: one still on the piers, the other slanting into the water
-  part(T, rbox(8.6, 0.45, 3.7, 0.06, 1), CON1, -2.6, 2.15, 0);
-  const seg = part(T, rbox(6.4, 0.45, 3.7, 0.06, 1), CON1, 4.9, 0.6, 0); seg.rotation.z = -0.55;
-  part(T, rbox(8.7, 0.1, 3.74, 0.03, 1), SNOW, -2.6, 2.42, 0);
-  // railings left on the deck edge, rebar sticking out of the breaks
-  for (const [rx, ry2] of [[-6.2, 2.5], [-4.2, 2.5], [-2.2, 2.5], [-0.3, 2.5]]) part(T, rbox(0.12, 0.55, 0.12, 0.03, 1), CON2, rx, ry2 + 0.25, 1.7);
-  part(T, rbox(6.2, 0.1, 0.1, 0.03, 1), CON2, -3.1, 2.95, 1.7);
-  for (const [bx, by, bz] of [[1.35, 2.35, 1.2], [1.35, 2.35, -1.2], [1.6, 1.0, 1.4]]) part(T, cyl(0.05, 0.05, 1.3, 6), REB, bx, by, bz, 0.3, 0, 0.2);
-  for (const [bx, by, bz] of [[4.0, 1.35, 1.5], [4.3, 1.1, -1.4]]) part(T, cyl(0.05, 0.05, 1.5, 6), REB, bx, by, bz, 0, 0, 1.35);
-  // the plank footbridge under the broken bridge: planks on posts along +x with a handrail
-  for (let k = 0; k < 9; k++) part(T, rbox(1.15, 0.12, 1.7, 0.03, 1), PLANK, -4.5 + k * 1.15, -1.38, 0);
-  for (const px of [-3.9, -1.6, 0.7, 3.0, 4.9]) part(T, rbox(0.28, 1.05, 0.28, 0.04, 1), mat3('#6b5238', 0.9), px, -1.25, 0.72);
-  part(T, rbox(9.9, 0.09, 0.09, 0.03, 1), PLANK, 0.5, -0.62, 0.72);
-  for (const px of [-3.9, -1.6, 0.7, 3.0]) part(T, rbox(0.09, 0.7, 0.09, 0.03, 1), PLANK, px, -1.02, 0.72);
+  // piers from the riverbed
+  for (const px of [-5.2, 0.9]) part(T, rbox(2.0, 5.2, 3.0, 0.1, 1), CON2, px, -0.4, 0);
+  // deck segment A: horizontal, resting on the piers, reaching the -x road
+  part(T, rbox(10.8, 0.45, 7.0, 0.06, 1), CON1, -4.7, 2.0, 0);
+  part(T, rbox(10.9, 0.1, 7.04, 0.03, 1), CON2, -4.7, 2.26, 0);
+  for (const [sx, sz] of [[-8.9, 3.2], [-6.5, 3.2], [-9.0, -3.2]]) part(T, rbox(1.4, 0.06, 0.5, 0.03, 1), SNOW, sx, 2.32, sz);
+  // deck segment B: broken at mid-span, slanting down into the water at +x
+  const segB = part(T, rbox(9.6, 0.45, 7.0, 0.06, 1), CON2, 5.4, 0.4, 0); segB.rotation.z = -0.34;
+  part(segB, rbox(0.5, 0.1, 7.04, 0.03, 1), CON1, 4.55, 0.26, 0);
+  // jagged break edges and rebar on both stubs
+  for (const [bx, by, bz, brx] of [[0.42, 2.3, 2.6, 0.25], [0.42, 2.3, -2.6, -0.3], [0.5, 2.0, 0.8, 0.1]]) part(T, cyl(0.05, 0.05, 1.4, 6), REB, bx, by, bz, brx, 0, 0.2);
+  for (const [bx, by, bz, brz] of [[1.2, 1.9, 3.2, 1.35], [1.2, 1.6, -3.2, 1.2]]) part(T, cyl(0.05, 0.05, 1.5, 6), REB, bx, by, bz, 0, 0, brz);
+  // remaining railings on segment A
+  for (const [rx, rz] of [[-9.2, 3.3], [-7.0, 3.3], [-4.8, 3.3], [-9.2, -3.3], [-7.0, -3.3]]) part(T, rbox(0.14, 0.6, 0.14, 0.03, 1), CON2, rx, 2.55, rz);
+  part(T, rbox(6.0, 0.1, 0.1, 0.03, 1), CON2, -7.0, 2.95, 3.3);
+  part(T, rbox(6.0, 0.1, 0.1, 0.03, 1), CON2, -7.0, 2.95, -3.3);
+  // 4. plank footbridge at z +5, y about -1.3: crosswise planks, posts, one handrail
+  for (let k = 0; k < 31; k++) part(T, rbox(0.5, 0.12, 2.5, 0.02, 1), PLANK, -9.45 + k * 0.62, -1.3, 5.0);
+  for (const px of [-8.9, -5.4, -1.6, 2.2, 5.8, 9.0]) part(T, rbox(0.3, 1.05, 0.3, 0.04, 1), mat3('#6b5238', 0.9), px, -1.28, 5.0);
+  part(T, rbox(19.4, 0.08, 0.08, 0.03, 1), PLANK, 0.0, -0.62, 6.1);
+  for (const px of [-8.9, -5.4, -1.6, 2.2, 5.8]) part(T, rbox(0.09, 0.62, 0.09, 0.03, 1), PLANK, px, -0.98, 6.1);
   return T;
 }
-MODEL3D['bld:rubble'] = m3Rubble;
 MODEL3D['prop:bridge'] = m3BridgeRuin;
