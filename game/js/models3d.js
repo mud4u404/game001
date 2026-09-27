@@ -1120,34 +1120,43 @@ function m3Hangar(seed, dmg) {
   const T = new THREE.Group();
   const ARCH = mat3('#9aa0a3', 0.5, 0.4), WALLH = mat3('#8f948f', 0.8), DKI = mat3('#1b1e22', 0.9), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
   const SNOW = mat3('#eef2f4', 0.75), APRON = mat3('#9d9a92', 0.9), YEL = mat3('#c9a53a', 0.7);
-  const H = new THREE.Group(); H.position.set(0, 0, 0); T.add(H);
-  // half-cylinder arch roof built from lengthwise segments; ribs at every segment edge
-  const segW = 17 / 8;
-  for (let sgi = 0; sgi < 8; sgi++) {
-    const sx = -8.5 + segW * (sgi + 0.5);
-    if (dmg && (sgi === 2 || sgi === 5)) continue;
-    part(H, new THREE.CylinderGeometry(7.05, 7.05, segW * 1.002, 24, 1, true, 0, Math.PI), ARCH, sx, 0.1, 0, 0, 0, HALF_PI);
-    part(H, new THREE.CylinderGeometry(7.18, 7.18, 0.35, 24, 1, true, 0, Math.PI), DKS, -8.5 + segW * sgi + 0.05, 0.1, 0, 0, 0, HALF_PI);
+  // 1. gable walls shaped like the arch cross-section (absarc), extruded 0.3
+  const gShape = new THREE.Shape();
+  gShape.moveTo(-6.5, 0); gShape.lineTo(6.5, 0); gShape.absarc(0, 2.3, 6.5, 0, Math.PI, false); gShape.closePath();
+  const gGeo = new THREE.ExtrudeGeometry(gShape, { depth: 0.3, bevelEnabled: false });
+  part(T, gGeo, WALLH, 7.35, 0, 0);
+  part(T, gGeo, WALLH, -7.65, 0, 0);
+  // side walls below the spring line
+  for (const s of [-1, 1]) part(T, rbox(15, 2.3, 0.3, 0.05, 1), WALLH, 0, 1.15, s * 6.4);
+  // 2. arch roof from five lengthwise segments; two segments removed when damaged
+  const segL = 3.0;
+  for (let sgi = 0; sgi < 5; sgi++) {
+    const sx = -7.5 + segL * (sgi + 0.5);
+    if (dmg && (sgi === 1 || sgi === 3)) continue;
+    part(T, new THREE.CylinderGeometry(6.55, 6.55, segL * 1.002, 24, 1, true, 0, Math.PI), ARCH, sx, 2.3, 0, 0, 0, HALF_PI);
+    part(T, new THREE.CylinderGeometry(6.68, 6.68, 0.35, 24, 1, true, 0, Math.PI), DKS, -7.5 + segL * sgi + 0.05, 2.3, 0, 0, 0, HALF_PI);
+    if (!(dmg && (sgi === 1 || sgi === 3))) part(T, new THREE.CylinderGeometry(6.72, 6.72, 1.4, 20, 1, true, Math.PI * 0.36, Math.PI * 0.28), SNOW, sx, 2.3, 0, 0, 0, HALF_PI);
   }
-  // snow strips on the arch top
-  for (const sx of [-5.5, 0, 5.5]) part(H, new THREE.CylinderGeometry(7.22, 7.22, 1.6, 20, 1, true, Math.PI * 0.32, Math.PI * 0.36), SNOW, sx, 0.1, 0, 0, 0, HALF_PI);
-  // side walls, closed back wall, side door and a row of high windows
-  for (const s of [-1, 1]) part(H, rbox(17, 2.3, 0.3, 0.05, 1), WALLH, 0, 1.15, s * 6.85);
-  part(H, rbox(0.25, 7.0, 13.9, 0.08, 1), WALLH, -8.45, 3.4, 0);
-  part(H, rbox(0.1, 2.1, 0.9, 0.04, 1), DKS, -8.52, 1.05, 5.6);
-  for (let k = 0; k < 6; k++) part(H, rbox(0.06, 0.7, 1.1, 0.03, 1), GLS, 8.47, 5.9, -4 + k * 1.6);
-  // front: two sliding doors half open, dark interior visible
-  part(H, rbox(0.2, 6.4, 13.8, 0.06, 1), DKI, 8.35, 3.2, 0);
-  part(H, rbox(0.16, 5.9, 3.4, 0.05, 1), WALLH, 8.3, 2.95, -2.4);
-  part(H, rbox(0.16, 5.9, 3.4, 0.05, 1), WALLH, 8.3, 2.95, 2.5);
-  if (dmg) { const dr = part(H, rbox(0.14, 5.7, 3.2, 0.05, 1), WALLH, 8.25, 2.6, 3.9); dr.rotation.x = -0.85; dr.rotation.y = 0.5; }
-  // concrete apron with a yellow edge marking
-  part(H, rbox(18.5, 0.1, 6.5, 0.05, 1), APRON, 0, 0.05, 10.5);
-  part(H, rbox(18.5, 0.09, 0.22, 0.02, 1), YEL, 0, 0.09, 13.6);
-  if (dmg) for (const [px, pz] of [[3.2, 3.6], [5.4, 1.9]]) part(H, rbox(1.6, 0.24, 1.9, 0.05, 1), WALLH, px, 0.12, pz);
+  if (dmg) for (const [hx, hz] of [[-4.5, 3.2], [1.5, -3.2]]) {
+    const fl = part(T, rbox(0.12, 1.4, 2.6, 0.04, 1), ARCH, hx, 6.4, hz); fl.rotation.x = 0.5; fl.rotation.y = 0.4;
+    part(T, rbox(2.9, 1.6, 2.9, 0.1, 1), DKI, hx, 4.4, hz);
+  }
+  // 3. door opening in the front gable: 9 wide, 6 high, dark inside; two sliding panels
+  part(T, rbox(0.3, 6.0, 9.0, 0.05, 1), DKI, 7.3, 3.0, 0);
+  const stiffen = (panel, z0) => { for (let k = 0; k < 4; k++) part(panel, new THREE.BoxGeometry(0.08, 5.6, 0.14), DKS, 0, 0, z0 + k * 1.05 - 1.6); };
+  const P1 = new THREE.Group(); P1.position.set(7.42, 3.0, -2.25); T.add(P1);
+  part(P1, rbox(0.14, 5.9, 4.5, 0.05, 1), WALLH, 0, 0, 0); stiffen(P1, 0);
+  const P2 = new THREE.Group(); P2.position.set(7.42, 3.0, 6.7); T.add(P2);
+  part(P2, rbox(0.14, 5.9, 4.5, 0.05, 1), WALLH, 0, 0, 0); stiffen(P2, 0);
+  if (dmg) { P2.rotation.x = -0.9; P2.position.set(7.3, 2.6, 7.6); }
+  // small side door and three high windows on one side
+  part(T, rbox(0.1, 1.9, 1.0, 0.04, 1), DKS, -3.0, 0.95, 6.42);
+  for (let k = 0; k < 3; k++) part(T, rbox(0.06, 0.7, 1.1, 0.03, 1), GLS, 2.2 + k * 1.7, 4.4, 6.44);
+  // concrete apron, depth 2.6, yellow edge marking
+  part(T, rbox(2.7, 0.1, 12.6, 0.05, 1), APRON, 8.8, 0.05, 0);
+  part(T, rbox(0.2, 0.08, 12.4, 0.02, 1), YEL, 10.05, 0.09, 0);
   return T;
 }
-MODEL3D['bld:S'] = m3Substation;
 MODEL3D['bld:H'] = m3Hangar;
 
 // ---------- T-33 废墟 bld:rubble 与断桥 prop:bridge ----------
