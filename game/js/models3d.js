@@ -994,50 +994,49 @@ MODEL3D.raptor = m3Raptor;
 // ---------- T-30 赫鲁晓夫楼 bld:b ----------
 function m3BldB(seed, dmg) {
   const B = new THREE.Group();
-  const WALL = mat3('#cbc5b5', 0.85), SEAM = mat3('#9d978a', 0.85), ROOFC = mat3('#7d796f', 0.7), FR = mat3('#e8e4da', 0.8), SNOW = mat3('#eef2f4', 0.75);
+  const WALL = mat3('#bdb7a8', 0.85), SEAM = mat3('#9d978a', 0.85), ROOFC = mat3('#7d796f', 0.7), FR = mat3('#d8d2c4', 0.8), TAR = mat3('#5f5c56', 0.95);
   const LIT = mat3('#f6d57a', 0.25, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.8 }), DKW = mat3('#2d3440', 0.3);
   const RAIL1 = mat3('#b9b3a4', 0.8), RAIL2 = mat3('#8e8a7e', 0.8), DKS = mat3('#2d302a', 0.6, 0.3);
-  const FL = 3.1, FH = 15.5;
-  const breakX = dmg ? -4.2 : -8.15, w1 = 8.15 - breakX, cx1 = (breakX + 8.15) / 2;
-  function win(x, y, z, ry, lit) {
+  const INT = mat3('#4a433a', 0.95), SOOT = mat3('#1f1c19', 1), RUB = mat3('#8f897c', 0.95), RUBD = mat3('#6a655b', 0.95);
+  const FL = 3.1, FH = 15.5, X1 = 8.15;
+  // where each floor starts along x. Intact: the whole length. Damaged: the -x end is bitten off in a
+  // ragged diagonal, the upper floors missing more than the lower ones.
+  const ends = [0, 1, 2, 3, 4].map(f => dmg ? [-7.7, -6.9, -5.4, -3.4, -1.2][f] + (f ? (hash(seed, f, 30) - 0.5) * 0.8 : 0) : -X1);
+  const topX = ends[4];
+  function win(x, y, z, ry, lit, burnt) {
     const W = new THREE.Group(); W.position.set(x, y, z); W.rotation.y = ry; B.add(W);
     part(W, new THREE.BoxGeometry(1.45, 1.65, 0.1), lit ? LIT : DKW, 0, 0, 0);
-    for (const [w, h, dx, dy] of [[1.75, 0.14, 0, 0.9], [1.75, 0.14, 0, -0.9], [0.14, 1.85, -0.76, 0], [0.14, 1.85, 0.76, 0]]) part(W, new THREE.BoxGeometry(w, h, 0.13), FR, dx, dy, 0.02);
+    for (const [w, h, dx, dy] of [[1.75, 0.14, 0, 0.9], [1.75, 0.14, 0, -0.9], [0.14, 1.85, -0.76, 0], [0.14, 1.85, 0.76, 0]]) part(W, new THREE.BoxGeometry(w, h, 0.13), burnt ? DKS : FR, dx, dy, 0.02);
   }
-  // 1. main body with a small bevel; the damaged end keeps only the lower three floors
-  part(B, rbox(w1, FH, 11, 0.18), WALL, cx1, FH / 2, 0);
+  // 1. main body, floor by floor so the damaged end can step down
+  if (!dmg) part(B, rbox(2 * X1, FH, 11, 0.18), WALL, 0, FH / 2, 0);
+  else for (let f = 0; f < 5; f++) { const w = X1 - ends[f]; part(B, rbox(w, FL, 11, 0.1), WALL, (X1 + ends[f]) / 2, f * FL + FL / 2, 0); }
   // 2. panel seams: horizontal strips at each floor line, a few vertical strips
-  for (let f = 1; f <= 5; f++) part(B, new THREE.BoxGeometry(w1, 0.11, 11.05), SEAM, cx1, f * FL, 0);
-  for (const vx of [-4.0, 0.2, 4.4]) part(B, new THREE.BoxGeometry(0.1, FH, 11.08), SEAM, vx, FH / 2, 0);
-  // 3+4. windows and balconies, floor by floor
-  const winXs = [];
-  for (let k = 0; k < 5; k++) winXs.push(breakX + 1.7 + k * (w1 - 3.4) / 4);
+  for (let f = 1; f <= 5; f++) { const x0 = ends[f - 1]; part(B, new THREE.BoxGeometry(X1 - x0, 0.11, 11.05), SEAM, (X1 + x0) / 2, f * FL, 0); }
+  for (const vx of [-4.0, 0.2, 4.4]) {
+    const n = ends.filter(e => e < vx - 0.2).length;
+    if (n) part(B, new THREE.BoxGeometry(0.1, n * FL, 11.08), SEAM, vx, n * FL / 2, 0);
+  }
+  // 3+4. windows and balconies, floor by floor. Near the break the windows are dark and the frames burnt.
+  const winXs = [-6.45, -3.225, 0, 3.225, 6.45];
+  const near = (x, f) => dmg && (x < ends[f] + 3.6 || (f >= 2 && x < topX + 3));
   for (let f = 0; f < 5; f++) {
-    const y = f * FL + 1.75, gone = dmg && f >= 3;
+    const y = f * FL + 1.75;
     winXs.forEach((wx, wi) => {
-      if (gone) return;
-      const dark = dmg && wx < breakX + 3.4;
-      win(wx, y, 5.56, 0, !dark && hash(seed, f, wi) < 0.34);
-      win(wx, y, -5.56, Math.PI, !dark && hash(seed, f + 5, wi) < 0.34);
+      if (wx - 0.9 < ends[f]) return;
+      const dark = near(wx, f);
+      win(wx, y, 5.56, 0, !dark && hash(seed, f, wi) < 0.34, dark);
+      win(wx, y, -5.56, Math.PI, !dark && hash(seed, f + 5, wi) < 0.34, dark);
     });
-    for (const wx of [breakX + 2.2, breakX + w1 / 2 - 0.4, breakX + w1 - 2.2]) {
-      if (gone) continue;
+    for (const wx of [-5.95, -0.4, 5.95]) {
+      if (wx - 1.3 < ends[f]) continue;
       const yy = f * FL + 0.12;
       part(B, rbox(2.3, 0.16, 1.35, 0.06, 1), WALL, wx, yy + 0.05, 5.55);
       part(B, new THREE.BoxGeometry(2.3, 0.9, 0.12), hash(seed, f, wx) < 0.5 ? RAIL1 : RAIL2, wx, yy + 0.6, 6.15);
       for (const dx of [-1.1, 1.1]) part(B, new THREE.BoxGeometry(0.12, 0.9, 1.3), WALL, wx + dx, yy + 0.6, 5.98);
-      win(wx - 0.6, y, 5.56, 0, false);
+      win(wx - 0.6, y, 5.56, 0, false, near(wx, f));
     }
-    if (!gone) { win(7.9, y, 2.3, HALF_PI, hash(seed, f, 7) < 0.34); win(7.9, y, -2.3, HALF_PI, hash(seed, f, 8) < 0.34); }
-  }
-  if (dmg) for (const [sx0, sx1, sh] of [[-8.15, -6.15, 9.3], [-6.15, -5.15, 6.2], [-5.15, -4.2, 8.3]]) {
-    const w = sx1 - sx0, cx = (sx0 + sx1) / 2, hh = sh + (hash(seed, sx0, 20) - 0.5) * 1.6;
-    part(B, rbox(w, hh, 11, 0.14), WALL, cx, hh / 2, 0);
-    for (let f = 0; f * FL + 1.7 < hh - 0.8; f++) {
-      win(cx, f * FL + 1.75, 5.56, 0, false);
-      win(cx, f * FL + 1.75, -5.56, Math.PI, false);
-    }
-    part(B, new THREE.BoxGeometry(w, 0.11, 11.05), SEAM, cx, hh, 0);
+    win(7.9, y, 2.3, HALF_PI, hash(seed, f, 7) < 0.34); win(7.9, y, -2.3, HALF_PI, hash(seed, f, 8) < 0.34);
   }
   // 5. two entrances on the +x side with concrete canopies and a small lamp
   for (const dz of [2.2, -2.2]) {
@@ -1045,35 +1044,66 @@ function m3BldB(seed, dmg) {
     part(B, rbox(0.95, 0.14, 1.8, 0.05, 1), SEAM, 8.45, 2.45, dz);
     part(B, new THREE.BoxGeometry(0.12, 0.16, 0.16), LIT, 8.35, 2.7, dz + dz * 0.35);
   }
-  // 6. roof: parapet, stairwell exits, vent pipes, TV antennas, snow
-  part(B, rbox(w1, 0.5, 0.3, 0.05, 1), ROOFC, cx1, FH + 0.2, 5.6);
-  part(B, rbox(w1, 0.5, 0.3, 0.05, 1), ROOFC, cx1, FH + 0.2, -5.6);
+  // 6. roof: parapet, bitumen, stairwell exits, vent pipes, TV antennas (only over what is still standing)
+  const rw = X1 - topX, rc = (X1 + topX) / 2;
+  part(B, rbox(rw, 0.5, 0.3, 0.05, 1), ROOFC, rc, FH + 0.2, 5.4);
+  part(B, rbox(rw, 0.5, 0.3, 0.05, 1), ROOFC, rc, FH + 0.2, -5.4);
   part(B, rbox(0.3, 0.5, 11.0, 0.05, 1), ROOFC, 8.0, FH + 0.2, 0);
-  part(B, rbox(0.3, 0.5, 11.0, 0.05, 1), ROOFC, breakX + 0.15, FH + 0.2, 0);
-  part(B, rbox(w1 - 0.4, 0.09, 10.6, 0.04, 1), SNOW, cx1, FH + 0.52, 0);
-  for (const [ex, ez] of [[2.2, 1.6], [-1.8, -1.4]]) part(B, rbox(1.7, 1.15, 1.5, 0.1, 1), WALL, ex, FH + 0.55, ez);
-  for (const [vx, vz] of [[4.6, 2.4], [3.4, -2.2], [-0.6, 2.8], [-2.4, -2.6]]) part(B, cyl(0.18, 0.18, 0.85, 10), ROOFC, vx, FH + 0.6, vz);
+  if (!dmg) part(B, rbox(0.3, 0.5, 11.0, 0.05, 1), ROOFC, -8.0, FH + 0.2, 0);
+  part(B, new THREE.BoxGeometry(rw - 0.6, 0.08, 10.4), TAR, rc + (dmg ? 0.3 : 0), FH + 0.02, 0);
+  const onRoof = x => x > topX + 1.2;
+  for (const [ex, ez] of [[2.2, 1.6], [-1.8, -1.4]]) if (onRoof(ex - 0.9)) part(B, rbox(1.7, 1.15, 1.5, 0.1, 1), WALL, ex, FH + 0.55, ez);
+  for (const [vx, vz] of [[4.6, 2.4], [3.4, -2.2], [-0.6, 2.8], [-2.4, -2.6]]) if (onRoof(vx)) part(B, cyl(0.18, 0.18, 0.85, 10), ROOFC, vx, FH + 0.6, vz);
   for (const [ax, az] of [[0.4, -2.0], [-2.6, 2.2]]) {
+    if (!onRoof(ax)) continue;
     part(B, cyl(0.05, 0.05, 2.6, 6), DKS, ax, FH + 1.4, az);
     part(B, new THREE.BoxGeometry(1.3, 0.05, 0.05), DKS, ax, FH + 2.1, az);
   }
-  // 7. damaged state: ragged collapse, hanging slabs, soot, smoke streaks, rubble
-  if (dmg) {
-    for (const [sx, sz, rz, rx] of [[-4.9, 1.3, 0.55, 0.25], [-5.6, -1.2, -0.45, -0.2], [-4.5, 0.1, 0.3, -0.3]]) {
-      const sl = part(B, rbox(2.7, 0.4, 1.9, 0.06, 1), WALL, sx, 8.6, sz); sl.rotation.z = rz; sl.rotation.x = rx;
+  if (!dmg) return B;
+  // 7. damaged state
+  for (let f = 0; f < 5; f++) {
+    const e = ends[f], y0 = f * FL, top = f === 4 || ends[f + 1] - e > 0.5;
+    // the broken end of each floor: dark gutted rooms behind a torn edge
+    part(B, new THREE.BoxGeometry(0.1, FL - 0.4, 10.2), INT, e - 0.03, y0 + FL / 2, 0);
+    // ragged teeth of outer wall panel sticking out past the break, front and back, different lengths
+    for (const [z, k] of [[5.3, 0], [-5.3, 1]]) {
+      const len = 0.6 + hash(seed, f, 31 + k) * 1.4, h = FL * (0.35 + hash(seed, f, 33 + k) * 0.55);
+      part(B, new THREE.BoxGeometry(len, h, 0.4), WALL, e - len / 2, y0 + h / 2, z);
     }
-    part(B, rbox(2.9, 0.4, 2.0, 0.06, 1), WALL, -6.3, 0.22, 1.1);
-    for (const [bx, by, bz, brx, brz] of [[-4.15, 10.2, 1.1, 0.4, 0.3], [-4.25, 10.6, -0.9, -0.3, 0.2], [-5.05, 6.9, 5.56, 0.5, -0.2], [-6.2, 6.6, 5.56, -0.4, 0.25]])
-      part(B, cyl(0.05, 0.05, 1.5, 6), DKS, bx, by, bz, brx, 0, brz);
-    for (const [sx, sy, sz, w, h] of [[-4.7, 7.6, 5.6, 2.1, 2.6], [-5.4, 5.2, 5.6, 1.5, 2.0], [-5.0, 6.4, -5.6, 1.8, 2.2]])
-      part(B, rbox(w, h, 0.09, 0.05, 1), mat3('#1f1c19', 1), sx, sy, sz);
-    for (const wx of [-4.9, -5.5]) part(B, rbox(0.14, 1.7, 0.1, 0.04, 1), mat3('#1f1c19', 1), wx, 8.9, 5.62);
-    for (let k = 0; k < 10; k++) {
-      const rr = 0.4 + hash(seed, k, 21) * 0.55, a = hash(seed, k, 22) * Math.PI;
-      const rub = part(B, rbox(rr * 2.1, rr, rr * 1.6, 0.06, 1), k % 3 ? SEAM : WALL, -6.1 + Math.cos(a) * (1.0 + hash(seed, k, 23) * 2.2), rr / 2, Math.sin(a) * (1.0 + hash(seed, k, 24) * 1.6));
-      rub.rotation.y = hash(seed, k, 25) * 3; rub.rotation.z = (hash(seed, k, 26) - 0.5) * 0.4;
+    // floor slab edge at the top of the floor, cracked and jutting out a little
+    if (top) part(B, new THREE.BoxGeometry(0.7, 0.28, 10.4), SEAM, e - 0.3, y0 + FL - 0.1, 0, 0, 0, (hash(seed, f, 35) - 0.5) * 0.3);
+    // rebar out of the slab edge, bent downward
+    for (let k = 0; k < 4; k++) {
+      const z = -4 + k * 2.6 + (hash(seed, f, 36 + k) - 0.5) * 1.2, droop = 0.15 + hash(seed, f, 40 + k) * 0.5;
+      part(B, cyl(0.05, 0.05, 1.5, 5), DKS, e - 0.7, y0 + FL - 0.1 - droop * 0.5, z, 0, 0, HALF_PI - droop);
+    }
+    // gutted floor surface: a little rubble on each exposed ledge
+    if (f < 4) for (let k = 0; k < 3; k++) {
+      const x = e + 0.3 + hash(seed, f, 45 + k) * Math.max(0.2, ends[f + 1] - e - 0.6), z = (hash(seed, f, 48 + k) - 0.5) * 9, r = 0.3 + hash(seed, f, 51 + k) * 0.35;
+      part(B, rbox(r * 2, r, r * 1.5, 0.06, 1), k % 2 ? RUB : RUBD, x, y0 + FL + r / 2, z, 0, hash(seed, f, 54 + k) * 3, 0);
     }
   }
+  // two big floor slabs torn loose, hanging from the upper floors down toward the heap
+  for (const [f, z, len, rz] of [[3, 1.8, 4.6, 0.95], [4, -2.2, 3.8, 1.25]]) {
+    const G = new THREE.Group(); G.position.set(ends[f] + 0.1, f * FL + FL - 0.15, z); G.rotation.z = rz; G.rotation.x = (hash(seed, f, 60) - 0.5) * 0.3; B.add(G);
+    part(G, new THREE.BoxGeometry(len, 0.32, 3.2), SEAM, -len / 2, 0, 0);
+    for (const dz of [-1, 0.2, 1.2]) part(G, cyl(0.045, 0.045, 1.0, 5), DKS, -len - 0.05, 0, dz, 0, 0, HALF_PI);
+  }
+  // the heap of broken panels at the foot of the collapse
+  part(B, cyl(0.6, 3.2, 3.2, 7), RUB, -6.6, 1.6, 0, 0, hash(seed, 0, 61) * 3, 0).scale.set(1, 1, 1.35);
+  for (let k = 0; k < 16; k++) {
+    const a = hash(seed, k, 62) * Math.PI * 2, d = 0.8 + hash(seed, k, 63) * 2.6, r = 0.4 + hash(seed, k, 64) * 0.7;
+    const x = Math.max(-9.2, Math.min(-4.2, -6.6 + Math.cos(a) * d)), z = Math.max(-5.4, Math.min(5.4, Math.sin(a) * d * 1.5));
+    const y = Math.max(r / 2, (3.2 - d) * 0.9);
+    const piece = k % 4 === 0 ? new THREE.BoxGeometry(r * 3.4, 0.25, r * 2.4) : rbox(r * 2, r, r * 1.6, 0.06, 1);
+    part(B, piece, [WALL, RUB, RUBD, SEAM][k % 4], x, y, z, (hash(seed, k, 65) - 0.5) * 0.9, hash(seed, k, 66) * 3, (hash(seed, k, 67) - 0.5) * 0.9);
+  }
+  // soot: fire has blackened the facade around the break, streaking upward, and the roof edge
+  for (const [z, s] of [[5.58, 0], [-5.58, 1]]) for (let k = 0; k < 3; k++) {
+    const f = 1 + k, x = ends[f] + 0.9 + hash(seed, k, 70 + s) * 1.6, w = 1.4 + hash(seed, k, 72 + s) * 1.4, h = 2.2 + hash(seed, k, 74 + s) * 2;
+    part(B, new THREE.BoxGeometry(w, h, 0.06), SOOT, x, f * FL + 1.2 + h / 2 - 0.6, z);
+  }
+  part(B, new THREE.BoxGeometry(2.2, 0.12, 10.8), SOOT, topX + 1.1, FH + 0.06, 0);
   return B;
 }
 MODEL3D['bld:b'] = m3BldB;
