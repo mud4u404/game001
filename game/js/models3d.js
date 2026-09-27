@@ -1111,56 +1111,90 @@ MODEL3D['bld:b'] = m3BldB;
 // ---------- T-31 教堂 bld:c ----------
 function m3BldC(seed, dmg) {
   const B = new THREE.Group();
-  const WALL = mat3('#e7e3d8', 0.8), BLUE = mat3('#3b6fb6', 0.6), ROOFG = mat3('#4a705d', 0.7), SNOW = mat3('#eef2f4', 0.75);
-  const DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3), GOLD = mat3('#e3b341', 0.3, 0.8);
-  const INK = mat3('#141614', 0.9);
-  // 1. chapel body: 12 x 9 footprint, walls 6 high
-  part(B, rbox(12, 6, 9, 0.14), WALL, 0, 3.0, 0);
-  // 2. three arched windows per long side: rectangular glass, semicircular top, blue frame
+  const WALL = mat3('#d8d2c4', 0.85), BLUE = mat3('#3b6fb6', 0.6), ROOFG = mat3('#4a705d', 0.7), ROOFD = mat3('#3d5e4d', 0.75);
+  const DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3), GOLD = mat3('#d9a93a', 0.3, 0.8);
+  const INK = mat3('#141614', 0.9), SOOT = mat3('#1f1c19', 1), BASE = mat3('#8d887d', 0.9);
+  const WH = 5.0, RH = 3.2, HX = 6.0, HZ = 4.5, OV = 0.6;   // wall height, roof rise, half length, half width, eave overhang
+  // 1. chapel body: 12 x 9 footprint, low walls on a grey plinth; triangular gables carry the roof
+  part(B, rbox(12.3, 0.5, 9.3, 0.1, 1), BASE, 0, 0.25, 0);
+  part(B, rbox(2 * HX, WH, 2 * HZ, 0.14), WALL, 0, WH / 2, 0);
+  const gs = new THREE.Shape(); gs.moveTo(-HZ, 0); gs.lineTo(HZ, 0); gs.lineTo(0, RH); gs.closePath();
+  const gg = new THREE.ExtrudeGeometry(gs, { depth: 0.3, bevelEnabled: false });
+  part(B, gg, WALL, HX - 0.3, WH, 0, 0, HALF_PI, 0);
+  part(B, gg, WALL, -HX, WH, 0, 0, HALF_PI, 0);
+  // 2. three arched windows per long side: glass, semicircular top, blue frame
   for (const s of [-1, 1]) for (let k = 0; k < 3; k++) {
-    const wx = -3.6 + k * 3.4, wy = 2.6, wz = s * 4.56;
+    const wx = -3.6 + k * 3.4, wy = 2.5, wz = s * (HZ + 0.03);
     const burnt = dmg && k === 1;
-    part(B, rbox(0.12, 1.5, 1.2, 0.04, 1), burnt ? INK : GLS, wx, wy - 0.45, wz);
-    part(B, new THREE.CylinderGeometry(0.6, 0.6, 0.12, 16, 1, false, 0, Math.PI), burnt ? INK : GLS, wx, wy + 0.3, wz, HALF_PI, 0, 0);
-    part(B, new THREE.CylinderGeometry(0.68, 0.68, 0.1, 16, 1, false, 0, Math.PI), BLUE, wx, wy + 0.3, s * 0.08, HALF_PI, 0, 0);
-    for (const dx of [-0.66, 0.66]) part(B, new THREE.BoxGeometry(0.14, 2.5, 0.14), BLUE, wx + dx, wy - 0.4, s * 0.08);
+    part(B, new THREE.BoxGeometry(1.2, 1.5, 0.1), burnt ? INK : GLS, wx, wy - 0.45, wz);
+    part(B, new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16, 1, false, -HALF_PI, Math.PI), burnt ? INK : GLS, wx, wy + 0.3, wz, HALF_PI, 0, 0);
+    part(B, new THREE.CylinderGeometry(0.72, 0.72, 0.08, 16, 1, false, -HALF_PI, Math.PI), BLUE, wx, wy + 0.3, s * (HZ + 0.01), HALF_PI, 0, 0);
+    for (const dx of [-0.68, 0.68]) part(B, new THREE.BoxGeometry(0.14, 1.6, 0.12), BLUE, wx + dx, wy - 0.5, s * (HZ + 0.04));
+    part(B, new THREE.BoxGeometry(1.6, 0.12, 0.25), BLUE, wx, wy - 1.25, s * (HZ + 0.08));
+    if (burnt) part(B, new THREE.BoxGeometry(2.0, 2.2, 0.05), SOOT, wx, wy + 1.4, s * (HZ + 0.03));
   }
-  // 3. green pitched roof: stepped boards down both slopes, snow; a hole on one slope when damaged
-  const slope = Math.atan2(3.0, 4.5);
+  // 3. green pitched roof, ridge along x; each slope in three lengthwise pieces so one can be holed when damaged
+  const slope = Math.atan2(RH, HZ), sl = Math.hypot(HZ + OV, RH * (HZ + OV) / HZ);
   for (const s of [-1, 1]) {
-    const R = new THREE.Group(); R.position.set(0, 6.0, 0); R.rotation.x = s * slope; B.add(R);
-    for (let k = 0; k < 6; k++) {
-      if (dmg && s === -1 && k > 1 && k < 5) continue;
-      part(R, new THREE.BoxGeometry(12.9, 0.22, 1.2), k % 2 ? ROOFG : mat3('#43674f', 0.7), 0, 0.04 * k, s * (0.55 + k * 0.8));
+    const R = new THREE.Group(); R.position.set(0, WH + RH + 0.12, 0); R.rotation.x = s * slope; B.add(R);
+    for (const [px, pw] of [[-4.3, 4.6], [0, 4.0], [4.3, 4.6]]) {
+      if (dmg && s === 1 && px === 0) continue;
+      part(R, rbox(pw, 0.24, sl, 0.06, 1), ROOFG, px, 0, s * sl / 2);
     }
-    if (!(dmg && s === -1)) part(R, rbox(12.9, 0.07, 1.0, 0.03, 1), SNOW, 0, 0.16, s * 2.9);
-    if (dmg && s === -1) part(B, rbox(3.6, 1.7, 3.6, 0.1, 1), INK, 0.3, 5.5, s * 1.7);
+    // standing seams down the slope
+    for (let k = 0; k < 11; k++) {
+      const x = -6.2 + k * 1.24;
+      if (dmg && s === 1 && Math.abs(x) < 2) continue;
+      part(R, new THREE.BoxGeometry(0.07, 0.08, sl), ROOFD, x, 0.15, s * sl / 2);
+    }
+    if (dmg && s === 1) {
+      // the hole: charred rafters across it, dark inside
+      for (const [x, rz] of [[-1.2, 0.15], [0.3, -0.25], [1.4, 0.35]]) part(R, new THREE.BoxGeometry(0.14, 0.14, sl * 0.8), mat3('#3a2e24', 0.95), x, -0.02, sl * 0.45, 0, rz, 0);
+      part(B, new THREE.BoxGeometry(4.0, 0.05, 4.2), INK, 0, WH + 0.03, 2.2);
+    }
   }
-  // 4. octagonal drum on the ridge, four small arched windows, golden onion dome, orthodox cross
-  part(B, cyl(2.0, 2.15, 3.0, 8), WALL, -0.5, 10.5, 0);
-  for (const a of [0.4, 1.97, 3.54, 5.11]) {
-    part(B, rbox(0.45, 0.85, 0.1, 0.03, 1), GLS, -0.5 + Math.cos(a) * 1.9, 10.5, Math.sin(a) * 1.9, 0, -a, 0);
-    part(B, new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10, 1, false, 0, Math.PI), BLUE, -0.5 + Math.cos(a) * 1.95, 11.0, Math.sin(a) * 1.95, HALF_PI, -a, 0);
+  part(B, cyl(0.16, 0.16, 12.9, 8), ROOFD, 0, WH + RH + 0.2, 0, 0, 0, HALF_PI);
+  // 4. octagonal drum astride the ridge, four arched windows, golden onion dome, orthodox cross
+  const DX = -0.5, DY = WH + RH - 0.6;
+  part(B, cyl(1.9, 2.05, 3.4, 8), WALL, DX, DY + 1.7, 0, 0, Math.PI / 8, 0);
+  part(B, cyl(2.2, 2.2, 0.25, 8), ROOFG, DX, DY + 3.45, 0, 0, Math.PI / 8, 0);
+  for (const a of [0, HALF_PI, Math.PI, 3 * HALF_PI]) {
+    const G = new THREE.Group(); G.position.set(DX + Math.cos(a) * 1.9, DY + 2.2, -Math.sin(a) * 1.9); G.rotation.y = a + HALF_PI; B.add(G);
+    part(G, new THREE.BoxGeometry(0.5, 0.8, 0.1), GLS, 0, 0, 0);
+    part(G, new THREE.CylinderGeometry(0.25, 0.25, 0.1, 10, 1, false, -HALF_PI, Math.PI), GLS, 0, 0.4, 0, HALF_PI, 0, 0);
   }
   const pts = [];
-  for (const [r, h] of [[0.05, 0], [1.6, 0.55], [2.3, 1.85], [2.1, 3.3], [1.2, 4.6], [0.55, 5.4], [0.24, 6.1], [0.03, 6.6]]) pts.push(new THREE.Vector2(r, h));
-  const ON = new THREE.Group(); ON.name = 'onion'; ON.position.set(-0.5, 12.0, 0); B.add(ON);
-  if (dmg) ON.rotation.z = -0.62;
+  for (const [r, h] of [[0.05, 0], [1.5, 0.3], [2.1, 1.3], [1.9, 2.6], [1.1, 3.6], [0.45, 4.3], [0.2, 4.9], [0.03, 5.3]]) pts.push(new THREE.Vector2(r, h));
+  const ON = new THREE.Group(); ON.name = 'onion'; ON.position.set(DX, DY + 3.55, 0); B.add(ON);
+  if (dmg) { ON.rotation.z = -0.55; ON.rotation.x = 0.2; }
   part(ON, new THREE.LatheGeometry(pts, 20), GOLD, 0, 0, 0);
-  part(ON, cyl(0.05, 0.05, 1.15, 6), GOLD, 0, 7.0, 0);
-  part(ON, new THREE.BoxGeometry(0.95, 0.09, 0.09), GOLD, 0, 7.25, 0);
-  part(ON, new THREE.BoxGeometry(0.65, 0.08, 0.08), GOLD, 0, 6.75, 0);
-  const SL = part(ON, new THREE.BoxGeometry(0.52, 0.07, 0.07), GOLD, 0, 6.15, 0); SL.rotation.z = 0.5;
-  // 5. porch on the +x face: small triangular roof, one arched door, three steps
-  part(B, rbox(1.8, 2.3, 3.7, 0.1, 1), WALL, 6.9, 1.15, 0);
-  part(B, rbox(0.12, 1.4, 1.1, 0.04, 1), INK, 7.82, 1.5, 0);
-  part(B, new THREE.CylinderGeometry(0.55, 0.55, 0.12, 14, 1, false, 0, Math.PI), INK, 7.82, 2.2, 0, HALF_PI, 0, 0);
-  for (const s of [-1, 1]) part(B, rbox(2.1, 0.14, 0.2, 0.05, 1), ROOFG, 7.35, 2.85, s * 1.0, 0, 0, -s * 0.55);
-  for (let k = 0; k < 3; k++) part(B, rbox(1.2 - k * 0.15, 0.2, 4.0 + k * 0.5, 0.04, 1), mat3('#c9c4b8', 0.85), 8.3 + k * 0.4, 0.1 + k * 0.2, 0);
-  // 7. damaged: charred window already above; rubble at the base
-  if (dmg) for (const [rx, rz, rr] of [[4.9, 1.3, 0.8], [5.6, -1.2, 0.6], [4.2, 2.0, 0.5], [5.9, 0.3, 0.55], [4.6, -0.4, 0.7], [5.2, 1.9, 0.5]]) {
-    const rub = part(B, rbox(rr * 2.2, rr, rr * 1.7, 0.06, 1), WALL, rx, rr / 2, rz); rub.rotation.y = rr * 3;
+  part(ON, cyl(0.05, 0.05, 1.5, 6), GOLD, 0, 5.8, 0);
+  part(ON, new THREE.BoxGeometry(0.09, 0.09, 0.9), GOLD, 0, 6.1, 0);
+  part(ON, new THREE.BoxGeometry(0.08, 0.08, 0.6), GOLD, 0, 5.7, 0);
+  part(ON, new THREE.BoxGeometry(0.07, 0.07, 0.5), GOLD, 0, 5.35, 0, 0.5, 0, 0);
+  // 5. porch on the +x face: gabled roof on two posts, arched door, three steps
+  part(B, new THREE.BoxGeometry(0.1, 2.0, 1.4), INK, HX + 0.02, 1.5, 0);
+  part(B, new THREE.CylinderGeometry(0.7, 0.7, 0.1, 14, 1, false, 0, Math.PI), INK, HX + 0.02, 2.5, 0, 0, 0, -HALF_PI);
+  for (const z of [-1.3, 1.3]) part(B, cyl(0.14, 0.14, 2.9, 8), WALL, HX + 1.9, 1.95, z);
+  const pr = Math.atan2(1.0, 1.7);
+  for (const s of [-1, 1]) {
+    const P = new THREE.Group(); P.position.set(HX + 1.0, 3.9, 0); P.rotation.x = s * pr; B.add(P);
+    part(P, rbox(2.4, 0.16, 2.1, 0.04, 1), ROOFG, 0, 0, s * 1.0);
   }
+  const ps = new THREE.Shape(); ps.moveTo(-1.6, 0); ps.lineTo(1.6, 0); ps.lineTo(0, 0.95); ps.closePath();
+  part(B, new THREE.ExtrudeGeometry(ps, { depth: 0.15, bevelEnabled: false }), WALL, HX + 2.05, 3.4, 0, 0, HALF_PI, 0);
+  part(B, new THREE.BoxGeometry(0.25, 0.25, 3.0), WALL, HX + 2.0, 3.35, 0);
+  part(B, new THREE.BoxGeometry(2.2, 0.2, 3.0), WALL, HX + 1.1, 3.35, 0);
+  for (let k = 0; k < 3; k++) part(B, rbox(2.6 - k * 0.5, 0.2, 3.2 - k * 0.3, 0.04, 1), BASE, HX + 1.4 + k * 0.25, 0.1 + k * 0.2, 0);
+  if (!dmg) return B;
+  // 6. damaged (on the +z side, which faces the camera): soot below the roof hole and on the gable, cracked plinth, rubble and fallen roof sheets
+  part(B, new THREE.BoxGeometry(3.4, 1.6, 0.05), SOOT, 0.2, WH - 0.9, HZ + 0.03);
+  part(B, new THREE.BoxGeometry(0.05, 1.8, 2.8), SOOT, -HX - 0.03, WH + 0.6, -1.0);
+  for (let k = 0; k < 9; k++) {
+    const x = -3 + hash(seed, k, 81) * 6, z = HZ + 0.8 + hash(seed, k, 82) * 2.4, r = 0.3 + hash(seed, k, 83) * 0.5;
+    part(B, rbox(r * 2.2, r, r * 1.7, 0.06, 1), k % 3 ? WALL : BASE, x, r / 2, z, 0, hash(seed, k, 84) * 3, (hash(seed, k, 85) - 0.5) * 0.5);
+  }
+  for (const [x, z, ry] of [[-0.8, 6.9, 0.4], [1.6, 6.5, -0.7]]) part(B, rbox(2.2, 0.12, 1.6, 0.03, 1), ROOFG, x, 0.3, z, 0.25, ry, 0.1);
   return B;
 }
 MODEL3D['bld:c'] = m3BldC;
@@ -1288,14 +1322,13 @@ function m3Rubble(seed) {
 }
 function m3BridgeRuin() {
   const T = new THREE.Group();
-  const CON1 = mat3('#9a958a', 0.85), CON2 = mat3('#7f7a70', 0.85), REB = mat3('#3a3530', 0.6, 0.4);
-  const PLANK = mat3('#8a6a48', 0.9), SNOW = mat3('#eef2f4', 0.75);
+  const CON1 = mat3('#858075', 0.85), CON2 = mat3('#6b675f', 0.85), REB = mat3('#3a3530', 0.6, 0.4);
+  const PLANK = mat3('#8a6a48', 0.9);
   // piers from the riverbed
   for (const px of [-5.2, 0.9]) part(T, rbox(2.0, 5.2, 3.0, 0.1, 1), CON2, px, -0.4, 0);
   // deck segment A: horizontal, resting on the piers, reaching the -x road
   part(T, rbox(10.8, 0.45, 7.0, 0.06, 1), CON1, -4.7, 2.0, 0);
   part(T, rbox(10.9, 0.1, 7.04, 0.03, 1), CON2, -4.7, 2.26, 0);
-  for (const [sx, sz] of [[-8.9, 3.2], [-6.5, 3.2], [-9.0, -3.2]]) part(T, rbox(1.4, 0.06, 0.5, 0.03, 1), SNOW, sx, 2.32, sz);
   // deck segment B: broken at mid-span, slanting down into the water at +x
   const segB = part(T, rbox(9.6, 0.45, 7.0, 0.06, 1), CON2, 5.4, 0.4, 0); segB.rotation.z = -0.34;
   part(segB, rbox(0.5, 0.1, 7.04, 0.03, 1), CON1, 4.55, 0.26, 0);
