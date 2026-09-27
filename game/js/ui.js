@@ -74,6 +74,9 @@ const BARKS = {
   crater: [['ivanna', '跑道上又多了一个坑。']],
   evac: [['oksana', '又一批人过了河。继续守住那条路。']],
   cmd: [['oksana', '指挥车被摧毁，他们的无线电全乱了。']],
+  drown: [['mykola', '它掉进河里了。水比炮弹还凉。'], ['taras', '伊尔平河替我们收下了。']],
+  friendly: [['radio', '“……停火！停火！你们打到自己人了！……”'], ['oksana', '他们在打自己人。保持这个位置。']],
+  multi: [['mykola', '一发，两个。'], ['ivanna', '落点正中，两个目标。']],
   hurt: { t64: [['mykola', '装甲还扛得住……再挨一发就不行了。']], atgm: [['taras', '我们被压制了，快掩护我们！']], d30: [['ivanna', '炮位中弹！还能打，但撑不了多久。']] },
 };
 let radioT = null;
@@ -90,6 +93,7 @@ function bark(kind, u) {
   if (!pool) return;
   if (kind === 'turn' && Math.random() < 0.45) return;
   if (kind === 'crater') { if (B.said.crater) return; B.said.crater = 1; }
+  if (kind === 'drown' || kind === 'friendly' || kind === 'multi') { if (B.said[kind]) return; B.said[kind] = 1; }
   if (kind === 'hurt') { const k = 'hurt' + u.id; if (B.said[k]) return; B.said[k] = 1; }
   const [who, text] = pick(pool);
   radio(who, text);
@@ -228,7 +232,7 @@ function showCampaign() {
     <div class="mrow ${k < i ? 'done' : k === i ? 'cur' : 'locked'}">
       <span class="mcode">${m.code}</span>
       <span class="mname">${esc(m.name)}<small>${esc(m.date)}</small></span>
-      <span class="mstate">${k < i ? '已完成' : k === i ? '当前' : '未解锁'}</span>
+      <span class="mstate">${k < i ? '已完成' + (CAMP.best && CAMP.best[m.id] ? ' · ' + CAMP.best[m.id] : '') : k === i ? '当前' : '未解锁'}</span>
     </div>`).join('');
   $('cMission').innerHTML = M ? `
     <div class="mtitle"><span class="mcode big">${M.code}</span><div><h3>${esc(M.name)}</h3><small>${esc(M.date)} · ${esc(M.place)}</small></div></div>
@@ -531,11 +535,21 @@ function showDebrief(res) {
     $('dbText').textContent = wiped ? '特遣队失去了全部作战单位。可以重新部署，再推演一次这场战斗。' : res.win ? M.outcome.win : M.outcome.partial;
     $('dbObjs').innerHTML = res.objectives.map(o => `<li class="${o.done ? 'ok' : 'bad'}"><i></i><span>${esc(o.text)}</span>${o.reward ? `<em>${o.done ? '援助 +' + o.reward : '—'}</em>` : ''}</li>`).join('');
     const s = res.stats;
+    const opsSum = (s.drown || 0) + (s.bump || 0) + (s.friendly || 0) + (s.multi || 0);
+    const opNote = [['落水', s.drown], ['撞毁', s.bump], ['误伤', s.friendly], ['一石二鸟', s.multi]].filter(([, n]) => n).map(([t, n]) => `${t} ${n}`).join(' · ');
+    const totalAid = M.objectives.reduce((a, o) => a + o.reward, 0) || 1;
+    let score = 60 * res.aid / totalAid + Math.max(0, 25 - 10 * (res.losses || 0));
+    if (s.bldHit === 0) score += 15;
+    score += Math.min(10, opsSum * 2);
+    const grade = res.win ? (score >= 90 ? 'S' : score >= 75 ? 'A' : score >= 55 ? 'B' : 'C') : 'C';
+    res.grade = grade;
+    $('dbTitle').innerHTML += `<span class="grade ${grade}">${grade}</span>`;
     $('dbStats').innerHTML = `
       <div><b class="num">${res.civilians}</b><span>守护的平民</span></div>
       <div><b class="num">${s.kills}</b><span>击毁敌军</span></div>
       <div><b class="num">${s.bldHit}</b><span>建筑被击中</span></div>
-      <div><b class="num">${s.evac}</b><span>平民撤离</span></div>`;
+      <div><b class="num">${s.evac}</b><span>平民撤离</span></div>
+      <div><b class="num">${opsSum}</b><span>精彩操作</span>${opNote ? `<small>${opNote}</small>` : ''}</div>`;
     const notes = [];
     if (res.promotions) for (const line of res.promotions) notes.push(line);
     if (res.consequence) notes.push(res.consequence.text);
@@ -596,6 +610,11 @@ function fixUnit(rid) {
   renderShop();
 }
 function continueCampaign() {
+  CAMP.best = CAMP.best || {};
+  if (lastResult && lastResult.grade) {
+    const mid = MISSIONS[CAMP.mission].id, order = { C: 1, B: 2, A: 3, S: 4 };
+    if (!CAMP.best[mid] || order[lastResult.grade] > order[CAMP.best[mid]]) CAMP.best[mid] = lastResult.grade;
+  }
   // accept the result: units that died in this battle are marked wrecked in the roster
   for (const u of B.units) if (u.team === 'ua' && u.dead && u.rid) { const rec = CAMP.roster.find(r => r.rid === u.rid); if (rec) rec.wrecked = true; }
   for (const rid of B.deadRids || []) { const rec = CAMP.roster.find(r => r.rid === rid); if (rec) rec.wrecked = true; }

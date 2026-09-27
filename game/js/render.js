@@ -33,9 +33,9 @@ function splashAt(x, y) {
   for (let i = 0; i < 30; i++) addP({ x: cx + (Math.random() - 0.5) * 30, y: cy - 4, vx: (Math.random() - 0.5) * 2.4, vy: -2 - Math.random() * 3.6, g: 0.18, life: 40, kind: 'p', s: 2 + (i % 2), c: i % 2 ? '#9cc7e0' : '#ffffff', ground: cy + 4 });
   AUDIO.splash();
 }
-function floatText(x, y, text, color, alt) {
+function floatText(x, y, text, color, alt, big) {
   const [cx, cy] = center(x, y);
-  FLOATS.push({ x: cx, y: cy - (alt || 0) - 34, text, color, life: 70, max: 70 });
+  FLOATS.push({ x: cx, y: cy - (alt || 0) - 34, text, color, life: big ? 100 : 70, max: big ? 100 : 70, big });
 }
 function fly(o) {
   // o: {x0,y0,x1,y1,dur,arc,kind,ctrl:[x,y]}
@@ -572,14 +572,14 @@ function drawFx(now) {
     else R(p.x - s / 2, p.y - s / 2, s, s, c);
   }
   g.globalAlpha = 1;
-  g.font = 'bold 12px "Noto Sans SC", sans-serif';
   for (let i = FLOATS.length - 1; i >= 0; i--) {
     const f = FLOATS[i]; f.life--;
     if (f.life <= 0) { FLOATS.splice(i, 1); continue; }
     const k = 1 - f.life / f.max, y = f.y - EASE.out(Math.min(1, k * 2)) * 16;
-    g.globalAlpha = f.life < 20 ? f.life / 20 : 1;
-    if (/^[-+0-9]+$/.test(f.text)) { const w = txtW(f.text, 3); txt(f.text, f.x - w / 2 + 2, y + 2, '#0a0f14', 3); txt(f.text, f.x - w / 2, y, f.color, 3); }
-    else { g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - 12 + 1, y + 11); g.fillStyle = f.color; g.fillText(f.text, f.x - 12, y + 10); }
+    g.globalAlpha = f.life < (f.big ? 28 : 20) ? f.life / (f.big ? 28 : 20) : 1;
+    g.font = `bold ${f.big ? 19 : 12}px "Noto Sans SC", sans-serif`;
+    if (/^[-+0-9]+$/.test(f.text)) { const kk = f.big ? 5 : 3; const w = txtW(f.text, kk); txt(f.text, f.x - w / 2 + 3, y + 3, '#0a0f14', kk); txt(f.text, f.x - w / 2, y, f.color, kk); }
+    else { const tw = g.measureText(f.text).width / 2; g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - tw + 2, y + 13); g.fillStyle = f.color; g.fillText(f.text, f.x - tw, y + 10); }
     g.globalAlpha = 1;
   }
 }
