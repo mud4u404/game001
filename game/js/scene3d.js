@@ -463,7 +463,7 @@ const SMOKE_TEX = (() => {
 const SMOKE = [];
 let smokeReady = false, smokeAcc = [0, 0, 0], smokeLast = 0;
 const SMOKE_KIND = {
-  fire: { c: '#2a2a2a', s0: 3, s1: 11, op: 0.65, rise: 5, life: 4 },
+  fire: { c: '#2a2a2a', s0: 3, s1: 12, op: 0.75, rise: 5, life: 4 },
   dust: { c: '#8a8680', s0: 4, s1: 12, op: 0.5, rise: 3, life: 5 },
   blast: { c: '#5a5650', s0: 2, s1: 9, op: 0.7, rise: 4, life: 2.5 },
 };
@@ -513,12 +513,16 @@ function smokeEmit(dt) {
     else if (BLD[tl.t] && tl.hp > 0 && tl.hp < tl.max) blds.push([x, y, tl.t === 'b' ? 16 : 9]);
     else if (BLD[tl.t] && tl.hp === 0) ruins.push([x, y]);
   }
-  smokeAcc[0] += dt * 3 * Math.max(1, wrecks.length);
-  smokeAcc[1] += dt * 2 * Math.max(1, blds.length);
-  smokeAcc[2] += dt * Math.max(1, ruins.length);
-  for (const [x, y] of wrecks) while (smokeAcc[0] >= 1) { smoke3D(x * 20, 3, y * 20, 'fire'); smokeAcc[0] -= 1; }
-  for (const [x, y, top] of blds) while (smokeAcc[1] >= 1) { smoke3D(x * 20, top, y * 20, 'dust'); smokeAcc[1] -= 1; }
-  for (const [x, y] of ruins) while (smokeAcc[2] >= 1) { smoke3D(x * 20, 3, y * 20, 'dust'); smokeAcc[2] -= 1; }
+  // each kind has one emission budget per second, spread over its tiles at random; nothing builds up
+  // while there is nothing to smoke
+  const emit = (i, list, rate, fn) => {
+    if (!list.length) { smokeAcc[i] = 0; return; }
+    smokeAcc[i] += dt * rate * list.length;
+    while (smokeAcc[i] >= 1) { fn(pick(list)); smokeAcc[i] -= 1; }
+  };
+  emit(0, wrecks, 5, ([x, y]) => smoke3D(x * 20, 3, y * 20, 'fire'));
+  emit(1, blds, 2, ([x, y, top]) => smoke3D(x * 20, top, y * 20, 'dust'));
+  emit(2, ruins, 1, ([x, y]) => smoke3D(x * 20, 3, y * 20, 'dust'));
 }
 function render3D(sx, sy) {
   if (!V3.on) return;
