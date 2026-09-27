@@ -378,8 +378,10 @@ async function playerFire(u, wid, t) {
   renderHud();
   await animAttack(u, wid, t, eff);
   const xpBefore = u.xp;
+  const kills0 = B.stats.kills;
   await applyEffects(eff, u);
   if (w.selfDestruct) u.xp = xpBefore; // 撞击自毁的无人艇不计经验
+  if (B.stats.kills - kills0 >= 2) { B.stats.multi++; floatText(t.x, t.y, '一石二鸟', '#ffd34d', 0, true); bark('multi'); }
   if (w.selfDestruct && !u.dead) await killUnit(u, null, 'expend');
   busy = false;
   afterAction();
@@ -388,7 +390,9 @@ async function supportStrike(t) {
   busy = true; B.tb2Left--; mode = null;
   renderHud();
   await animTB2(t);
+  const kills0 = B.stats.kills;
   await applyEffects([{ x: t.x, y: t.y, w: 'tb2' }], null);
+  if (B.stats.kills - kills0 >= 2) { B.stats.multi++; floatText(t.x, t.y, '一石二鸟', '#ffd34d', 0, true); bark('multi'); }
   busy = false;
   afterAction();
 }
