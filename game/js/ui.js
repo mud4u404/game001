@@ -545,7 +545,6 @@ function showDebrief(res) {
     const retryable = !res.win;
     boughtHere = false;
     $('btnRetry').hidden = !retryable;
-      $('btnRetry').textContent = boughtHere ? '重新部署（撤销本页购买）' : '重新部署';
     $('btnNext').textContent = res.win ? (CAMP.mission + 1 >= MISSIONS.length ? '完成战区' : '返回战役地图') : '接受结果，继续';
     renderShop();
   }, 900 * SPEED);
@@ -570,6 +569,7 @@ function renderShop() {
       <span class="uname">${esc(d.name)} <small>#${r.rid}</small></span><span class="udesc">送回后方整修，恢复出战资格。</span><span class="ucost">援助 ${cost}</span></button>`;
   }).join('');
   $('shop').innerHTML = `<div class="shead">升级</div>${ups}<div class="shead">部队</div>${units}<div class="shead">维修</div>${fixes || '<div class="nonerep">没有需要维修的部队。</div>'}`;
+  $('btnRetry').textContent = boughtHere ? '重新部署（撤销本页购买）' : '重新部署';
 }
 function buy(id) {
   const up = UPGRADES.find(u => u.id === id);
@@ -636,7 +636,7 @@ $('pickList').addEventListener('click', ev => {
   if (rec) togglePick(rec);
 });
 $('btnStart').onclick = () => { AUDIO.click(); sel = null; mode = null; $('deploy').hidden = true; startBattle(); };
-let lastEndPress = 0;
+let lastEndPress = 0, endConfirmT = null;
 function requestEndTurn() {
   AUDIO.click();
   const N = ua().filter(u => !u.acted).length;
@@ -645,7 +645,7 @@ function requestEndTurn() {
   lastEndPress = now;
   hint(`还有 ${N} 个单位没有行动。再按一次“结束回合”确认。`);
   $('btnEnd').classList.add('confirm');
-  setTimeout(() => $('btnEnd').classList.remove('confirm'), 4000);
+  clearTimeout(endConfirmT); endConfirmT = setTimeout(() => $('btnEnd').classList.remove('confirm'), 4000);
 }
 $('btnEnd').onclick = () => requestEndTurn();
 $('btnReset').onclick = () => { if (B.phase !== 'player' || busy || B.resetLeft <= 0) return; restoreSnapshot(B.snap); sel = null; mode = null; toast('启用作战预案：本回合重新部署', ''); renderHud(); };
