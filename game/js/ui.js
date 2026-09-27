@@ -284,6 +284,8 @@ function showMissionCard() {
     toast('国土防卫部队补充了一个步兵班', 'good');
   }
   picked = defaultPicks(M).slice();
+  const freeTdf = CAMP.roster.find(r => r.type === 'tdf' && !r.wrecked && M.pool.includes(r.type));
+  if (freeTdf && !picked.includes(freeTdf) && picked.length < M.slots) picked.push(freeTdf);
   $('bObjs').innerHTML = M.objectives.map(o => `<li class="${o.kind}"><i></i>${esc(o.text)}${o.reward ? `<em>援助 +${o.reward}</em>` : ''}</li>`).join('');
   $('bTips').innerHTML = M.tips.map(t => `<li>${esc(t)}</li>`).join('');
   const enemy = {};
@@ -372,7 +374,8 @@ function renderHud() {
         return `<button type="button" class="wep ${mode === 'target' && wsel === wid ? 'on' : ''}" data-wid="${wid}" ${su.acted || empty || B.phase !== 'player' ? 'disabled' : ''}>
           <span class="key">${i + 1}</span><span class="wn">${esc(w.name)}${ammo != null ? `<b class="ammo">${ammo}</b>` : ''}</span><span class="wd">${esc(w.desc)}</span></button>`;
       }).join('')}</div>
-      ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}`;
+      ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}
+      <div class="keys">1 / 2 选武器 · Z 撤销移动 · Tab 下一个单位 · 右键或 Esc 取消</div>`;
   } else card.hidden = true;
   renderTip();
 }
@@ -509,12 +512,12 @@ document.addEventListener('keydown', ev => {
     renderHud();
   }
   else if (k === 'z') undoMove();
-  else if (k === 'e' && B.phase === 'player') { AUDIO.click(); enemyPhase(); }
+  else if (k === 'e' && B.phase === 'player') requestEndTurn();
   else if (k === 't' && B.phase === 'player' && B.tb2Left > 0) { mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); }
 });
 
 // ---------- debrief & upgrades ----------
-let lastResult = null;
+let lastResult = null, boughtHere = false;
 function showDebrief(res) {
   lastResult = res;
   const M = B.mission;
@@ -540,8 +543,9 @@ function showDebrief(res) {
     $('dbConseq').textContent = notes.join(' ');
     $('dbConseq').classList.toggle('calm', !res.consequence);
     const retryable = !res.win;
+    boughtHere = false;
     $('btnRetry').hidden = !retryable;
-    $('btnRetry').textContent = '重新部署';
+      $('btnRetry').textContent = boughtHere ? '重新部署（撤销本页购买）' : '重新部署';
     $('btnNext').textContent = res.win ? (CAMP.mission + 1 >= MISSIONS.length ? '完成战区' : '返回战役地图') : '接受结果，继续';
     renderShop();
   }, 900 * SPEED);
@@ -572,13 +576,13 @@ function buy(id) {
   if (!up || CAMP.aid < up.cost) return;
   if ((CAMP.up[id] || 0) >= up.max) return;
   CAMP.up[id] = (CAMP.up[id] || 0) + 1;
-  CAMP.aid -= up.cost; AUDIO.select();
+  CAMP.aid -= up.cost; boughtHere = true; AUDIO.select();
   renderShop();
 }
 function buyUnit(type) {
   const d = UNITS[type];
   if (!d || CAMP.aid < d.price) return;
-  CAMP.aid -= d.price;
+  CAMP.aid -= d.price; boughtHere = true;
   CAMP.roster.push({ rid: CAMP.nextRid++, type, wrecked: false, xp: 0 });
   AUDIO.select();
   renderShop();
@@ -588,7 +592,7 @@ function fixUnit(rid) {
   if (!rec || !rec.wrecked) return;
   const cost = Math.ceil(UNITS[rec.type].price / 2);
   if (CAMP.aid < cost) return;
-  CAMP.aid -= cost; rec.wrecked = false; AUDIO.select();
+  CAMP.aid -= cost; rec.wrecked = false; boughtHere = true; AUDIO.select();
   renderShop();
 }
 function continueCampaign() {
@@ -632,7 +636,18 @@ $('pickList').addEventListener('click', ev => {
   if (rec) togglePick(rec);
 });
 $('btnStart').onclick = () => { AUDIO.click(); sel = null; mode = null; $('deploy').hidden = true; startBattle(); };
-$('btnEnd').onclick = () => { AUDIO.click(); enemyPhase(); };
+let lastEndPress = 0;
+function requestEndTurn() {
+  AUDIO.click();
+  const N = ua().filter(u => !u.acted).length;
+  const now = performance.now();
+  if (!N || now - lastEndPress < 4000) { lastEndPress = 0; $('btnEnd').classList.remove('confirm'); enemyPhase(); return; }
+  lastEndPress = now;
+  hint(`还有 ${N} 个单位没有行动。再按一次“结束回合”确认。`);
+  $('btnEnd').classList.add('confirm');
+  setTimeout(() => $('btnEnd').classList.remove('confirm'), 4000);
+}
+$('btnEnd').onclick = () => requestEndTurn();
 $('btnReset').onclick = () => { if (B.phase !== 'player' || busy || B.resetLeft <= 0) return; restoreSnapshot(B.snap); sel = null; mode = null; toast('启用作战预案：本回合重新部署', ''); renderHud(); };
 $('btnTB2').onclick = () => { if (B.phase !== 'player' || busy || B.tb2Left <= 0) return; mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); };
 $('roster').addEventListener('click', ev => { const b = ev.target.closest('[data-uid]'); if (!b || busy) return; const u = B.units.find(v => v.id === +b.dataset.uid); if (u) { selectUnit(u); renderHud(); } });
