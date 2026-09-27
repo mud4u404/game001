@@ -668,18 +668,18 @@ function m3Grad() {
   part(T, rbox(2.3, 0.95, 1.5, 0.1, 1), OL, -0.75, 1.95, 1.9);
   // 5. fuel tanks: horizontal cylinders on both sides
   for (const s of [-1, 1]) part(T, cyl(0.55, 0.55, 2.9, 16), STEEL, 0.4, 1.9, s * 3.15, 0, 0, HALF_PI);
-  // 6. launch rack in the turret group: turntable, tall A-frame, 40-tube block raised 12°
-  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-1.4, 1.6, 0); T.add(Tu);
-  part(Tu, cyl(2.05, 2.15, 0.5, 26), OL, 0, 0.25, 0);
-  for (const s of [-1, 1]) part(Tu, rbox(0.3, 5.0, 0.5, 0.08, 1), OD, 0.75, 5.15, s * 1.3, 0.32, 0, 0);
-  part(Tu, cyl(0.18, 0.18, 3.0, 12), STEEL, 0.6, 7.45, 0, 0, 0, HALF_PI);
-  const BL = new THREE.Group(); BL.position.set(0.6, 7.55, 0); BL.rotation.z = 0.21; Tu.add(BL);
+  // 6. launch rack in the turret group: low turntable on the rear deck, 40-tube block raised 12°
+  const Tu = new THREE.Group(); Tu.name = 'turret'; T.add(Tu);
+  for (const s of [-1, 1]) part(Tu, rbox(14.6, 0.4, 0.5, 0.06, 1), DKS, 0.2, 2.6, s * 1.7);
+  part(Tu, rbox(7.6, 1.3, 4.4, 0.08, 1), OD, -3.3, 3.45, 0);
+  part(Tu, rbox(2.9, 0.8, 3.7, 0.1, 1), OL, -3.3, 4.5, 0);
+  const BL = new THREE.Group(); BL.position.set(-3.35, 4.9, 0); BL.rotation.z = 0.21; Tu.add(BL);
   for (let i = 0; i < 4; i++) for (let j = 0; j < 10; j++) {
-    part(BL, cyl(0.26, 0.26, 4.8, 12), OL, 1.0, (i - 1.5) * 0.62, (j - 4.5) * 0.62, 0, 0, HALF_PI);
-    part(BL, cyl(0.19, 0.19, 0.1, 10), mat3('#1a1c18', 0.8), 3.42, (i - 1.5) * 0.62, (j - 4.5) * 0.62, 0, 0, HALF_PI);
+    part(BL, cyl(0.26, 0.26, 6.5, 12), OL, 3.25, (i - 1.5) * 0.8 + 1.6, (j - 4.5) * 0.55, 0, 0, HALF_PI);
+    part(BL, cyl(0.19, 0.19, 0.1, 10), mat3('#1a1c18', 0.8), 6.55, (i - 1.5) * 0.8 + 1.6, (j - 4.5) * 0.55, 0, 0, HALF_PI);
   }
-  for (const s of [-1, 1]) part(BL, rbox(5.0, 2.7, 0.12, 0.05, 1), OD, 1.0, 0, s * 3.25);
-  part(BL, rbox(1.4, 2.6, 6.4, 0.06, 1), OD, -1.7, 0, 0);
+  for (const s of [-1, 1]) part(BL, rbox(6.7, 3.3, 0.12, 0.05, 1), OD, 3.25, 1.6, s * 2.55);
+  part(BL, rbox(1.3, 2.4, 5.6, 0.06, 1), OD, -0.65, 1.2, 0);
   return T;
 }
 MODEL3D.grad = m3Grad;
