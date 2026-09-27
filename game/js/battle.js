@@ -209,7 +209,7 @@ function scoreAttack(e, tiles) {
     if (a.land) continue;
     const v = unitAt(a.x, a.y), t = TILEAT(a.x, a.y), dmg = dmgAgainst(a.w, a.x, a.y);
     if (v && v !== e) { if (v.team === 'ua') s += 7 + dmg * 1.5; else if (v.team === 'ru') s -= 10; }
-    else if (bldAlive(t) && BLD[t.t].civil) s += 9;
+    else if (bldAlive(t) && BLD[t.t].civil) s += B.mission.convoy ? 3 : 9;
   }
   return s;
 }
@@ -226,7 +226,7 @@ async function aiPlan() {
         else opts.push({ dir });
       }
     }
-    const map = reach(e, B.mission.convoy && isVehicle(e) ? Math.min(2, d.move) : undefined), ox = e.x, oy = e.y;
+    const map = reach(e, B.mission.convoy && isVehicle(e) ? Math.min(d.mob === 'wheel' ? 3 : 2, d.move) : undefined), ox = e.x, oy = e.y;
     let best = null, bs = -1e9;
     for (const p of map.values()) {
       e.x = p.x; e.y = p.y;
@@ -234,7 +234,7 @@ async function aiPlan() {
       if (B.barrage.some(b => b.x === p.x && b.y === p.y)) base -= 4;
       if (B.marks.some(m => m.x === p.x && m.y === p.y)) base -= 3;
       if (B.mission.civ && B.mission.civ.path.some(([x, y]) => x === p.x && y === p.y)) base -= 4;
-      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 3 + (p.x === 0 ? 30 : 0);
+      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 5 + (p.x === 0 ? 60 : 0);
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
       if (!opts.length) { if (base > bs) { bs = base; best = { x: p.x, y: p.y, aim: null }; } continue; }
       for (const o of opts) {
@@ -531,7 +531,7 @@ function markBarrage() {
   B.barrage = [];
   if (!br || B.turn < br.from || B.turn > B.maxTurn) return;
   const orlan = ru().some(e => U(e).spotter);
-  const n = br.count + (orlan ? 1 : 0), used = new Set();
+  const n = br.count + (orlan ? (br.spotBonus || 1) : 0), used = new Set();
   const us = ua();
   for (let i = 0; i < n && us.length; i++) {
     let tgt = null;
