@@ -127,7 +127,7 @@ const MISSIONS = [
       { turn: 1, units: [['vdv', 7, 2]] },
       { turn: 2, units: [['btr', 7, 7], ['vdv', 0, 2]] },
       { turn: 3, units: [['t72', 7, 0], ['btr', 1, 6], ['vdv', 1, 6]] },
-      { turn: 4, units: [['btr', 6, 1], ['vdv', 1, 6], ['vdv', 0, 3]] },
+      { turn: 4, units: [['btr', 6, 1], ['vdv', 0, 3]] },
     ],
     extraWaves: { runwayOpen: [{ turn: 2, units: [['vdv', 7, 5]] }] },
     grant: { type: 'bmp2', text: '第72机械化旅调来一辆 BMP-2。' },
@@ -172,9 +172,9 @@ const MISSIONS = [
     barrage: { from: 3, count: 1 },
     objectives: [
       { id: 'block', kind: 'primary', text: '最多 1 辆车突破西侧', reward: 5, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
-      { id: 'armor', kind: 'bonus', text: '击毁 4 辆装甲车辆', reward: 2, eval: B => ({ cur: B.stats.armor, max: 4 }) },
+      { id: 'armor', kind: 'bonus', text: '击毁 8 辆装甲车辆', reward: 2, eval: B => ({ cur: B.stats.armor, max: 8 }) },
       { id: 'cmd', kind: 'bonus', text: '击毁团指挥车', reward: 1, eval: B => ({ cur: B.stats.cmd, max: 1 }) },
-      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
+      { id: 'village', kind: 'bonus', text: '民用建筑被击中不超过 3 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 3, inverse: true }) },
     ],
     brief: [
       ['oksana', '侦察报告：一个坦克团的纵队正沿公路从东北开往布罗瓦里。三十多辆装甲车，车距很近。'],

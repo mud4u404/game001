@@ -234,7 +234,7 @@ async function aiPlan() {
       if (B.barrage.some(b => b.x === p.x && b.y === p.y)) base -= 4;
       if (B.marks.some(m => m.x === p.x && m.y === p.y)) base -= 3;
       if (B.mission.civ && B.mission.civ.path.some(([x, y]) => x === p.x && y === p.y)) base -= 4;
-      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 5 + (p.x === 0 ? 60 : 0);
+      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 2 + (p.x === 0 ? 60 : 0);
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
       if (!opts.length) { if (base > bs) { bs = base; best = { x: p.x, y: p.y, aim: null }; } continue; }
       for (const o of opts) {
