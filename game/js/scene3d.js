@@ -190,15 +190,18 @@ function tileDetails(g, x, y, t, seed) {
   };
   const flat = (geo, m, px, py, pz, rx, ry, rz) => { const o = part(g, geo, m, px, py, pz, rx, ry, rz); o.castShadow = false; return o; };
   const edges = [];
-  if (NOSEA(x, y - 1)) edges.push([-9.3, 0, 0]);
-  if (NOSEA(x, y + 1)) edges.push([9.3, 0, Math.PI]);
-  if (NOSEA(x - 1, y)) edges.push([0, -9.3, -HALF_PI]);
-  if (NOSEA(x + 1, y)) edges.push([0, 9.3, HALF_PI]);
+  // grid x is world x, grid y is world z
+  if (NOSEA(x, y - 1)) edges.push([0, -9.3]);
+  if (NOSEA(x, y + 1)) edges.push([0, 9.3]);
+  if (NOSEA(x - 1, y)) edges.push([-9.3, 0]);
+  if (NOSEA(x + 1, y)) edges.push([9.3, 0]);
   if (isWater(t) || t.t === 'd') {
     // foam along every land edge, plus a tilted mud bank hiding the seam
-    for (const [ex, ez, ea] of edges) {
-      flat(new THREE.BoxGeometry(ea === 0 ? 19 : 1.2, 0.12, ea === 0 ? 1.2 : 19), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.75 }), ex * 0.97, -1.72, ez * 0.97);
-      flat(new THREE.BoxGeometry(ea === 0 ? 19.4 : 2.2, 0.25, ea === 0 ? 2.2 : 19.4), mat3('#5a4a36', 0.95), ex * 1.02, -1.55, ez * 1.02, ea === 0 ? 0.6 * (ez >= 0 ? 1 : -1) : 0, 0, ea === 0 ? 0 : 0.6 * (ex >= 0 ? -1 : 1));
+    for (const [ex, ez] of edges) {
+      // an edge at x = +-9.3 runs along z, one at z = +-9.3 along x; the bank rises toward the land side
+      const alongZ = ex !== 0;
+      flat(new THREE.BoxGeometry(alongZ ? 1.2 : 19, 0.12, alongZ ? 19 : 1.2), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.75 }), ex * 0.97, -1.72, ez * 0.97);
+      flat(new THREE.BoxGeometry(alongZ ? 2.2 : 19.4, 0.25, alongZ ? 19.4 : 2.2), mat3('#5a4a36', 0.95), ex * 1.02, -1.55, ez * 1.02, alongZ ? 0 : (ez > 0 ? -0.6 : 0.6), 0, alongZ ? (ex > 0 ? 0.6 : -0.6) : 0);
     }
     if (t.t === 'w') for (let k = 0; k < 2 + Math.floor(hash(x, y, 31) * 3); k++) {
       const ice = flat(cyl(0.8 + hash(x, y, 40 + k) * 1.0, 0.8 + hash(x, y, 41 + k) * 0.8, 0.14, 9), mat3('#dfe9ee', 0.5), -7 + hash(x, y, 42 + k) * 14, -1.75, -7 + hash(y, x, 43 + k) * 14);
