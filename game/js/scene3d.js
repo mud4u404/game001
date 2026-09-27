@@ -177,6 +177,104 @@ function tileSig(x, y) {
   const t = TILEAT(x, y);
   return `${t.t}|${t.hp}|${t.crater ? 1 : 0}|${t.wreck ? t.wreck.type + t.wreck.face : ''}`;
 }
+// T-34: ground details per tile type, all deterministic via hash, max 15 meshes per tile.
+function tileDetails(g, x, y, t, seed) {
+  const SNOW = mat3('#edf1f3', 0.75), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  const SH = mat3('#55544f', 0.9), POT = mat3('#3c3b37', 1), DSN = mat3('#c9ccc8', 0.85);
+  const FUR = mat3('#6d5c40', 0.95), TUFT = mat3('#8a7a4a', 0.9), LOG = mat3('#5a4632', 0.9), BUSH = mat3('#2f4a33', 0.9);
+  const RIP = mat3('#d6c79c', 0.95), PEB = mat3('#8d8a80', 0.9), DRIFT = mat3('#7a6a58', 0.9), LAMP = mat3('#f2c230', 0.4, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.7 });
+  const NOSEA = (tx, ty) => {
+    if (!inB(tx, ty)) return false;
+    const nt = TILEAT(tx, ty);
+    return !isWater(nt) && nt.t !== 'd';
+  };
+  const flat = (geo, m, px, py, pz, rx, ry, rz) => { const o = part(g, geo, m, px, py, pz, rx, ry, rz); o.castShadow = false; return o; };
+  const edges = [];
+  if (NOSEA(x, y - 1)) edges.push([-9.3, 0, 0]);
+  if (NOSEA(x, y + 1)) edges.push([9.3, 0, Math.PI]);
+  if (NOSEA(x - 1, y)) edges.push([0, -9.3, -HALF_PI]);
+  if (NOSEA(x + 1, y)) edges.push([0, 9.3, HALF_PI]);
+  if (isWater(t) || t.t === 'd') {
+    // foam along every land edge, plus a tilted mud bank hiding the seam
+    for (const [ex, ez, ea] of edges) {
+      flat(new THREE.BoxGeometry(ea === 0 ? 19 : 1.2, 0.12, ea === 0 ? 1.2 : 19), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.75 }), ex * 0.97, -1.72, ez * 0.97);
+      flat(new THREE.BoxGeometry(ea === 0 ? 19.4 : 2.2, 0.25, ea === 0 ? 2.2 : 19.4), mat3('#5a4a36', 0.95), ex * 1.02, -1.55, ez * 1.02, ea === 0 ? 0.6 * (ez >= 0 ? 1 : -1) : 0, 0, ea === 0 ? 0 : 0.6 * (ex >= 0 ? -1 : 1));
+    }
+    if (t.t === 'w') for (let k = 0; k < 2 + Math.floor(hash(x, y, 31) * 3); k++) {
+      const ice = flat(cyl(0.8 + hash(x, y, 40 + k) * 1.0, 0.8 + hash(x, y, 41 + k) * 0.8, 0.14, 9), mat3('#dfe9ee', 0.5), -7 + hash(x, y, 42 + k) * 14, -1.75, -7 + hash(y, x, 43 + k) * 14);
+      ice.rotation.y = hash(x, y, 44 + k) * 3;
+    }
+    if (t.t === 'o') for (let k = 0; k < 2 + Math.floor(hash(x, y, 45) * 2); k++)
+      flat(new THREE.BoxGeometry(3 + hash(x, y, 46 + k) * 3, 0.08, 0.4), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.6 }), -6 + hash(x, y, 50 + k) * 12, -1.7, -6 + hash(y, x, 51 + k) * 12);
+    return;
+  }
+  if (t.t === 'r') {
+    const alongX = isRoadT(x - 1, y) || isRoadT(x + 1, y), alongY = isRoadT(x, y - 1) || isRoadT(x, y + 1);
+    const SH = mat3('#55544f', 0.9), POT = mat3('#3c3b37', 1), DSN = mat3('#c9ccc8', 0.85);
+    if (alongX || !alongY) for (const ez of [-8.8, 8.8]) {
+      flat(new THREE.BoxGeometry(19.6, 0.06, 1.4), SH, 0, 0.04, ez);
+      for (let k = 0; k < 2 + Math.floor(hash(x, y, 60 + ez) * 3); k++) flat(sph(0.5 + hash(x, ez, 61 + k) * 0.45, 10, 6), DSN, -8 + hash(ez, x, 62 + k) * 16, 0.12, ez + (hash(x, y, 63 + k) - 0.5) * 1.4).scale.y = 0.45;
+    }
+    if (alongY || !alongX) for (const ex of [-8.8, 8.8]) {
+      flat(new THREE.BoxGeometry(1.4, 0.06, 19.6), SH, ex, 0.04, 0);
+      for (let k = 0; k < 2 + Math.floor(hash(x, y, 64 + ex) * 3); k++) flat(sph(0.5 + hash(ex, x, 65 + k) * 0.45, 10, 6), DSN, ex + (hash(x, y, 66 + k) - 0.5) * 1.4, 0.12, -8 + hash(ex, y, 67 + k) * 16).scale.y = 0.45;
+    }
+    for (let k = 0; k < Math.floor(hash(x, y, 70) * 3); k++)
+      flat(cyl(0.5 + hash(x, y, 71 + k) * 0.4, 0.6 + hash(x, y, 72 + k) * 0.4, 0.06, 10), POT, -7 + hash(x, y, 73 + k) * 14, 0.05, -7 + hash(y, x, 74 + k) * 14);
+    return;
+  }
+  if (t.t === 'R') {
+    const up = inB(x, y - 1) && TILEAT(x, y - 1).t === 'R', dn = inB(x, y + 1) && TILEAT(x, y + 1).t === 'R';
+    for (const [ez, has] of [[-9.3, !up], [9.3, !dn]]) {
+      if (!has) continue;
+      for (let k = 0; k < 3; k++) {
+        const lx = -6.5 + k * 6.5;
+        flat(cyl(0.09, 0.11, 0.5, 8), DKS, lx, 0.25, ez);
+        part(g, sph(0.16, 10, 8), LAMP, lx, 0.58, ez).castShadow = false;
+      }
+    }
+    return;
+  }
+  if (t.t === '.') {
+    const alongX = hash(x, y, 80) < 0.5, FUR = mat3('#6d5c40', 0.95), TUFT = mat3('#8a7a4a', 0.9);
+    for (let k = 0; k < 3; k++) {
+      const off = -6.5 + k * 6.5 + hash(x, y, 81 + k) * 2;
+      if (alongX) flat(new THREE.BoxGeometry(19, 0.05, 0.9), FUR, 0, 0.03, off);
+      else flat(new THREE.BoxGeometry(0.9, 0.05, 19), FUR, off, 0.03, 0);
+    }
+    for (let k = 0; k < 10; k++) {
+      const tx = -8.5 + hash(x, y, 85 + k) * 17, tz = -8.5 + hash(y, x, 95 + k) * 17;
+      flat(cyl(0.045, 0.14, 0.6 + hash(x, y, 105 + k) * 0.6, 6), TUFT, tx, 0.3 + hash(x, y, 115 + k) * 0.1, tz, (hash(x, y, 116 + k) - 0.5) * 0.3, 0, (hash(y, x, 117 + k) - 0.5) * 0.3);
+    }
+    return;
+  }
+  if (t.t === 'f') {
+    const LOG = mat3('#5a4632', 0.9), BUSH = mat3('#2f4a33', 0.9);
+    const la = hash(x, y, 120) * Math.PI;
+    const log = flat(cyl(0.32, 0.38, 4 + hash(x, y, 121) * 2, 10), LOG, -5 + hash(x, y, 122) * 6, 0.35, -5 + hash(y, x, 123) * 6, 0, 0, HALF_PI);
+    log.rotation.y = la;
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 124) * 2); k++) {
+      const bu = flat(sph(0.55 + hash(x, y, 125 + k) * 0.4, 10, 6), BUSH, -7 + hash(x, y, 130 + k) * 14, 0.3, -7 + hash(y, x, 135 + k) * 14).scale.y = 0.6;
+      if (k < 2) flat(sph(0.4, 8, 6), SNOW, -7 + hash(x, y, 140 + k) * 14, 0.62, -7 + hash(y, x, 141 + k) * 14).scale.y = 0.4;
+    }
+    return;
+  }
+  if (t.t === 's') {
+    const RIP = mat3('#d6c79c', 0.95), PEB = mat3('#8d8a80', 0.9), DRIFT = mat3('#7a6a58', 0.9);
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 150) * 2); k++) {
+      const off = -6 + k * 3.4 + hash(x, y, 151 + k) * 1.2;
+      if (hash(x, y, 155) < 0.5) flat(new THREE.BoxGeometry(19, 0.05, 0.8), RIP, 0, 0.03, off);
+      else flat(new THREE.BoxGeometry(0.8, 0.05, 19), RIP, off, 0.03, 0);
+    }
+    for (let k = 0; k < 5 + Math.floor(hash(x, y, 160) * 4); k++)
+      flat(sph(0.22 + hash(x, y, 161 + k) * 0.2, 8, 6), mat3('#8d8a80', 0.9), -8 + hash(x, y, 162 + k) * 16, 0.1, -8 + hash(y, x, 163 + k) * 16).scale.y = 0.55;
+    if (hash(x, y, 170) < 0.5) {
+      const dr = flat(cyl(0.22, 0.26, 4.6, 10), DRIFT, -6 + hash(x, y, 171) * 8, 0.24, -5 + hash(y, x, 172) * 7, 0, 0, HALF_PI);
+      dr.rotation.y = hash(x, y, 173) * Math.PI;
+    }
+  }
+}
+
 function buildTile(x, y) {
   const g = new THREE.Group(), t = TILEAT(x, y), seed = x * 8 + y + B.mi * 64;
   g.position.set(x * TS, 0, y * TS);
@@ -214,6 +312,7 @@ function buildTile(x, y) {
       for (let i = 0; i < 8; i++) { const a = hash(seed, i, 3) * 6.28, r = 5 + hash(seed, i, 4) * 2; part(g, sph(0.5 + hash(i, seed, 5) * 0.5, 8, 5), mat3('#3b3228', 1), c.position.x + Math.cos(a) * r, 0.1, c.position.z + Math.sin(a) * r).scale.y = 0.5; }
     }
   }
+  tileDetails(g, x, y, t, seed);
   // props on the tile
   if (t.t === 'f') g.add(modelFor('forest' + seed, MODEL3D['prop:forest'] && (() => MODEL3D['prop:forest'](seed)), () => mForest(seed)));
   else if (t.t === 'd') g.add(modelFor('bridgeRuin', MODEL3D['prop:bridge'], () => mBridgeRuin(true)));
