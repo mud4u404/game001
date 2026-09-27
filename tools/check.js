@@ -45,6 +45,14 @@ const changed = new Set([
 const outside = [...changed].filter(f => !res.some(r => r.test(f)));
 if (outside.length) fail(`${id} 改了范围外的文件：\n  ${outside.join('\n  ')}\n  允许的范围：${allowed.join('、')}`);
 else console.log(`✓ 改动范围检查通过（${id}，${changed.size} 个文件）`);
+// what will actually be pushed: committed changes against the trunk. Execution records have claimed
+// changes that never made it into a commit, so list them and flag scope files that were not touched.
+const committed = sh(`git diff --name-only ${TRUNK}...HEAD`).split('\n').filter(Boolean);
+console.log(`- 已提交、将推送的文件（${committed.length} 个）：\n    ` + (committed.join('\n    ') || '（无）'));
+const pending = [...sh('git diff --name-only HEAD').split('\n'), ...sh('git ls-files --others --exclude-standard').split('\n')].filter(Boolean);
+if (pending.length) console.log('! 还有没提交的改动，推送前先 git add -A && git commit：\n    ' + pending.join('\n    '));
+for (const f of allowed.filter(f => /^game\/|^tools\//.test(f) && !f.includes('*')))
+  if (!committed.includes(f)) console.log(`! 改动范围里的 ${f} 没有出现在提交里。执行记录里写了改它的话，说明漏提交了`);
 
 // 3. the branch must start from the trunk: commits of other task cards must not ride along
 const foreign = sh(`git log --format=%s ${TRUNK}..HEAD`).split('\n').filter(l => /^T-\d+/.test(l) && !l.startsWith(id + ':') && !l.startsWith(id + ' '));

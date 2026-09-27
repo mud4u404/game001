@@ -162,6 +162,7 @@ const MISSIONS = [
     squad: { t64: [3, 5], atgm: [1, 1], d30: [0, 6] },
     enemies: [['t72', 5, 3], ['btr', 6, 3], ['cmd', 7, 3]],
     convoy: true,
+    exit: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]], exitWho: 'vehicle',
     waves: [
       { turn: 1, units: [['btr', 5, 3], ['t72', 5, 4], ['btr', 6, 4]] },
       { turn: 2, units: [['t72', 5, 3], ['btr', 5, 4], ['t72', 6, 4]] },
