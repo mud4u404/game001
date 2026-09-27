@@ -13,11 +13,12 @@ function explode(x, y, size, alt) {
   const [cx, cy0] = center(x, y), cy = cy0 - (alt || 0) - 6;
   FLASH.push({ x: cx, y: cy, r: 10 + size * 10, life: 10, max: 10 });
   if (typeof flash3D === 'function') flash3D(x, y, size, alt);
+  if (typeof smokeBurst3D === 'function') smokeBurst3D(x, y, size);
   for (let i = 0; i < 12 * size; i++) {
     const a = Math.random() * Math.PI * 2, s = 0.6 + Math.random() * (1.2 + size);
     addP({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6 - 0.8, drag: 0.9, life: 14 + Math.random() * 16, kind: 'fire', s: 3 + Math.floor(Math.random() * 3) });
   }
-  for (let i = 0; i < 6 * size; i++) addP({ x: cx + (Math.random() - 0.5) * 16, y: cy - Math.random() * 8, vx: (Math.random() - 0.5) * 0.6, vy: -0.3 - Math.random() * 0.6, drag: 0.97, life: 50 + Math.random() * 40, kind: 'smoke', s: 4, grow: 0.12 });
+  if (!HD) for (let i = 0; i < 6 * size; i++) addP({ x: cx + (Math.random() - 0.5) * 16, y: cy - Math.random() * 8, vx: (Math.random() - 0.5) * 0.6, vy: -0.3 - Math.random() * 0.6, drag: 0.97, life: 50 + Math.random() * 40, kind: 'smoke', s: 4, grow: 0.12 });
   for (let i = 0; i < 5 * size; i++) {
     const a = -Math.PI * Math.random();
     addP({ x: cx, y: cy, vx: Math.cos(a) * (1 + Math.random() * 3), vy: Math.sin(a) * (2 + Math.random() * 3), g: 0.25, life: 40, kind: 'debris', s: 2, c: pick(['#2a2622', '#4a4038', '#6b5f52']), ground: cy0 + (Math.random() - 0.5) * 12 });
@@ -500,9 +501,9 @@ function renderBattle(now, opts) {
   // burning wrecks and damaged buildings keep smoking
   if (!reduced && Math.random() < 0.5) for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
     const tl = TILEAT(x, y), [cx, cy] = center(x, y);
-    if (tl.wreck && Math.random() < 0.12) addP({ x: cx + (Math.random() - 0.5) * 12, y: cy - 10, vx: 0.25, vy: -0.5, drag: 0.99, life: 90, kind: 'smoke', s: 3, grow: 0.08, c: '#2b2b2b' });
+    if (!HD && tl.wreck && Math.random() < 0.12) addP({ x: cx + (Math.random() - 0.5) * 12, y: cy - 10, vx: 0.25, vy: -0.5, drag: 0.99, life: 90, kind: 'smoke', s: 3, grow: 0.08, c: '#2b2b2b' });
     if (tl.wreck && Math.random() < 0.08) addP({ x: cx + (Math.random() - 0.5) * 10, y: cy - 8, vx: 0, vy: -0.6, life: 14, kind: 'fire', s: 2 });
-    if (BLD[tl.t] && tl.hp < tl.max && Math.random() < 0.1) addP({ x: cx + (Math.random() - 0.5) * 20, y: cy - (tl.hp > 0 ? (tl.t === 'b' ? 44 : 26) : 8), vx: 0.3, vy: -0.6, drag: 0.99, life: 90, kind: 'smoke', s: 4, grow: 0.08, c: '#303030' });
+    if (!HD && BLD[tl.t] && tl.hp < tl.max && Math.random() < 0.1) addP({ x: cx + (Math.random() - 0.5) * 20, y: cy - (tl.hp > 0 ? (tl.t === 'b' ? 44 : 26) : 8), vx: 0.3, vy: -0.6, drag: 0.99, life: 90, kind: 'smoke', s: 4, grow: 0.08, c: '#303030' });
   }
 }
 function drawIntents(pulse) {
