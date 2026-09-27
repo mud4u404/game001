@@ -451,12 +451,85 @@ function stepLights(now) {
 }
 
 // ---------- frame ----------
+// ---------- smoke ----------
+const SMOKE_TEX = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g2 = c.getContext('2d');
+  const gr = g2.createRadialGradient(32, 32, 2, 32, 32, 31);
+  gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const SMOKE = [];
+let smokeReady = false, smokeAcc = [0, 0, 0], smokeLast = 0;
+const SMOKE_KIND = {
+  fire: { c: '#2a2a2a', s0: 3, s1: 11, op: 0.65, rise: 5, life: 4 },
+  dust: { c: '#8a8680', s0: 4, s1: 12, op: 0.5, rise: 3, life: 5 },
+  blast: { c: '#5a5650', s0: 2, s1: 9, op: 0.7, rise: 4, life: 2.5 },
+};
+function smokeInit() {
+  V3.smoke = new THREE.Group(); V3.scene.add(V3.smoke);
+  for (let k = 0; k < 80; k++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: SMOKE_TEX, transparent: true, depthWrite: false }));
+    sp.visible = false; V3.smoke.add(sp);
+    SMOKE.push({ sp, t: 0, life: 0, size0: 0, size1: 0, op0: 0, rise: 0, vx: 0, vz: 0 });
+  }
+  smokeReady = true;
+}
+function smoke3D(wx, wy, wz, kind) {
+  if (!smokeReady) return;
+  const K = SMOKE_KIND[kind] || SMOKE_KIND.dust;
+  const s = SMOKE.find(e => e.life <= 0);
+  if (!s) return;
+  s.life = K.life; s.t = 0; s.size0 = K.s0; s.size1 = K.s1; s.op0 = K.op; s.rise = K.rise;
+  s.sp.position.set(wx + (Math.random() - 0.5) * 1.2, wy, wz + (Math.random() - 0.5) * 1.2);
+  s.sp.material.color.set(K.c); s.sp.material.opacity = K.op;
+  s.sp.scale.set(K.s0, K.s0, 1); s.sp.visible = true;
+  const spread = kind === 'blast' ? 3 : 0.8;
+  s.vx = (Math.random() - 0.5) * spread; s.vz = (Math.random() - 0.5) * spread;
+}
+function smokeBurst3D(x, y, size) {
+  for (let k = 0; k < 4 * size; k++) smoke3D(x * 20, 1.5 + Math.random() * 2, y * 20, 'blast');
+}
+function smokeStep(dt) {
+  for (const s of SMOKE) if (s.life > 0) {
+    s.t += dt;
+    if (s.t >= s.life) { s.life = 0; s.sp.visible = false; continue; }
+    const k = s.t / s.life;
+    s.sp.position.y += s.rise * dt;
+    s.sp.position.x += (1.5 + s.vx) * dt;
+    s.sp.position.z += s.vz * dt;
+    const sz = s.size0 + (s.size1 - s.size0) * k;
+    s.sp.scale.set(sz, sz, 1);
+    s.sp.material.opacity = s.op0 * (1 - k);
+  }
+}
+function smokeEmit(dt) {
+  if (!B) return;
+  const wrecks = [], blds = [], ruins = [];
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const tl = TILEAT(x, y);
+    if (tl.wreck) wrecks.push([x, y]);
+    else if (BLD[tl.t] && tl.hp > 0 && tl.hp < tl.max) blds.push([x, y, tl.t === 'b' ? 16 : 9]);
+    else if (BLD[tl.t] && tl.hp === 0) ruins.push([x, y]);
+  }
+  smokeAcc[0] += dt * 3 * Math.max(1, wrecks.length);
+  smokeAcc[1] += dt * 2 * Math.max(1, blds.length);
+  smokeAcc[2] += dt * Math.max(1, ruins.length);
+  for (const [x, y] of wrecks) while (smokeAcc[0] >= 1) { smoke3D(x * 20, 3, y * 20, 'fire'); smokeAcc[0] -= 1; }
+  for (const [x, y, top] of blds) while (smokeAcc[1] >= 1) { smoke3D(x * 20, top, y * 20, 'dust'); smokeAcc[1] -= 1; }
+  for (const [x, y] of ruins) while (smokeAcc[2] >= 1) { smoke3D(x * 20, 3, y * 20, 'dust'); smokeAcc[2] -= 1; }
+}
 function render3D(sx, sy) {
   if (!V3.on) return;
+  if (!smokeReady) smokeInit();
   syncBoard();
   syncUnits();
   syncPlanes();
   stepLights(performance.now());
+  const nowS = performance.now(), dt = Math.min(0.1, (nowS - smokeLast) / 1000 || 0.016);
+  smokeLast = nowS;
+  smokeStep(dt); smokeEmit(dt);
   V3.floorTex.needsUpdate = true;
   place3D();
   V3.canvas.style.transform = sx || sy ? `translate(${sx * PX / (window.devicePixelRatio || 1)}px,${sy * PX / (window.devicePixelRatio || 1)}px)` : '';
