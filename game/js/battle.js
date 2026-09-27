@@ -267,7 +267,7 @@ async function aiPlan() {
 async function applyEffects(list, src) {
   for (const e of list) {
     if (e.w) await hitTile(e.x, e.y, e.w, src);
-    if (e.push) { const v = unitAt(e.x, e.y); if (v) await pushUnit(v, e.push); }
+    if (e.push) { const v = unitAt(e.x, e.y); if (v) await pushUnit(v, e.push, src); }
   }
 }
 async function hitTile(x, y, wid, src) {
@@ -332,7 +332,7 @@ async function killUnit(o, src, how) {
   B.units = B.units.filter(u => u !== o);
   if (sel === o.id) { sel = null; mode = null; }
 }
-async function pushUnit(v, dir) {
+async function pushUnit(v, dir, src) {
   if (U(v).stable) return;
   const nx = v.x + dir[0], ny = v.y + dir[1];
   if (!inB(nx, ny)) return;
@@ -341,16 +341,16 @@ async function pushUnit(v, dir) {
   if (o || bldAlive(t) || (!air && (t.wreck || (t.t === 'f' && isVehicle(v)))) || U(v).mob === 'sea' && !isWater(t)) {
     await animBump(v, dir);
     AUDIO.hit(); shake(2);
-    if (o) { await damageUnit(o, 1); if (!v.dead) await damageUnit(v, 1); }
-    else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1); }
-    else await damageUnit(v, 1);
+    if (o) { await damageUnit(o, 1, src); if (!v.dead) await damageUnit(v, 1, src); }
+    else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1, src); }
+    else await damageUnit(v, 1, src);
     return;
   }
   v.x = nx; v.y = ny;
   await tween(170, k => { v.rx = lerp(nx - dir[0], nx, k); v.ry = lerp(ny - dir[1], ny, k); }, EASE.out);
   if (isWater(t) && !air && !U(v).amph && U(v).mob !== 'sea') {
     toast(`${U(v).name} 落水沉没`, v.team === 'ru' ? 'good' : 'bad');
-    await killUnit(v, null, 'drown');
+    await killUnit(v, src, 'drown');
   }
 }
 
@@ -478,14 +478,16 @@ async function enemyPhase() {
       continue;
     }
     let x = m.x, y = m.y;
-    if (o) { const alt = freeNear(x, y); if (!alt) continue; x = alt.x; y = alt.y; }
+    if (o || !canStand(m.type, x, y)) { const alt = freeNear(x, y, m.type); if (!alt) { toast('敌军增援受阻', 'good'); continue; } x = alt.x; y = alt.y; }
     const n = mkUnit(m.type, x, y);
     B.units.push(n);
     await animArrive(n);
   }
   B.marks = [];
   if (checkDefeat()) return;
-  if (B.turn >= B.maxTurn || (!ru().length && !B.waves.some(w => w.turn > B.turn))) { await sleep(400); endMission('done'); return; }
+  const cleared = !ru().length && !B.waves.some(w => w.turn > B.turn);
+  if (cleared && !B.said.cleared) { B.said.cleared = 1; hint(`敌军已肃清。完成主要目标后任务结束，最晚到第 ${B.maxTurn} 回合。`); }
+  if (B.turn >= B.maxTurn || cleared && primaryDone() && civDone()) { await sleep(400); endMission('done'); return; }
   // 6. enemies move and aim for next turn
   await aiPlan();
   B.turn++;
@@ -498,8 +500,26 @@ async function enemyPhase() {
   renderHud();
   bark('turn');
 }
-function freeNear(x, y) {
-  for (const [dx, dy] of DIRS.concat([[1, 1], [-1, -1], [1, -1], [-1, 1]])) { const nx = x + dx, ny = y + dy; if (inB(nx, ny) && !unitAt(nx, ny) && !bldAlive(TILEAT(nx, ny))) return { x: nx, y: ny }; }
+function primaryDone() {
+  for (const o of B.mission.objectives) {
+    if (o.kind !== 'primary') continue;
+    const r = o.eval(B);
+    if (!(r.inverse ? r.cur <= r.max : r.cur >= r.max)) return false;
+  }
+  return true;
+}
+function civDone() {
+  const cv = B.mission.civ;
+  if (!cv) return true;
+  return B.civNext >= cv.groups.length && !B.units.some(u => u.team === 'civ' && !u.dead);
+}
+function canStand(type, x, y) {
+  if (!inB(x, y) || unitAt(x, y)) return false;
+  if (UNITS[type].cls === 'air') return true;
+  return moveCost({ type }, x, y) !== Infinity;
+}
+function freeNear(x, y, type) {
+  for (const [dx, dy] of DIRS.concat([[1, 1], [-1, -1], [1, -1], [-1, 1]])) { const nx = x + dx, ny = y + dy; if (type ? canStand(type, nx, ny) : inB(nx, ny) && !unitAt(nx, ny) && !bldAlive(TILEAT(nx, ny))) return { x: nx, y: ny }; }
   return null;
 }
 function markWaves() {
