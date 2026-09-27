@@ -62,7 +62,8 @@ const BOT = async () => {
       CAMP = freshCamp();
       const M = MISSIONS[mi];
       for (const t of M.pool) if (!CAMP.roster.some(r => r.type === t)) CAMP.roster.push({ rid: CAMP.nextRid++, type: t, wrecked: false, xp: 0 });
-      const picks = CAMP.roster.filter(r => M.pool.includes(r.type)).slice(0, M.slots);
+      const loan = (M.loan || []).map((type, k) => ({ rid: -(k + 1), type, xp: 0, loan: true }));
+      const picks = loan.concat(CAMP.roster.filter(r => M.pool.includes(r.type) && !r.wrecked)).slice(0, M.slots);
       newBattle(mi, picks); SCENE = 'battle'; lastResult = null;
       await startBattle();
       for (let k = 0; B.phase !== 'end' && k < 12; k++) {

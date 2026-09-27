@@ -287,7 +287,7 @@ function showMissionCard() {
     CAMP.roster.push({ rid: CAMP.nextRid++, type: 'tdf', wrecked: false, xp: 0 });
     toast('国土防卫部队补充了一个步兵班', 'good');
   }
-  picked = defaultPicks(M).slice();
+  picked = (M.loan || []).map((type, k) => ({ rid: -(k + 1), type, xp: 0, loan: true })).concat(defaultPicks(M).slice());
   const freeTdf = CAMP.roster.find(r => r.type === 'tdf' && !r.wrecked && M.pool.includes(r.type));
   if (freeTdf && !picked.includes(freeTdf) && picked.length < M.slots) picked.push(freeTdf);
   $('bObjs').innerHTML = M.objectives.map(o => `<li class="${o.kind}"><i></i>${esc(o.text)}${o.reward ? `<em>援助 +${o.reward}</em>` : ''}</li>`).join('');
@@ -302,13 +302,17 @@ function showMissionCard() {
 let picked = [];
 function pickCost() {
   const free = picked.findIndex(r => r.type === 'tdf');
-  return picked.reduce((s, r, i) => s + (i === free ? 0 : UNITS[r.type].cost), 0);
+  return picked.reduce((s, r, i) => s + (r.loan || i === free ? 0 : UNITS[r.type].cost), 0);
 }
 function renderPick() {
   const M = MISSIONS[CAMP.mission];
   const free = picked.findIndex(r => r.type === 'tdf');
   $('pickInfo').textContent = `已选 ${picked.length} / ${M.slots} · 出动费 ${pickCost()} · 可用援助 ${CAMP.aid}`;
-  $('pickList').innerHTML = CAMP.roster.map(rec => {
+  $('pickList').innerHTML = (M.loan || []).map((type, k) => {
+    const d = UNITS[type];
+    return `<button type="button" class="rchip pick sel off" disabled>
+      <img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span><em>借调</em></button>`;
+  }).join('') + CAMP.roster.map(rec => {
     const d = UNITS[rec.type], i = picked.indexOf(rec);
     const off = rec.wrecked || !M.pool.includes(rec.type);
     const tag = rec.wrecked ? '损毁' : off ? '不适用' : i === free ? '免费' : d.cost;
@@ -644,7 +648,7 @@ $('btnDeploy').onclick = () => {
   AUDIO.click();
   CAMP.pre = JSON.parse(JSON.stringify(Object.assign({}, CAMP, { pre: null })));
   const free = picked.findIndex(r => r.type === 'tdf');
-  picked.forEach((r, i) => { if (i !== free) CAMP.aid -= UNITS[r.type].cost; });
+  picked.forEach((r, i) => { if (i !== free && !r.loan) CAMP.aid -= UNITS[r.type].cost; });
   newBattle(CAMP.mission, picked);
   beginDeploy();
 };

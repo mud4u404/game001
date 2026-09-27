@@ -52,7 +52,7 @@ function newBattle(mi, picks) {
   if (!picks) picks = defaultPicks(M);
   B = {
     mission: M, mi, squad: picks.slice(), turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
-    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0, drown: 0, bump: 0, friendly: 0, multi: 0 },
+    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0, drown: 0, bump: 0, friendly: 0, multi: 0, killed: {} },
     nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {}, deadRids: [],
   };
   for (let y = 0; y < 8; y++) {
@@ -234,7 +234,10 @@ async function aiPlan() {
       if (B.barrage.some(b => b.x === p.x && b.y === p.y)) base -= 4;
       if (B.marks.some(m => m.x === p.x && m.y === p.y)) base -= 3;
       if (B.mission.civ && B.mission.civ.path.some(([x, y]) => x === p.x && y === p.y)) base -= 4;
-      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 2 + (p.x === 0 ? 60 : 0);
+      if (B.mission.exit && !isAir(e) && (B.mission.exitWho !== 'vehicle' || isVehicle(e))) {
+        const dmin = Math.min(...B.mission.exit.map(([ex, ey]) => Math.abs(ex - p.x) + Math.abs(ey - p.y)));
+        base += (14 - dmin) * 2 + (dmin === 0 ? 60 : 0);
+      }
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
       if (!opts.length) { if (base > bs) { bs = base; best = { x: p.x, y: p.y, aim: null }; } continue; }
       for (const o of opts) {
@@ -313,6 +316,7 @@ async function killUnit(o, src, how) {
   const d = U(o);
   if (o.team === 'ru') {
     B.stats.kills++;
+    B.stats.killed[o.type] = (B.stats.killed[o.type] || 0) + 1;
     if (o.type === 'ka52' || o.type === 'mi8') { B.stats.heli++; bark('heli'); }
     if (o.type === 'orlan') { B.stats.orlan++; bark('orlan'); }
     if (U(o).mob === 'sea') B.stats.naval++;
@@ -476,8 +480,11 @@ async function enemyPhase() {
   }
   // 3. civilians move along the evacuation route
   if (B.mission.civ) await moveCivilians();
-  // 4. convoy vehicles on the west edge break through
-  if (B.mission.convoy) for (const e of ru()) if (isVehicle(e) && e.x === 0) {
+  // 4. breakout: enemies standing on the mission's exit tiles slip away
+  const M40 = B.mission;
+  if (M40.exit) for (const e of ru()) {
+    if (isAir(e) || (M40.exitWho === 'vehicle' && !isVehicle(e))) continue;
+    if (!M40.exit.some(([ex, ey]) => ex === e.x && ey === e.y)) continue;
     B.stats.escaped++;
     toast(`${U(e).name} 冲出了伏击圈`, 'bad');
     await tween(400, k => { e.rx = -k * 1.2; e.alpha = 1 - k; });
@@ -626,7 +633,7 @@ function endMission(reason) {
   res.civilians = 0;
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;
-  res.stats = Object.assign({}, B.stats);
+  res.stats = Object.assign({}, B.stats, { killed: Object.assign({}, B.stats.killed) });
   res.losses = B.squad.filter(rec => {
     const u = B.units.find(v => v.rid === rec.rid);
     return !u || u.dead;
@@ -635,6 +642,7 @@ function endMission(reason) {
   // promotions: compare each surviving unit's rank against its record's rank at battle start
   res.promotions = [];
   for (const rec of B.squad) {
+    if (rec.loan) continue;
     const u = B.units.find(v => v.rid === rec.rid);
     if (!u || u.dead) continue;
     const r0 = rankOf(rec.xp || 0), r1 = rankOf(u.xp || 0);
@@ -645,6 +653,7 @@ function endMission(reason) {
     }
   }
   for (const rec of B.squad) {
+    if (rec.loan) continue;
     const u = B.units.find(v => v.rid === rec.rid);
     if (u && !u.dead) rec.xp = u.xp || 0;
   }
