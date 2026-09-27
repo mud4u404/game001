@@ -526,10 +526,13 @@ function m3Bmp2() {
   }
   // 2. hull: low wedge with the long corrugated glacis
   part(T, profile([[-7.0, 1.1], [6.3, 1.0], [7.15, 2.3], [3.8, 3.95], [-7.0, 3.95]], 5.0), OL, 0, 0, 0);
-  const rib = new THREE.Group(); rib.position.set(5.35, 2.5, 0); rib.rotation.z = -0.745; T.add(rib);
-  for (let k = 0; k < 6; k++) part(rib, new THREE.BoxGeometry(0.26, 0.09, 4.5), LT, 0, k * 0.52, 0);
+  const rib = new THREE.Group(); rib.position.set(5.475, 3.125, 0); rib.rotation.z = -0.459; T.add(rib);
+  for (let k = 0; k < 6; k++) part(rib, new THREE.BoxGeometry(0.3, 0.2, 4.8), LT, -1.55 + k * 0.62, 0.12, 0);
   // 3. side fender strip, rear doors with windows and handles
-  for (const s of [-1, 1]) part(T, new THREE.BoxGeometry(14.2, 0.14, 0.85), DKS, 0.05, 4.02, s * 2.9);
+  for (const s of [-1, 1]) {
+    part(T, new THREE.BoxGeometry(13.6, 0.15, 1.9), OL, -0.1, 2.62, s * 2.75);
+    part(T, new THREE.BoxGeometry(1.5, 0.15, 1.9), OL, 6.85, 2.32, s * 2.75, 0, 0, 0.42);
+  }
   for (const s of [-1, 1]) {
     part(T, rbox(1.7, 2.7, 0.14, 0.06, 1), OD, -7.05, 2.45, s * 1.25);
     part(T, rbox(0.55, 0.4, 0.08, 0.03, 1), GLS, -7.12, 3.35, s * 1.25);
@@ -542,6 +545,7 @@ function m3Bmp2() {
   // 5. turret offset to the left: flat beveled profile, smoke dischargers on both sides
   const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-0.8, 4.05, 0.85); T.add(Tu);
   part(Tu, profile([[-1.8, 0], [1.9, 0.22], [2.15, 1.0], [0.9, 1.5], [-1.55, 1.5], [-1.95, 0.7]], 2.6), OL, 0, 0, 0);
+  for (const s of [-1, 1]) part(Tu, new THREE.BoxGeometry(3.9, 1.3, 0.12), OL, 0.05, 0.8, s * 1.0, s * -0.3, 0, 0);
   for (const s of [-1, 1]) for (let k = 0; k < 3; k++) part(Tu, cyl(0.15, 0.15, 0.5, 12), DKS, -0.9, 1.0, s * (1.05 + k * 0.38), 0.5 * s, 0, HALF_PI * 0.72);
   // 6. 2A42 30 mm cannon: root sleeve, long thin barrel, perforated muzzle brake
   part(Tu, rbox(1.5, 0.85, 1.1, 0.18, 1), OD, 1.35, 0.95, 0);
