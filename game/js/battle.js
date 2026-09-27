@@ -348,7 +348,9 @@ async function pushUnit(v, dir, src) {
     if (o) {
       await damageUnit(o, 1, src);
       if (!v.dead) await damageUnit(v, 1, src);
-      if (o.dead && o.team === 'ru') { B.stats.bump++; floatText(nx, ny, '撞毁', '#ffd34d', 0, true); }
+      // either side of the collision can be the enemy destroyed by it
+      const wreckedRu = [v, o].filter(q => q.dead && q.team === 'ru');
+      if (wreckedRu.length) { B.stats.bump += wreckedRu.length; floatText(nx, ny, '撞毁', '#ffd34d', 0, true); }
     }
     else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1, src); }
     else await damageUnit(v, 1, src);
