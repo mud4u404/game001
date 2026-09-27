@@ -579,7 +579,7 @@ function drawFx(now) {
     g.globalAlpha = f.life < (f.big ? 28 : 20) ? f.life / (f.big ? 28 : 20) : 1;
     g.font = `bold ${f.big ? 19 : 12}px "Noto Sans SC", sans-serif`;
     if (/^[-+0-9]+$/.test(f.text)) { const kk = f.big ? 5 : 3; const w = txtW(f.text, kk); txt(f.text, f.x - w / 2 + 3, y + 3, '#0a0f14', kk); txt(f.text, f.x - w / 2, y, f.color, kk); }
-    else { g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - 12 + 2, y + 13); g.fillStyle = f.color; g.fillText(f.text, f.x - 12, y + 10); }
+    else { const tw = g.measureText(f.text).width / 2; g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - tw + 2, y + 13); g.fillStyle = f.color; g.fillText(f.text, f.x - tw, y + 10); }
     g.globalAlpha = 1;
   }
 }

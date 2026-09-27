@@ -52,7 +52,7 @@ function newBattle(mi, picks) {
   if (!picks) picks = defaultPicks(M);
   B = {
     mission: M, mi, squad: picks.slice(), turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
-    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0 },
+    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0, drown: 0, bump: 0, friendly: 0, multi: 0 },
     nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {}, deadRids: [],
   };
   for (let y = 0; y < 8; y++) {
@@ -282,6 +282,7 @@ async function hitTile(x, y, wid, src) {
     const d = dmgAgainst(wid, x, y);
     if (d > 0) await damageUnit(o, d, src);
     else floatText(x, y, '无效', '#c9d2d8', o && isAir(o) ? U(o).alt : 0);
+    if (src && src.team === 'ru' && o.team === 'ru' && o !== src) { B.stats.friendly++; floatText(x, y, '误伤', '#ffd34d', 0, true); bark('friendly'); }
   } else if (bldAlive(t)) {
     const d = w.dmg.bld || 0;
     if (d > 0) damageBuilding(x, y, d);
@@ -319,6 +320,9 @@ async function killUnit(o, src, how) {
     if (o.type === 'cmd') { B.stats.cmd++; bark('cmd'); }
     if (src && src.team === 'ua' && src.xp !== undefined) src.xp++;
     toast(`${d.name} 被摧毁`, 'good');
+    if (isVehicle(o)) { shake(7); await sleep(110); }
+    else if (d.cls === 'air') { shake(6); await sleep(90); }
+    else shake(3);
     if (!B.said.firstKill) { B.said.firstKill = 1; bark('kill', src); }
   } else if (o.team === 'civ') {
     B.stats.civLost++;
@@ -341,7 +345,11 @@ async function pushUnit(v, dir, src) {
   if (o || bldAlive(t) || (!air && (t.wreck || (t.t === 'f' && isVehicle(v)))) || U(v).mob === 'sea' && !isWater(t)) {
     await animBump(v, dir);
     AUDIO.hit(); shake(2);
-    if (o) { await damageUnit(o, 1, src); if (!v.dead) await damageUnit(v, 1, src); }
+    if (o) {
+      await damageUnit(o, 1, src);
+      if (!v.dead) await damageUnit(v, 1, src);
+      if (o.dead && o.team === 'ru') { B.stats.bump++; floatText(nx, ny, '撞毁', '#ffd34d', 0, true); }
+    }
     else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1, src); }
     else await damageUnit(v, 1, src);
     return;
@@ -350,6 +358,7 @@ async function pushUnit(v, dir, src) {
   await tween(170, k => { v.rx = lerp(nx - dir[0], nx, k); v.ry = lerp(ny - dir[1], ny, k); }, EASE.out);
   if (isWater(t) && !air && !U(v).amph && U(v).mob !== 'sea') {
     toast(`${U(v).name} 落水沉没`, v.team === 'ru' ? 'good' : 'bad');
+    if (v.team === 'ru') { B.stats.drown++; floatText(nx, ny, '落水', '#ffd34d', 0, true); bark('drown'); }
     await killUnit(v, src, 'drown');
   }
 }
@@ -616,6 +625,11 @@ function endMission(reason) {
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;
   res.stats = Object.assign({}, B.stats);
+  res.losses = B.squad.filter(rec => {
+    const u = B.units.find(v => v.rid === rec.rid);
+    return !u || u.dead;
+  }).length;
+  res.ops = { drown: B.stats.drown || 0, bump: B.stats.bump || 0, friendly: B.stats.friendly || 0, multi: B.stats.multi || 0 };
   // promotions: compare each surviving unit's rank against its record's rank at battle start
   res.promotions = [];
   for (const rec of B.squad) {
