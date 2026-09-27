@@ -999,7 +999,6 @@ function m3BldB(seed, dmg) {
   const RAIL1 = mat3('#b9b3a4', 0.8), RAIL2 = mat3('#8e8a7e', 0.8), DKS = mat3('#2d302a', 0.6, 0.3);
   const FL = 3.1, FH = 15.5;
   const breakX = dmg ? -4.2 : -8.15, w1 = 8.15 - breakX, cx1 = (breakX + 8.15) / 2;
-  const topH = dmg ? 3 * FL : FH;
   function win(x, y, z, ry, lit) {
     const W = new THREE.Group(); W.position.set(x, y, z); W.rotation.y = ry; B.add(W);
     part(W, new THREE.BoxGeometry(1.45, 1.65, 0.1), lit ? LIT : DKW, 0, 0, 0);
@@ -1007,10 +1006,8 @@ function m3BldB(seed, dmg) {
   }
   // 1. main body with a small bevel; the damaged end keeps only the lower three floors
   part(B, rbox(w1, FH, 11, 0.18), WALL, cx1, FH / 2, 0);
-  if (dmg) part(B, rbox(4.0, topH, 11, 0.18), WALL, -6.15, topH / 2, 0);
   // 2. panel seams: horizontal strips at each floor line, a few vertical strips
-  for (let f = 1; f <= Math.floor(topH / FL); f++) part(B, new THREE.BoxGeometry(w1, 0.11, 11.05), SEAM, cx1, f * FL, 0);
-  if (dmg) part(B, new THREE.BoxGeometry(4.0, 0.11, 11.05), SEAM, -6.15, topH, 0);
+  for (let f = 1; f <= 5; f++) part(B, new THREE.BoxGeometry(w1, 0.11, 11.05), SEAM, cx1, f * FL, 0);
   for (const vx of [-4.0, 0.2, 4.4]) part(B, new THREE.BoxGeometry(0.1, FH, 11.08), SEAM, vx, FH / 2, 0);
   // 3+4. windows and balconies, floor by floor
   const winXs = [];
@@ -1032,7 +1029,15 @@ function m3BldB(seed, dmg) {
       win(wx - 0.6, y, 5.56, 0, false);
     }
     if (!gone) { win(7.9, y, 2.3, HALF_PI, hash(seed, f, 7) < 0.34); win(7.9, y, -2.3, HALF_PI, hash(seed, f, 8) < 0.34); }
-    if (dmg && f < 3) win(-7.6, y, 5.56, 0, false);
+  }
+  if (dmg) for (const [sx0, sx1, sh] of [[-8.15, -6.15, 9.3], [-6.15, -5.15, 6.2], [-5.15, -4.2, 8.3]]) {
+    const w = sx1 - sx0, cx = (sx0 + sx1) / 2, hh = sh + (hash(seed, sx0, 20) - 0.5) * 1.6;
+    part(B, rbox(w, hh, 11, 0.14), WALL, cx, hh / 2, 0);
+    for (let f = 0; f * FL + 1.7 < hh - 0.8; f++) {
+      win(cx, f * FL + 1.75, 5.56, 0, false);
+      win(cx, f * FL + 1.75, -5.56, Math.PI, false);
+    }
+    part(B, new THREE.BoxGeometry(w, 0.11, 11.05), SEAM, cx, hh, 0);
   }
   // 5. two entrances on the +x side with concrete canopies and a small lamp
   for (const dz of [2.2, -2.2]) {
@@ -1052,17 +1057,21 @@ function m3BldB(seed, dmg) {
     part(B, cyl(0.05, 0.05, 2.6, 6), DKS, ax, FH + 1.4, az);
     part(B, new THREE.BoxGeometry(1.3, 0.05, 0.05), DKS, ax, FH + 2.1, az);
   }
-  // 7. damaged state: tilted slabs, rebar, soot marks, rubble at the base
+  // 7. damaged state: ragged collapse, hanging slabs, soot, smoke streaks, rubble
   if (dmg) {
-    part(B, rbox(4.0, 0.09, 10.6, 0.04, 1), SNOW, -6.15, topH + 0.05, 0);
-    for (const [sx, sy, sz, rz, rx] of [[-4.6, topH + 0.6, 1.2, 0.5, 0.3], [-5.6, topH + 0.3, -1.4, -0.4, 0.2], [-4.4, topH + 0.15, -0.4, 0.2, -0.35]]) {
-      const sl = part(B, rbox(3.3, 0.35, 2.2, 0.06, 1), WALL, sx, sy, sz); sl.rotation.z = rz; sl.rotation.x = rx;
+    for (const [sx, sz, rz, rx] of [[-4.9, 1.3, 0.55, 0.25], [-5.6, -1.2, -0.45, -0.2], [-4.5, 0.1, 0.3, -0.3]]) {
+      const sl = part(B, rbox(2.7, 0.4, 1.9, 0.06, 1), WALL, sx, 8.6, sz); sl.rotation.z = rz; sl.rotation.x = rx;
     }
-    for (const [cx2, cy2, cz2] of [[-4.35, topH + 1.3, 0.8], [-4.4, topH + 1.1, -1.1], [-4.5, topH + 0.9, 0.1]])
-      part(B, cyl(0.05, 0.05, 1.4, 6), DKS, cx2, cy2, cz2, 0.3, 0, 0.2);
-    for (const [sx, sy, sz] of [[-5.8, 8.6, 5.6], [-6.4, 7.4, 5.6]]) part(B, new THREE.BoxGeometry(2.6, 1.5, 0.1), DKS, sx, sy, sz);
-    for (const [rx2, rz2, rr] of [[-7.2, 1.2, 0.9], [-6.4, -1.6, 0.7], [-5.2, 0.6, 0.5], [-7.6, -0.8, 0.6], [-5.9, 2.2, 0.45]]) {
-      const rub = part(B, rbox(rr * 2, rr, rr * 1.6, 0.06, 1), SEAM, rx2, rr / 2, rz2); rub.rotation.y = hash(rx2, rz2, seed) * 3;
+    part(B, rbox(2.9, 0.4, 2.0, 0.06, 1), WALL, -6.3, 0.22, 1.1);
+    for (const [bx, by, bz, brx, brz] of [[-4.15, 10.2, 1.1, 0.4, 0.3], [-4.25, 10.6, -0.9, -0.3, 0.2], [-5.05, 6.9, 5.56, 0.5, -0.2], [-6.2, 6.6, 5.56, -0.4, 0.25]])
+      part(B, cyl(0.05, 0.05, 1.5, 6), DKS, bx, by, bz, brx, 0, brz);
+    for (const [sx, sy, sz, w, h] of [[-4.7, 7.6, 5.6, 2.1, 2.6], [-5.4, 5.2, 5.6, 1.5, 2.0], [-5.0, 6.4, -5.6, 1.8, 2.2]])
+      part(B, rbox(w, h, 0.09, 0.05, 1), mat3('#1f1c19', 1), sx, sy, sz);
+    for (const wx of [-4.9, -5.5]) part(B, rbox(0.14, 1.7, 0.1, 0.04, 1), mat3('#1f1c19', 1), wx, 8.9, 5.62);
+    for (let k = 0; k < 10; k++) {
+      const rr = 0.4 + hash(seed, k, 21) * 0.55, a = hash(seed, k, 22) * Math.PI;
+      const rub = part(B, rbox(rr * 2.1, rr, rr * 1.6, 0.06, 1), k % 3 ? SEAM : WALL, -6.1 + Math.cos(a) * (1.0 + hash(seed, k, 23) * 2.2), rr / 2, Math.sin(a) * (1.0 + hash(seed, k, 24) * 1.6));
+      rub.rotation.y = hash(seed, k, 25) * 3; rub.rotation.z = (hash(seed, k, 26) - 0.5) * 0.4;
     }
   }
   return B;
