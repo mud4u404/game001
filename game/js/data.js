@@ -19,6 +19,9 @@ const UNITS = {
   tdf:     { name: '国土防卫步兵班', short: '步兵班', team: 'ua', cls: 'inf', hp: 3, move: 3, mob: 'foot', cost: 1, price: 2, weapons: ['pkm', 'rpg'], pilot: 'roman', desc: '基辅本地人组成的国土防卫部队步兵班。熟悉每一条街道，可以进入森林。' },
   bmp2:    { name: 'BMP-2 步兵战车', short: 'BMP-2', team: 'ua', cls: 'la', hp: 3, move: 4, mob: 'track', cost: 2, price: 4, weapons: ['a42', 'konkurs'], pilot: 'serhiy', desc: '第72机械化旅的步兵战车。机关炮能对空，还带 1 发反坦克导弹。' },
   raptor:  { name: '03160 型“猛禽”巡逻艇', team: 'ru', cls: 'la', hp: 2, move: 5, mob: 'sea', atk: 'kord', armor: true },
+  tb2u:  { name: 'TB2 无人机', short: 'TB2', team: 'ua', cls: 'air', hp: 2, move: 4, mob: 'air', alt: 40, cost: 0, price: 0, weapons: ['maml'], pilot: 'yurii', desc: '拜拉克塔尔 TB2 察打一体无人机。每架带 2 枚 MAM-L 制导炸弹。' },
+  tor:   { name: '“托尔”防空系统', short: '托尔', team: 'ru', cls: 'la', hp: 4, move: 2, mob: 'track', atk: 'tor9m', armor: true },
+  serna: { name: '“谢尔纳”级登陆艇', short: '谢尔纳', team: 'ru', cls: 'la', hp: 2, move: 4, mob: 'sea', atk: 'land', armor: true },
   civ:   { name: '撤离的平民', team: 'civ', cls: 'inf', hp: 1, move: 3, mob: 'foot', stable: true },
 };
 const CLASS_NAME = { ha: '重装甲', la: '轻装甲', soft: '无装甲', inf: '步兵', air: '空中', bld: '建筑' };
@@ -40,10 +43,12 @@ const WEAPONS = {
   rpg:     { name: 'RPG-7 火箭筒', kind: 'melee', dmg: { ha: 2, la: 2, soft: 2, inf: 1, bld: 1 }, fx: 'rpg' },
   grad:    { name: '122毫米火箭齐射', kind: 'grad', min: 3, range: 5, dmg: { ha: 1, la: 1, soft: 1, inf: 1, bld: 1 }, fx: 'grad' },
   vikhr:   { name: '“旋风”反坦克导弹', kind: 'line', range: 4, overForest: true, dmg: { ha: 3, la: 3, soft: 3, inf: 1, bld: 1 }, fx: 'atgm' },
-  kord:    { name: '12.7毫米机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 2, la: 1, ha: 0, bld: 1 }, fx: 'mg' },
+  kord:    { name: '12.7毫米机枪', kind: 'line', range: 3, hitsAir: true, dmg: { inf: 2, soft: 2, la: 1, ha: 0, air: 1, bld: 1 }, fx: 'mg' },
   pkm:     { name: 'PKM 通用机枪', kind: 'line', range: 3, dmg: { inf: 2, soft: 1, la: 0, ha: 0, bld: 0 }, fx: 'mg', desc: '射程 3。压制步兵，对装甲无效。' },
   a42:     { name: '2A42 30毫米机关炮', kind: 'line', range: 4, hitsAir: true, dmg: { ha: 1, la: 2, soft: 2, inf: 2, air: 1, bld: 1 }, fx: 'mg', desc: '射程 4。可以打直升机和无人机。' },
   konkurs: { name: '9M113“竞赛”反坦克导弹', kind: 'line', range: 5, ammo: 'kon', dmg: { ha: 3, la: 3, soft: 2, inf: 1, bld: 1 }, fx: 'atgm', desc: '直射导弹，射程 5，每场任务 1 发。' },
+  maml:  { name: 'MAM-L 制导炸弹', kind: 'arc', min: 1, range: 2, noSpot: true, ammo: 'maml', dmg: { ha: 2, la: 3, soft: 2, inf: 2, bld: 1 }, crater: true, fx: 'tb2', desc: '攻击 1–2 格内的地面或水面目标，不需要观察。每架 2 枚。' },
+  tor9m: { name: '9M338 防空导弹', kind: 'aa', min: 1, range: 4, dmg: { air: 2 }, fx: 'stinger' },
   msta:    { name: '152毫米炮火', dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, fx: 'barrage' },
 };
 
@@ -58,6 +63,7 @@ const TILE = {
   w: { name: '河流', note: '只有两栖车辆能通过。其他地面单位落水即沉没' },
   o: { name: '外海', note: '只有舰艇和两栖车辆能进入。地面单位落水即沉没' },
   s: { name: '沙滩', note: '车辆移动消耗 2' },
+  k: { name: '礁岩', note: '岛上的岩石地面。车辆移动消耗 2' },
   d: { name: '断桥', note: '只剩木板便桥，只有步兵能通过' },
 };
 const BLD = {
@@ -66,6 +72,7 @@ const BLD = {
   c: { name: '教堂', hp: 1, pop: 25, civil: true },
   S: { name: '变电站', hp: 2, pop: 0, civil: true },
   H: { name: '机库', hp: 3, pop: 0, civil: false },
+  L: { name: '灯塔', hp: 2, pop: 0, civil: false },
 };
 
 // ---------- characters ----------
@@ -78,6 +85,7 @@ const CHARS = {
   dmytro: { name: '德米特罗·邦达连科 上尉', call: '灯塔', role: '“海王星”发射车车长', face: { skin: '#d8ae88', hair: '#2e2620', style: 'helmet', mustache: '#3a2a20', uniform: '#4d5733' } },
   roman:  { name: '罗曼·特卡琴科', call: '邮差', role: '国土防卫步兵班长', face: { skin: '#dcb08a', hair: '#5a4632', style: 'helmet', beard: '#5a4632', uniform: '#5f6f3c' } },
   serhiy: { name: '谢尔希·莫罗兹 中士', call: '铁匠', role: 'BMP-2 车长', face: { skin: '#e0b896', hair: '#2e2620', style: 'tanker', uniform: '#4d5733' } },
+  yurii:  { name: '尤里·萨文科 上尉', call: '蜂鸟', role: 'TB2 操作员', face: { skin: '#e0b896', hair: '#4a3a2a', style: 'beanie', headset: true, uniform: '#4d5733' } },
   radio:  { name: '无线电截获', call: '截获', role: '俄军频道', face: { radio: true } },
 };
 

@@ -24,6 +24,7 @@ function mkUnit(type, x, y, xp = 0) {
   if (type === 't64') { u.hp = u.max = d.hp + CAMP.up.t64hp; }
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
+  if (type === 'tb2u') u.ammo.maml = 2;
   if (type === 'bmp2') { u.ammo.kon = 1; }
   u.xp = xp;
   const rank = rankOf(xp);
@@ -151,7 +152,7 @@ function weaponTargets(u, wid) {
   else if (w.kind === 'arc') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
     const d = Math.abs(x - u.x) + Math.abs(y - u.y);
     if (d < w.min || d > w.range) continue;
-    if (!spotted(x, y, u)) continue;
+    if (!w.noSpot && !spotted(x, y, u)) continue;
     out.push({ x, y });
   }
   else if (w.kind === 'melee') for (const [dx, dy] of DIRS) { const x = u.x + dx, y = u.y + dy; if (inB(x, y)) out.push({ x, y, dir: [dx, dy] }); }
@@ -165,7 +166,7 @@ function weaponEffects(u, wid, t) {
   if (w.kind === 'line') { const h = lineHit(u.x, u.y, t.dir, w, u); return h ? [{ x: h.x, y: h.y, w: wid, push: w.push ? t.dir : null }] : []; }
   if (w.kind === 'arc') {
     const e = [{ x: t.x, y: t.y, w: wid }];
-    for (const dir of DIRS) { const x = t.x + dir[0], y = t.y + dir[1]; if (inB(x, y)) e.push({ x, y, w: null, push: dir }); }
+    if (w.blast) for (const dir of DIRS) { const x = t.x + dir[0], y = t.y + dir[1]; if (inB(x, y)) e.push({ x, y, w: null, push: dir }); }
     return e;
   }
   return [{ x: t.x, y: t.y, w: wid }];
@@ -188,6 +189,7 @@ function enemyAttackTiles(e) {
   if (!e.aim) return [];
   const d = U(e);
   if (d.atk === 'land') return [{ x: e.x, y: e.y, land: true }];
+  if (d.atk && WEAPONS[d.atk].kind === 'aa') return e.aim.tgt ? [{ x: e.aim.tgt.x, y: e.aim.tgt.y, w: d.atk, dir: [Math.sign(e.aim.tgt.x - e.x) || 1, Math.sign(e.aim.tgt.y - e.y)] }] : [];
   const w = WEAPONS[d.atk], [dx, dy] = e.aim.dir;
   if (w.kind === 'line') { const h = lineHit(e.x, e.y, e.aim.dir, w, e); return h ? [{ x: h.x, y: h.y, w: d.atk }] : []; }
   if (w.kind === 'melee') { const x = e.x + dx, y = e.y + dy; return inB(x, y) ? [{ x, y, w: d.atk }] : []; }
@@ -201,7 +203,7 @@ function threats() {
   for (const b of B.barrage) out.push({ x: b.x, y: b.y, w: 'msta', barrage: true });
   return out;
 }
-function landable(x, y) { const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R'].includes(t.t); }
+function landable(x, y) { const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R', 'k'].includes(t.t); }
 
 function scoreAttack(e, tiles) {
   let s = 0;
@@ -218,7 +220,28 @@ async function aiPlan() {
   for (const e of list) {
     if (e.dead) continue;
     const d = U(e), opts = [];
-    if (d.atk === 'land') opts.push({ land: true });
+    if (d.atk === 'land' && d.mob === 'sea') {
+      // 舰艇登陆：候选必须在水上且靠得住岸，靠近可登陆地形优先
+      for (const p of reach(e).values()) {
+        if (p.x === e.x && p.y === e.y) continue;
+        if (!isWater(TILEAT(p.x, p.y))) continue;
+        let shores = 0;
+        for (const [dx, dy] of DIRS) if (landable(p.x + dx, p.y + dy)) shores++;
+        if (!shores) continue;
+        let dk = 99;
+        for (let yy = 0; yy < 8; yy++) for (let xx = 0; xx < 8; xx++) { const tt = TILEAT(xx, yy); if (tt.t === 'k' || tt.t === '.') dk = Math.min(dk, Math.abs(xx - p.x) + Math.abs(yy - p.y)); }
+        opts.push({ sea: true, x: p.x, y: p.y, s: shores * 6 - dk });
+      }
+    }
+    else if (d.atk === 'land') opts.push({ land: true });
+    else if (d.atk && WEAPONS[d.atk].kind === 'aa') {
+      const wa = WEAPONS[d.atk];
+      for (const o of ua()) {
+        if (!isAir(o)) continue;
+        const dd = Math.abs(o.x - e.x) + Math.abs(o.y - e.y);
+        if (dd >= wa.min && dd <= wa.range) opts.push({ tgt: { x: o.x, y: o.y } });
+      }
+    }
     else if (d.atk) {
       const w = WEAPONS[d.atk];
       for (const dir of DIRS) {
@@ -470,7 +493,7 @@ async function enemyPhase() {
   for (const e of ru().sort((a, b) => a.id - b.id)) {
     if (e.dead || !e.aim) continue;
     const d = U(e), tiles = enemyAttackTiles(e);
-    if (d.atk === 'land') { await animLanding(e); e.aim = null; renderHud(); continue; }
+    if (d.atk === 'land') { if (d.mob === 'sea') await animSeaLanding(e); else await animLanding(e); e.aim = null; renderHud(); continue; }
     if (!tiles.length) { e.aim = null; continue; }
     await animAttack(e, d.atk, tiles[0], tiles);
     for (const tt of tiles) { await hitTile(tt.x, tt.y, tt.w, e); if (checkDefeat()) return; }
