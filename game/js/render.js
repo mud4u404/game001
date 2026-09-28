@@ -218,6 +218,22 @@ async function animLanding(e) {
   e.dead = true;
   B.units = B.units.filter(u => u !== e);
 }
+
+async function animSeaLanding(e) {
+  AUDIO.noiseBurst(1.2, 600, 200, 1, 0.3);
+  let n = 0;
+  for (const [dx, dy] of DIRS) {
+    if (n >= 2) break;
+    const x = e.x + dx, y = e.y + dy;
+    if (!inB(x, y) || unitAt(x, y) || !landable(x, y)) continue;
+    const v = mkUnit('vdv', x, y); v.face = [dx, dy];
+    B.units.push(v); n++;
+    await tween(260, k => { v.alpha = k; v.rx = lerp(e.x, x, k); v.ry = lerp(e.y, y, k); });
+  }
+  toast(n ? `登陆艇放下了 ${n} 个空降兵班` : '登陆艇找不到靠岸点，撤离', n ? 'bad' : 'good');
+  await tween(400, k => { e.alpha = 1 - k; });
+  B.units = B.units.filter(u => u !== e);
+}
 async function animArrive(n) {
   if (isAir(n)) { n.alpha = 0; await tween(500, k => { n.alpha = k; n.rz = (1 - k) * 60; }); return; }
   dust(n.x, n.y, 8);
@@ -520,6 +536,11 @@ function drawIntents(pulse) {
       } else if (w.kind === 'line') {
         const n = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
         for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); const lift = isAir(e) ? unitAlt(e) * (1 - i / n) : 0; if (HD) { disc(px, py - lift, 4.2, '#0a0f14'); disc(px, py - lift, 3, '#ff5a3a'); } else { R(px - 4, py - 4 - lift, 8, 8, '#0a0f14'); R(px - 3, py - 3 - lift, 6, 6, '#ff5a3a'); } }
+      } else if (w.kind === 'aa') {
+        // 防空锁定：连线指向锁定的格子，玩家移开就落空
+        line(ex + 4, ey - 4, tx + 2, ty - 2, '#0a0f14', 5);
+        line(ex + 4, ey - 4, tx + 2, ty - 2, '#ff4a2b', 2);
+        if (HD) { disc(tx + 2, ty - 2, 3, '#ff6a4a'); }
       } else {
         const [vx, vy] = screenDir(e.aim.dir);
         line(ex + vx * 12, ey - 6 + vy * 12, ex + vx * 30, ey - 2 + vy * 30, '#0a0f14', 5);
