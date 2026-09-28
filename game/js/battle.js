@@ -235,12 +235,7 @@ async function aiPlan() {
     }
     else if (d.atk === 'land') opts.push({ land: true });
     else if (d.atk && WEAPONS[d.atk].kind === 'aa') {
-      const wa = WEAPONS[d.atk];
-      for (const o of ua()) {
-        if (!isAir(o)) continue;
-        const dd = Math.abs(o.x - e.x) + Math.abs(o.y - e.y);
-        if (dd >= wa.min && dd <= wa.range) opts.push({ tgt: { x: o.x, y: o.y } });
-      }
+      for (const o of ua()) if (isAir(o)) opts.push({ tgt: { x: o.x, y: o.y } });
     }
     else if (d.atk) {
       const w = WEAPONS[d.atk];
@@ -250,7 +245,7 @@ async function aiPlan() {
       }
     }
     const map = reach(e, B.mission.convoy && isVehicle(e) ? Math.min(d.mob === 'wheel' ? 3 : 2, d.move) : undefined), ox = e.x, oy = e.y;
-    let best = null, bs = -1e9;
+    let best = null, bs = -1e9, idle = null, is = -1e9;
     for (const p of map.values()) {
       e.x = p.x; e.y = p.y;
       let base = Math.random() * 2;
@@ -262,10 +257,22 @@ async function aiPlan() {
         base += (14 - dmin) * 2 + (dmin === 0 ? 60 : 0);
       }
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
-      if (!opts.length) { if (base > bs) { bs = base; best = { x: p.x, y: p.y, aim: null }; } continue; }
+      // fallback when no option is usable from any reachable tile: move without aiming
+      if (base > is) { is = base; idle = { x: p.x, y: p.y, aim: null }; }
+      if (!opts.length) continue;
       for (const o of opts) {
         let s = base;
-        if (o.land) {
+        if (o.sea) {
+          // a sea landing option belongs to one shoreline tile
+          if (p.x !== o.x || p.y !== o.y) continue;
+          s += o.s;
+        } else if (o.tgt) {
+          // lock-on range counts from where the launcher ends its move
+          const dd = Math.abs(o.tgt.x - p.x) + Math.abs(o.tgt.y - p.y), wa = WEAPONS[d.atk];
+          if (dd < wa.min || dd > wa.range) continue;
+          e.aim = o;
+          s += scoreAttack(e, enemyAttackTiles(e));
+        } else if (o.land) {
           if (!landable(p.x, p.y)) continue;
           let dmin = 99;
           for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const t = TILEAT(x, y); if (bldAlive(t) && BLD[t.t].civil) dmin = Math.min(dmin, Math.abs(x - p.x) + Math.abs(y - p.y)); }
@@ -278,6 +285,7 @@ async function aiPlan() {
       }
     }
     e.x = ox; e.y = oy; e.aim = null;
+    if (!best) best = idle;
     if (!best) continue;
     if (best.x !== e.x || best.y !== e.y) {
       const path = pathFrom(map, best.x, best.y);
