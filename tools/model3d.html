@@ -55,7 +55,7 @@ function stageScene(objs) {
   return scene;
 }
 // Boats and the bridge ruin sit on water (surface at y = -1.8, as in the game); everything else on a road tile.
-const WATERY = /magura|raptor|bridge/.test(new URLSearchParams(location.search).get('m') || '');
+const WATERY = /magura|raptor|serna|bridge/.test(new URLSearchParams(location.search).get('m') || '');
 function tile(x, z, c) {
   const g = new THREE.Group(); g.position.set(x, 0, z);
   if (WATERY && !c) {

@@ -1382,12 +1382,14 @@ function m3Tor() {
   part(Tu, rbox(1.9, 0.55, 3.6, 0.08, 1), OD, 3.2, 3.55, 0);
   // rear exhaust grille
   for (let k = 0; k < 5; k++) part(T, new THREE.BoxGeometry(0.14, 0.75, 3.4), DKS, -7.15, 3.6, 0);
-  // search radar panel 5 x 2.2, tilted back 25°, on two struts from the turret top
-  const RS = new THREE.Group(); RS.position.set(-1.9, 6.75, 0); RS.rotation.z = 0.44; T.add(RS);
-  part(RS, rbox(5, 2.2, 0.3, 0.06, 1), RAD, 0, 0, 0);
-  part(RS, rbox(5.1, 0.14, 0.42, 0.03, 1), LT, 0, 1.18, 0);
-  part(RS, rbox(5.1, 0.14, 0.42, 0.03, 1), LT, 0, -1.18, 0);
-  for (const s of [-1, 1]) part(T, cyl(0.07, 0.09, 2.4, 8), STEEL, -1.6 + s * 0.5, 5.4, s * 0.85, 0, 0, s * 0.45);
+  // search radar: a 5-wide board across the vehicle (broad face toward +-x), lower edge about 8.5 high,
+  // leaning back 25 degrees, on two struts rising from the turret roof (roof at y 6.6)
+  const RS = new THREE.Group(); RS.position.set(-2.2, 9.6, 0); RS.rotation.z = 0.44; T.add(RS);
+  part(RS, rbox(0.3, 2.2, 5, 0.06, 1), RAD, 0, 0, 0);
+  part(RS, rbox(0.42, 0.14, 5.1, 0.03, 1), LT, 0, 1.18, 0);
+  part(RS, rbox(0.42, 0.14, 5.1, 0.03, 1), LT, 0, -1.18, 0);
+  part(RS, rbox(0.6, 0.5, 1.2, 0.06, 1), OD, 0.3, -1.1, 0);
+  for (const z of [-1.3, 1.3]) part(T, cyl(0.1, 0.12, 3.1, 8), STEEL, -2.1, 8.1, z);
   return T;
 }
 function m3Serna() {
@@ -1404,12 +1406,14 @@ function m3Serna() {
   part(T, rbox(1.75, 0.75, 1.9, 0.18, 1), mat3('#6a6e58', 0.8), 2.65, 2.85, 1.05);
   // two-story bridge at the stern quarter with mast and small radar
   part(T, rbox(3.5, 3.6, 4.5, 0.12, 1), HULL, -4.4, 4.05, 0);
-  for (const s of [-1, 1]) part(T, rbox(0.08, 0.6, 1.4, 0.03, 1), GLS, -4.4, 4.9, s * 1.1);
+  // bridge windows on the forward face and both sides
+  for (const z of [-1.5, 0, 1.5]) part(T, new THREE.BoxGeometry(0.08, 0.6, 1.1), GLS, -2.63, 4.9, z);
+  for (const s of [-1, 1]) for (const x of [-5.3, -3.6]) part(T, new THREE.BoxGeometry(1.1, 0.6, 0.08), GLS, x, 4.9, s * 2.27);
   part(T, rbox(3.7, 0.16, 4.7, 0.05, 1), DK, -4.4, 5.92, 0);
   part(T, cyl(0.07, 0.09, 1.6, 8), DKS, -4.9, 6.75, 0);
-  part(T, cyl(0.42, 0.42, 0.24, 14), mat3('#c9cfd3', 0.6), -4.35, 7.0, 0.75).scale.y = 0.55;
+  part(T, cyl(0.42, 0.42, 0.24, 14), mat3('#c9cfd3', 0.6), -4.9, 7.62, 0).scale.y = 0.55;
   // dark hull numbers on the bow sides
-  for (const s of [-1, 1]) part(T, rbox(0.7, 0.5, 0.08, 0.04, 1), DKS, 6.6, 1.3, s * 2.6);
+  for (const s of [-1, 1]) part(T, rbox(0.7, 0.5, 0.08, 0.04, 1), DKS, 6.6, 1.3, s * 3.28);
   return T;
 }
 function m3BldL(seed, dmg) {
