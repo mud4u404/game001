@@ -284,7 +284,7 @@ const MISSIONS = [
     objectives: [
       { id: 'sam', kind: 'primary', text: '摧毁“托尔”防空系统', reward: 5, eval: B => ({ cur: B.stats.killed.tor || 0, max: 1 }) },
       { id: 'serna', kind: 'bonus', text: '击沉 1 艘登陆艇', reward: 2, eval: B => ({ cur: B.stats.killed.serna || 0, max: 1 }) },
-      { id: 'mi8', kind: 'bonus', text: '击落米-8', reward: 1, eval: B => ({ cur: B.stats.killed.mi8 || 0, max: 1 }) },
+      { id: 'raptor', kind: 'bonus', text: '击沉全部 3 艘巡逻艇', reward: 1, eval: B => ({ cur: B.stats.killed.raptor || 0, max: 3 }) },
       { id: 'light', kind: 'bonus', text: '灯塔完好', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'L' && t.hp === t.max), max: 1 }) },
     ],
     brief: [

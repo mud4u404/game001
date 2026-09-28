@@ -1,6 +1,13 @@
 'use strict';
 // ---------- frame loop ----------
+// A rendering error must not stop the loop: animations are awaited by the game logic, so a dead
+// frame loop freezes the whole game. Log each distinct error once and keep drawing.
+const frameErrs = new Set();
 function frame(now) {
+  requestAnimationFrame(frame);
+  try { drawFrame(now); } catch (e) { if (!frameErrs.has(e.message)) { frameErrs.add(e.message); console.error(e); } }
+}
+function drawFrame(now) {
   stepTweens(now);
   const t = now / 1000;
   g = ag;
@@ -16,7 +23,6 @@ function frame(now) {
   const sx = shakeAmt > 0.3 ? Math.round((Math.random() - 0.5) * shakeAmt) : 0, sy = shakeAmt > 0.3 ? Math.round((Math.random() - 0.5) * shakeAmt) : 0;
   if (use3D) { dg.clearRect(0, 0, stage.width, stage.height); render3D(sx, sy); dg.drawImage(hdC, sx * PX, sy * PX); g = ag; HD = false; }
   else { dg.fillStyle = '#0b1016'; dg.fillRect(0, 0, stage.width, stage.height); dg.drawImage(artC, sx * PX, sy * PX, W * PX, H * PX); }
-  requestAnimationFrame(frame);
 }
 window.addEventListener('resize', () => { fitStage(); renderHud(); });
 init3D();
