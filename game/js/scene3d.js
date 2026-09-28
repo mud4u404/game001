@@ -171,7 +171,7 @@ function buildingModel(tile, seed) {
 
 // ---------- tiles ----------
 const TILE3 = {
-  '.': '#8c7a55', r: '#6a6964', R: '#66665f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a',
+  '.': '#8c7a55', r: '#6a6964', R: '#66665f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a', k: '#6f6a60',
 };
 function tileSig(x, y) {
   const t = TILEAT(x, y);
@@ -260,6 +260,15 @@ function tileDetails(g, x, y, t, seed) {
       const bu = flat(sph(0.55 + hash(x, y, 125 + k) * 0.4, 10, 6), BUSH, -7 + hash(x, y, 130 + k) * 14, 0.3, -7 + hash(y, x, 135 + k) * 14).scale.y = 0.6;
       if (k < 2) flat(sph(0.4, 8, 6), SNOW, -7 + hash(x, y, 140 + k) * 14, 0.62, -7 + hash(y, x, 141 + k) * 14).scale.y = 0.4;
     }
+    return;
+  }
+  if (t.t === 'k') {
+    const RK1 = mat3('#7a746a', 0.9), RK2 = mat3('#5f5a52', 0.9);
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 180) * 3); k++) {
+      const rx = -7 + hash(x, y, 181 + k) * 14, rz = -7 + hash(y, x, 182 + k) * 14, rr = 0.5 + hash(x, y, 183 + k) * 0.7;
+      const rk = part(g, sph(rr, 10, 6), k % 2 ? RK1 : RK2, rx, rr * 0.35, rz); rk.scale.y = 0.45; rk.rotation.y = hash(x, y, 184 + k) * 3;
+    }
+    for (let k = 0; k < 2; k++) flat(cyl(0.04, 0.12, 0.5 + hash(x, y, 185 + k) * 0.3, 6), TUFT, -6 + hash(x, y, 186 + k) * 12, 0.25, -6 + hash(y, x, 187 + k) * 12, (hash(x, y, 188 + k) - 0.5) * 0.4, 0, (hash(y, x, 189 + k) - 0.5) * 0.4);
     return;
   }
   if (t.t === 's') {
