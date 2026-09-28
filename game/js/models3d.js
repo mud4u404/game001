@@ -1347,3 +1347,116 @@ function m3BridgeRuin() {
   return T;
 }
 MODEL3D['prop:bridge'] = m3BridgeRuin;
+
+
+// ---------- T-42 托尔/谢尔纳/灯塔/TB2 ----------
+function m3Tor() {
+  const T = new THREE.Group();
+  const OL = mat3('#5a5f4b', 0.6, 0.05), OD = mat3('#3f4234', 0.65, 0.05), LT = mat3('#686d58', 0.55, 0.05);
+  const RUB = mat3('#1e201d', 0.9), STEEL = mat3('#5d625c', 0.45, 0.5), DKS = mat3('#2d302a', 0.6, 0.3);
+  const RAD = mat3('#2b2f2a', 0.4, 0.2);
+  // running gear: six road wheels per side with tracks, side skirts above
+  for (const s of [-1, 1]) {
+    const z = s * 2.5;
+    for (let i = 0; i < 6; i++) {
+      const x = -5.9 + i * 2.36;
+      part(T, cyl(0.95, 0.95, 0.85, 22), RUB, x, 1.3, z, HALF_PI);
+      part(T, cyl(0.76, 0.76, 0.95, 18), OD, x, 1.3, z, HALF_PI);
+      part(T, cyl(0.3, 0.3, 1.05, 10), STEEL, x, 1.3, z, HALF_PI);
+    }
+    trackLoop(T, -7.2, 7.2, 1.4, 1.2, z, 1.9);
+    part(T, rbox(13.6, 1.05, 0.16, 0.06, 1), OD, 0, 2.7, s * 3.05);
+  }
+  // hull 15 x 3.2 high, driver hatch at the front
+  part(T, rbox(15, 3.2, 4.4, 0.2), OL, 0, 1.6, 0);
+  part(T, cyl(0.6, 0.64, 0.16, 20), LT, 5.4, 3.28, -1.2);
+  part(T, rbox(2.2, 0.35, 4.2, 0.08, 1), OD, -7.2, 3.35, 0);
+  for (let k = 0; k < 5; k++) part(T, new THREE.BoxGeometry(0.14, 0.1, 3.6), DKS, -7.3 + k * 0.55, 3.3, 0);
+  // turret group: boxy body, front tracking radar plate with bright frame, launch box lids
+  const Tu = new THREE.Group(); Tu.name = 'turret'; Tu.position.set(-0.4, 3.2, 0); T.add(Tu);
+  part(Tu, rbox(8, 3.4, 5.2, 0.14, 1), OL, 0.3, 1.7, 0);
+  part(Tu, rbox(0.25, 3.2, 4.0, 0.05, 1), RAD, 4.35, 1.95, 0);
+  for (const [fx, fy] of [[0, 1.68], [0, -1.68], [2.2, 1.9], [2.2, -1.9]]) part(Tu, new THREE.BoxGeometry(0.12, fy ? 0.16 : 3.3, fx ? 0.16 : 4.15), LT, 4.5 + (fx ? 0 : 0), 1.95 + (fy ? fy * 0 : 0), fx ? 0 : fy * 0 + (fy ? 0 : 0), 0, 0, 0);
+  for (const s of [-1, 1]) for (let k = 0; k < 2; k++) for (let j = 0; j < 2; j++)
+    part(Tu, rbox(1.05, 0.1, 1.05, 0.04, 1), LT, -0.4 + j * 1.15, 3.5, s * (0.65 + k * 1.2));
+  part(Tu, rbox(1.9, 0.55, 3.6, 0.08, 1), OD, 3.2, 3.55, 0);
+  // rear exhaust grille
+  for (let k = 0; k < 5; k++) part(T, new THREE.BoxGeometry(0.14, 0.75, 3.4), DKS, -7.15, 3.6, 0);
+  // search radar panel 5 x 2.2, tilted back 25°, on two struts from the turret top
+  const RS = new THREE.Group(); RS.position.set(-1.9, 6.75, 0); RS.rotation.z = 0.44; T.add(RS);
+  part(RS, rbox(5, 2.2, 0.3, 0.06, 1), RAD, 0, 0, 0);
+  part(RS, rbox(5.1, 0.14, 0.42, 0.03, 1), LT, 0, 1.18, 0);
+  part(RS, rbox(5.1, 0.14, 0.42, 0.03, 1), LT, 0, -1.18, 0);
+  for (const s of [-1, 1]) part(T, cyl(0.07, 0.09, 2.4, 8), STEEL, -1.6 + s * 0.5, 5.4, s * 0.85, 0, 0, s * 0.45);
+  return T;
+}
+function m3Serna() {
+  const T = new THREE.Group();
+  const HULL = mat3('#6b7076', 0.6, 0.1), DK = mat3('#4d5156', 0.7, 0.1), DECK = mat3('#565a5c', 0.85), GLS = mat3('#223044', 0.1, 0.3), DKS = mat3('#2d302a', 0.6, 0.3), LT = mat3('#686d58', 0.55, 0.05);
+  // boxy plan-view hull, waterline -1.8, bottom -1.8 (shallow draft like the card's raptor note)
+  part(T, profile([[-8.5, -3.25], [-8.5, 3.25], [8.5, 3.25], [8.5, -3.25]], 4.0), HULL, 0, 0.2, 0, -HALF_PI);
+  part(T, rbox(16.9, 0.12, 6.55, 0.04, 1), DECK, 0, 2.26, 0);
+  // raised bow ramp at the front
+  const ramp = part(T, rbox(2.6, 0.18, 5.4, 0.05, 1), DK, 8.0, 2.9, 0, 0, 0, -0.5);
+  // open cargo hold midships: two canvas-covered piles
+  part(T, rbox(4.4, 0.35, 4.6, 0.06, 1), DK, 1.9, 2.4, 0);
+  part(T, rbox(1.75, 0.75, 1.9, 0.18, 1), mat3('#5f6350', 0.8), 1.15, 2.85, -1.05);
+  part(T, rbox(1.75, 0.75, 1.9, 0.18, 1), mat3('#6a6e58', 0.8), 2.65, 2.85, 1.05);
+  // two-story bridge at the stern quarter with mast and small radar
+  part(T, rbox(3.5, 3.6, 4.5, 0.12, 1), HULL, -4.4, 4.05, 0);
+  for (const s of [-1, 1]) part(T, rbox(0.08, 0.6, 1.4, 0.03, 1), GLS, -4.4, 4.9, s * 1.1);
+  part(T, rbox(3.7, 0.16, 4.7, 0.05, 1), DK, -4.4, 5.92, 0);
+  part(T, cyl(0.07, 0.09, 1.6, 8), DKS, -4.9, 6.75, 0);
+  part(T, cyl(0.42, 0.42, 0.24, 14), mat3('#c9cfd3', 0.6), -4.35, 7.0, 0.75).scale.y = 0.55;
+  // dark hull numbers on the bow sides
+  for (const s of [-1, 1]) part(T, rbox(0.7, 0.5, 0.08, 0.04, 1), DKS, 6.6, 1.3, s * 2.6);
+  return T;
+}
+function m3BldL(seed, dmg) {
+  const B = new THREE.Group();
+  const WALL = mat3('#d8d2c4', 0.8), PLINTH = mat3('#8b3a2e', 0.7), ROOFC = mat3('#8b3a2e', 0.7);
+  const FR = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3), SNOW = mat3('#eef2f4', 0.75);
+  const H = dmg ? 8 : 13;
+  // octagonal tower with a plinth ring; damaged: top broken ragged
+  part(B, cyl(1.95, 2.1, 0.5, 8), PLINTH, 0, 0.25, 0);
+  part(B, cyl(1.4, 1.7, H, 8), WALL, 0, 0.5 + H / 2, 0);
+  if (!dmg) {
+    part(B, cyl(2.1, 2.1, 0.3, 8), FR, 0, H + 0.5, 0);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; part(B, cyl(0.035, 0.035, 0.42, 6), FR, Math.cos(a) * 1.95, H + 0.82, Math.sin(a) * 1.95); }
+    part(B, cyl(1.2, 1.3, 1.6, 8), FR, 0, H + 0.65 + 0.8, 0);
+    part(B, cyl(1.02, 1.02, 0.1, 8), GLS, 0, H + 0.65 + 0.85, 0);
+    const pts = [];
+    for (const [r, h] of [[0.05, 0], [0.95, 0.35], [1.28, 1.0], [1.1, 1.7], [0.5, 2.3], [0.03, 2.75]]) pts.push(new THREE.Vector2(r, h));
+    part(B, new THREE.LatheGeometry(pts, 12), mat3('#2d302a', 0.6, 0.2), 0, H + 2.25, 0);
+  } else {
+    for (const [w, h] of [[2.6, 3.1], [1.9, 4.6], [2.5, 2.4]]) part(B, rbox(w, h, 0.5, 0.06, 1), WALL, -0.2, h / 2, 0);
+    part(B, rbox(0.16, 1.35, 0.16, 0.03, 1), FR, 0.3, H + 0.7, 0.3);
+  }
+  // keeper's cottage on the -z side, pitched roof
+  part(B, rbox(7, 3.2, 4.5, 0.12, 1), WALL, -1.2, 1.6, -4.6);
+  const slope = Math.atan2(1.6, 2.25);
+  for (const s of [-1, 1]) {
+    const R = new THREE.Group(); R.position.set(-1.2, 3.2, -4.6); R.rotation.x = s * slope; B.add(R);
+    for (let k = 0; k < 5; k++) {
+      if (dmg && s === -1 && k === 2) continue;
+      part(R, new THREE.BoxGeometry(7.3, 0.16, 2.45), ROOFC, 0, 0.05 * k, s * (0.55 + k * 0.5));
+    }
+    if (!dmg || s === 1) part(R, rbox(7.3, 0.06, 1.1, 0.03, 1), SNOW, 0, 0.16, s * 1.1);
+  }
+  // door and a small window on the cottage
+  part(B, rbox(0.1, 1.3, 0.7, 0.04, 1), mat3('#5a4632', 0.85), -3.6, 0.65, -4.6);
+  part(B, rbox(0.08, 0.6, 0.8, 0.03, 1), GLS, -0.2, 1.9, -4.6);
+  // damage extras: soot on the tower, rubble at the foot
+  if (dmg) {
+    part(B, rbox(1.4, 1.9, 0.1, 0.05, 1), mat3('#1f1c19', 1), 1.35, 4.6, 0.9);
+    part(B, rbox(1.1, 1.4, 0.1, 0.05, 1), mat3('#1f1c19', 1), -1.2, 3.4, 0.9);
+    for (const [rx, rz, rr] of [[1.4, 1.1, 0.8], [0.6, 1.9, 0.6], [2.0, 0.4, 0.5], [1.1, -0.6, 0.65]]) {
+      const rub = part(B, rbox(rr * 2.2, rr, rr * 1.7, 0.06, 1), WALL, rx, rr / 2, rz); rub.rotation.y = rr * 3;
+    }
+  }
+  return B;
+}
+MODEL3D.tor = m3Tor;
+MODEL3D.serna = m3Serna;
+MODEL3D['bld:L'] = m3BldL;
+MODEL3D.tb2u = () => { const o = m3TB2(); o.scale.multiplyScalar(0.67); return o; };
