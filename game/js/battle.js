@@ -254,7 +254,7 @@ async function aiPlan() {
       if (B.mission.civ && B.mission.civ.path.some(([x, y]) => x === p.x && y === p.y)) base -= 4;
       if (B.mission.exit && !isAir(e) && (B.mission.exitWho !== 'vehicle' || isVehicle(e))) {
         const dmin = Math.min(...B.mission.exit.map(([ex, ey]) => Math.abs(ex - p.x) + Math.abs(ey - p.y)));
-        base += (14 - dmin) * 2 + (dmin === 0 ? 60 : 0);
+        base += (14 - dmin) * (B.mission.exitPull || 2) + (dmin === 0 ? 60 : 0);
       }
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
       // fallback when no option is usable from any reachable tile: move without aiming

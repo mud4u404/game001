@@ -18,12 +18,12 @@ const url = 'file://' + path.resolve(__dirname, '../game/index.html') + '?2d';
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `${out}/kyiv.png` });
   const bad = await page.evaluate(`(() => {
-    MISSIONS.push(Object.assign({}, MISSIONS[0], { id: 'test2', code: '2-1', name: '测试任务', chapter: 1, mapPos: [0.56, 0.54] }));
-    CAMP.mission = MISSIONS.length - 1;
+    CAMP.mission = MISSIONS.findIndex(m => m.chapter === 1);
     showCampaign();
     const problems = [];
     if (document.getElementById('cTitle').textContent !== '战区二 · 黑海') problems.push('cTitle 应为 战区二 · 黑海，实际 ' + document.getElementById('cTitle').textContent);
-    if (document.querySelectorAll('#cList .mrow').length !== 1) problems.push('cList 应只有 1 行任务');
+    const n2 = MISSIONS.filter(m => m.chapter === 1).length;
+    if (document.querySelectorAll('#cList .mrow').length !== n2) problems.push('cList 应只列出战区二的 ' + n2 + ' 个任务');
     return problems;
   })()`);
   await page.waitForTimeout(1000);
