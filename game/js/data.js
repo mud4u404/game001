@@ -192,7 +192,43 @@ const MISSIONS = [
     consequence: () => null,
   },
   {
-    id: 'odesa', code: '2-1', name: '敖德萨湾', date: '2022年4月上旬 夜间', place: '敖德萨州 · 敖德萨湾', slots: 5, pool: ['t64', 'atgm', 'neptune', 'tdf', 'bmp2'],
+    id: 'voznesensk', code: '2-1', name: '沃兹涅先斯克', date: '2022年3月2日 下午', place: '米科拉伊夫州 · 沃兹涅先斯克', slots: 6, pool: ['t64', 'atgm', 'd30', 'tdf', 'bmp2'],
+    chapter: 1, mapPos: [0.86, 0.05], turns: 5, face: { ua: [0, -1], ru: [0, 1] },
+    map: ['ff.r.hff', '.h.r..h.', 'hh.r.c..', '..hr.bh.', 'f..r....', 'wwwrwwww', 'f..r..ff', 'ff.r.fff'],
+    deploy: [[0, 1], [2, 1], [4, 1], [5, 1], [7, 1], [2, 2], [4, 2], [6, 2], [7, 2], [0, 3], [1, 3], [4, 3], [0, 4], [1, 4], [2, 4], [4, 4], [5, 4], [6, 4], [7, 4], [1, 6], [2, 6], [4, 6], [5, 6]],
+    squad: { t64: [3, 4], atgm: [4, 2], d30: [2, 6] },
+    enemies: [['t72', 3, 0], ['btr', 4, 0], ['vdv', 2, 0]],
+    waves: [
+      { turn: 1, units: [['mi8', 5, 4]] },
+      { turn: 2, units: [['btr', 3, 0], ['t72', 4, 0]] },
+      { turn: 3, units: [['ka52', 7, 0], ['btr', 3, 0]] },
+      { turn: 4, units: [['mi8', 1, 4], ['t72', 3, 0]] },
+    ],
+    exit: [[0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6], [0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],
+    exitWho: 'ground',
+    barrage: null,
+    objectives: [
+      { id: 'bug', kind: 'primary', text: '过河的敌军不超过 1 个', reward: 5, eval: B => ({ cur: B.stats.escaped, max: 1, inverse: true }) },
+      { id: 'heli', kind: 'bonus', text: '击落 1 架米-8', reward: 2, eval: B => ({ cur: B.stats.killed.mi8 || 0, max: 1 }) },
+      { id: 'armor', kind: 'bonus', text: '击毁 5 辆装甲车辆', reward: 1, eval: B => ({ cur: B.stats.armor, max: 5 }) },
+      { id: 'town', kind: 'bonus', text: '民用建筑被击中不超过 2 次', reward: 1, eval: B => ({ cur: B.stats.bldHit, max: 2, inverse: true }) },
+    ],
+    brief: [
+      ['oksana', '“向日葵”，俄军从赫尔松方向北上，想在沃兹涅先斯克渡过南布格河。过了河，就是通往南乌克兰核电站的路。'],
+      ['mykola', '镇上的人把拖拉机横在路口，把沙袋堆上了桥头。我们总不能比他们还软。'],
+      ['ivanna', '桥头那段路我已经标好了。直升机要是在河边降落，也在我的射界里。'],
+      ['taras', '他们会从天上来，也会从河里游过来。BTR 可不怕水。'],
+      ['oksana', '任务：守住南布格河，别让他们过河。镇上的居民还没走。'],
+    ],
+    tips: ['敌军地面单位走到河对岸（最下面两排）就算过河，步兵也算。', 'BTR 是两栖的，可以不走桥，直接渡河。', '米-8 会在预告的位置降落，放下空降兵。击落它，或者占住降落点。'],
+    outcome: {
+      win: '3月3日，俄军丢下大批车辆，从沃兹涅先斯克撤了出去。向核电站推进的企图落空了。',
+      partial: '俄军在镇边架起了渡口。南布格河防线被迫后撤。',
+    },
+    consequence: () => null,
+  },
+  {
+    id: 'odesa', code: '2-2', name: '敖德萨湾', date: '2022年4月上旬 夜间', place: '敖德萨州 · 敖德萨湾', slots: 5, pool: ['t64', 'atgm', 'neptune', 'tdf', 'bmp2'],
     chapter: 1, mapPos: [0.56, 0.54], turns: 4, face: { ua: [0, 1], ru: [0, -1] }, arrival: { type: 'neptune', text: '海岸导弹营调来一辆“海王星”发射车。' },
     map: ['b.h.fbh.', '.h.r.h.f', 'rrrrrrrr', '.f..h..f', 'ssssssss', 'oooooooo', 'oooooooo', 'oooooooo'],
     deploy: [[0, 1], [2, 1], [4, 1], [6, 1], [0, 3], [2, 3], [3, 3], [5, 3], [6, 3], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2]],
@@ -257,14 +293,15 @@ const RANKS = [
 const rankOf = xp => { let r = RANKS[0]; for (const t of RANKS) if ((xp || 0) >= t.xp) r = t; return r; };
 
 const PROLOGUE2 = [
-  '2022年3月，黑海。',
+  '2022年3月，南方。',
+  '俄军从克里米亚北上，占领赫尔松后兵分两路：一路扑向米科拉伊夫，一路绕向北面的南布格河渡口。',
   '俄罗斯黑海舰队封锁了乌克兰的港口，登陆舰在敖德萨外海游弋。',
   '敖德萨人把沙袋堆上海滩，在港口入口布下水雷。',
   '“向日葵”特遣队被调往南方。',
 ];
 const CHAPTERS = [
   { name: '战区一 · 基辅之冬', sub: '基辅州战略态势 · 2022年2–3月', geo: 'kyiv', prologue: PROLOGUE, epilogue: EPILOGUE },
-  { name: '战区二 · 黑海', sub: '敖德萨州沿海 · 2022年3–10月', geo: 'odesa', prologue: PROLOGUE2, epilogue: [] },
+  { name: '战区二 · 黑海', sub: '米科拉伊夫州与敖德萨州沿海 · 2022年3–5月', geo: 'odesa', prologue: PROLOGUE2, epilogue: [] },
 ];
 const chapterOf = mi => MISSIONS[mi] ? MISSIONS[mi].chapter : CHAPTERS.length - 1;
 
