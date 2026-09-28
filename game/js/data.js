@@ -268,6 +268,39 @@ const MISSIONS = [
     },
     consequence: () => null,
   },
+  {
+    id: 'zmiinyi', code: '2-3', name: '蛇岛', date: '2022年5月7日 清晨', place: '黑海 · 蛇岛', slots: 3, pool: [], loan: ['tb2u', 'tb2u', 'tb2u'],
+    chapter: 1, mapPos: [0.66, 0.9], turns: 4, face: { ua: [1, 0], ru: [-1, 0] },
+    map: ['oooooooo', 'oooooooo', 'oookkkoo', 'ookLkkoo', 'ookkkkoo', 'oookkooo', 'oooooooo', 'oooooooo'],
+    deploy: [[0, 5], [0, 6], [0, 7], [1, 6], [1, 7], [2, 7], [1, 5], [2, 6]],
+    squad: {},
+    enemies: [['tor', 4, 3], ['vdv', 3, 4], ['vdv', 5, 2], ['raptor', 6, 5], ['raptor', 1, 2]],
+    waves: [
+      { turn: 1, units: [['serna', 7, 4]] },
+      { turn: 2, units: [['mi8', 7, 1]] },
+      { turn: 3, units: [['serna', 0, 3], ['raptor', 7, 6]] },
+    ],
+    barrage: null,
+    objectives: [
+      { id: 'sam', kind: 'primary', text: '摧毁“托尔”防空系统', reward: 5, eval: B => ({ cur: B.stats.killed.tor || 0, max: 1 }) },
+      { id: 'serna', kind: 'bonus', text: '击沉 1 艘登陆艇', reward: 2, eval: B => ({ cur: B.stats.killed.serna || 0, max: 1 }) },
+      { id: 'mi8', kind: 'bonus', text: '击落米-8', reward: 1, eval: B => ({ cur: B.stats.killed.mi8 || 0, max: 1 }) },
+      { id: 'light', kind: 'bonus', text: '灯塔完好', reward: 1, eval: B => ({ cur: countTiles(B, t => t.t === 'L' && t.hp === t.max), max: 1 }) },
+    ],
+    brief: [
+      ['oksana', '五月初，俄军在蛇岛上架起了“托尔”防空系统。他们想把这块礁石变成封锁敖德萨的哨所。'],
+      ['yurii', '三架 TB2 已经在航线上。每架两枚 MAM-L，打完就得回家。'],
+      ['dmytro', '登陆艇每天清晨给岛上送人送弹药。今天也有一艘在路上。'],
+      ['yurii', '“托尔”锁定我们只要几秒。它瞄准哪一格，我们就别待在那一格。'],
+      ['oksana', '任务：先打掉防空，再断它的补给。灯塔是岛上的地标，尽量别碰它。'],
+    ],
+    tips: ['“托尔”会提前锁定一架 TB2 所在的格子。开火前把那架飞机移走，导弹就会落空。', '每架 TB2 带 2 枚 MAM-L 制导炸弹，只能攻击 2 格以内的目标。', '巡逻艇的机枪也能打到低空的无人机。登陆艇靠岸后会放下空降兵，然后离开。'],
+    outcome: {
+      win: '乌军公布的 TB2 视频里，蛇岛旁的登陆艇和岛上的防空系统相继被击中。6月30日，俄军撤出了蛇岛。',
+      partial: '岛上的防空还在。无人机只能远远绕开这片海。',
+    },
+    consequence: () => null,
+  },
 ];
 
 // ---------- campaign upgrades ----------
@@ -307,9 +340,15 @@ const PROLOGUE2 = [
   '敖德萨人把沙袋堆上海滩，在港口入口布下水雷。',
   '“向日葵”特遣队被调往南方。',
 ];
+const EPILOGUE2 = [
+  '6月30日，俄军撤出蛇岛。',
+  '7月7日，乌克兰国旗重新在岛上升起。',
+  '7月22日，经土耳其和联合国斡旋，乌克兰粮食的黑海出口通道开放。',
+  '南方的海岸守住了。战争还远没有结束。',
+];
 const CHAPTERS = [
   { name: '战区一 · 基辅之冬', sub: '基辅州战略态势 · 2022年2–3月', geo: 'kyiv', prologue: PROLOGUE, epilogue: EPILOGUE },
-  { name: '战区二 · 黑海', sub: '米科拉伊夫州与敖德萨州沿海 · 2022年3–5月', geo: 'odesa', prologue: PROLOGUE2, epilogue: [] },
+  { name: '战区二 · 黑海', sub: '米科拉伊夫州与敖德萨州沿海 · 2022年3–5月', geo: 'odesa', prologue: PROLOGUE2, epilogue: EPILOGUE2 },
 ];
 const chapterOf = mi => MISSIONS[mi] ? MISSIONS[mi].chapter : CHAPTERS.length - 1;
 

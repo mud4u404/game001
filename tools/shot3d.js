@@ -26,7 +26,6 @@ fs.mkdirSync(out, { recursive: true });
       SPEED = 0.01; CAMP = freshCamp(); CAMP.mission = mi; CAMP.aid = 40;
       for (const t of MISSIONS[mi].pool) if (!CAMP.roster.some(r => r.type === t)) CAMP.roster.push({ rid: CAMP.nextRid++, type: t, wrecked: false, xp: 0 });
       showBriefing(); showMissionCard();
-      picked = CAMP.roster.filter(r => MISSIONS[mi].pool.includes(r.type)).slice(0, MISSIONS[mi].slots);
       renderPick();
     }, m);
     await page.click('#btnDeploy'); await page.waitForTimeout(4000);

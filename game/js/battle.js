@@ -203,7 +203,7 @@ function threats() {
   for (const b of B.barrage) out.push({ x: b.x, y: b.y, w: 'msta', barrage: true });
   return out;
 }
-function landable(x, y) { const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R', 'k'].includes(t.t); }
+function landable(x, y) { if (!inB(x, y)) return false; const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R', 'k'].includes(t.t); }
 
 function scoreAttack(e, tiles) {
   let s = 0;
