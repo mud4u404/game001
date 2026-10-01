@@ -383,6 +383,7 @@ function renderHud() {
           <span class="key">${i + 1}</span><span class="wn">${esc(w.name)}${ammo != null ? `<b class="ammo">${ammo}</b>` : ''}</span><span class="wd">${esc(w.desc)}</span></button>`;
       }).join('')}</div>
       ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}
+      <div class="ucTouch"><button type="button" class="btn" id="btnTbCancel">取消</button><button type="button" class="btn" id="btnTbNext">下一单位</button></div>
       <div class="keys">1 / 2 选武器 · Z 撤销移动 · Tab 下一个单位 · 右键或 Esc 取消</div>`;
   } else card.hidden = true;
   renderTip();
@@ -487,6 +488,14 @@ async function onBoardClick(ev) {
   sel = null; mode = null; wsel = null;
   renderHud();
 }
+function cycleUnit(back) {
+  if (!B) return;
+  const list = B.squad.map(rec => B.units.find(v => v.rid === rec.rid && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
+  if (!list.length) return;
+  const i = list.findIndex(v => v.id === sel);
+  selectUnit(back ? list[(i <= 0 ? list.length : i) - 1] : list[(i + 1) % list.length]);
+  renderHud();
+}
 function cancel() {
   if (mode === 'support') mode = null;
   else if (mode === 'target') { const u = B.units.find(v => v.id === sel); mode = u && !u.moved ? 'move' : null; }
@@ -501,6 +510,8 @@ stage.addEventListener('mousemove', ev => {
 });
 stage.addEventListener('mouseleave', () => { hover = null; renderTip(); });
 stage.addEventListener('click', onBoardClick);
+document.addEventListener('touchstart', () => AUDIO.init(), { once: true, passive: true });
+$('rotate').addEventListener('click', () => { $('rotate').hidden = true; });
 stage.addEventListener('contextmenu', ev => { ev.preventDefault(); if (SCENE === 'battle') cancel(); });
 document.addEventListener('keydown', ev => {
   if (ev.isComposing) return;
@@ -511,14 +522,7 @@ document.addEventListener('keydown', ev => {
   if ((ev.key === '1' || ev.key === '2') && u && u.team === 'ua') { const wid = U(u).weapons[+ev.key - 1]; if (wid) armWeapon(wid); }
   const k = ev.key.toLowerCase();
   if (busy || (B.phase !== 'player' && B.phase !== 'deploy')) return;
-  if (k === 'tab') {
-    ev.preventDefault();
-    const list = B.squad.map(rec => B.units.find(v => v.rid === rec.rid && v.team === 'ua' && !v.dead && !v.acted)).filter(Boolean);
-    if (!list.length) return;
-    const i = list.findIndex(v => v.id === sel);
-    selectUnit(ev.shiftKey ? list[(i <= 0 ? list.length : i) - 1] : list[(i + 1) % list.length]);
-    renderHud();
-  }
+  if (k === 'tab') { ev.preventDefault(); cycleUnit(ev.shiftKey); }
   else if (k === 'z') undoMove();
   else if (k === 'e' && B.phase === 'player') requestEndTurn();
   else if (k === 't' && B.phase === 'player' && B.tb2Left > 0) { mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); }
@@ -677,6 +681,8 @@ $('roster').addEventListener('click', ev => { const b = ev.target.closest('[data
 $('unitCard').addEventListener('click', ev => {
   const w = ev.target.closest('[data-wid]'); if (w) { armWeapon(w.dataset.wid); return; }
   if (ev.target.closest('#btnUndo')) undoMove();
+  if (ev.target.closest('#btnTbCancel')) cancel();
+  if (ev.target.closest('#btnTbNext')) cycleUnit(false);
 });
 $('shop').addEventListener('click', ev => {
   const b = ev.target.closest('[data-up]'); if (b) { buy(b.dataset.up); return; }

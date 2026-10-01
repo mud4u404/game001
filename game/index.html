@@ -1,3 +1,7 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>向日葵防线</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -235,6 +239,43 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .up .ucost{font-size:12px;color:var(--sun);font-weight:700}
 .dbgo{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---------- touch / mobile ---------- */
+.ucTouch{display:none;gap:8px}
+.ucTouch .btn{flex:1;min-height:42px}
+#rotate{position:fixed;inset:0;z-index:99;background:rgba(5,8,11,.97);display:none;place-items:center;text-align:center}
+#rotate>div{display:grid;gap:12px;justify-items:center}
+#rotate .ph{font-size:18px;letter-spacing:.25em}
+#rotate p{color:var(--dim);font-size:13px;margin:0}
+@media (pointer:coarse){
+  .ucTouch{display:flex}
+  .keys{display:none}
+  html,body{overscroll-behavior:none}
+  #stage{touch-action:none}
+  button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .hl{left:calc(14px + env(safe-area-inset-left))}
+  .hr{right:calc(14px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top))}
+  .hbr{right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom))}
+  #unitCard{left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom))}
+}
+@media (pointer:coarse) and (max-height:520px){
+  html{font-size:12px}
+  .cside{width:min(300px,38vw);overflow-y:auto}
+  .cside .panel{padding:10px 12px;gap:8px}
+  .mrow{padding:5px 0}
+  .ctop h2{font-size:22px}
+  #bCard{max-height:calc(100vh - 20px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #bCard{padding:14px 16px;gap:12px 18px}
+  #bDialog{padding:12px 14px;gap:12px}
+  #bDialog .pf{width:72px;height:72px}
+  #dText{font-size:14px}
+  .rchip .pf{width:30px;height:30px}
+  #unitCard{width:min(360px,50vw)}
+  .btn.big{padding:10px 22px;font-size:15px}
+  #btnEnd{min-width:120px;font-size:15px}
+}
+@media (orientation:portrait) and (pointer:coarse){
+  #rotate{display:grid}
+}
 @media (max-width:900px){
   .db{grid-template-columns:1fr}
   .cside{width:min(360px,52vw)}
@@ -352,6 +393,7 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 </section>
 
 
+<div id="rotate"><div><span class="ph">请横屏游玩</span><p>把手机横过来体验完整战场 · 轻触这里仍以竖屏继续</p></div></div>
 <script src="vendor/three.min.js"></script>
 <script src="js/util.js"></script>
 <script src="js/gfx.js"></script>
