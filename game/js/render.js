@@ -12,11 +12,13 @@ const FIRE = ['#fff6c8', '#ffd35a', '#ff9a2e', '#e8521f', '#7a2a14'];
 function explode(x, y, size, alt) {
   const [cx, cy0] = center(x, y), cy = cy0 - (alt || 0) - 6;
   FLASH.push({ x: cx, y: cy, r: 10 + size * 10, life: 10, max: 10 });
+  if (typeof flash3D === 'function') flash3D(x, y, size, alt);
+  if (typeof smokeBurst3D === 'function') smokeBurst3D(x, y, size);
   for (let i = 0; i < 12 * size; i++) {
     const a = Math.random() * Math.PI * 2, s = 0.6 + Math.random() * (1.2 + size);
     addP({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6 - 0.8, drag: 0.9, life: 14 + Math.random() * 16, kind: 'fire', s: 3 + Math.floor(Math.random() * 3) });
   }
-  for (let i = 0; i < 6 * size; i++) addP({ x: cx + (Math.random() - 0.5) * 16, y: cy - Math.random() * 8, vx: (Math.random() - 0.5) * 0.6, vy: -0.3 - Math.random() * 0.6, drag: 0.97, life: 50 + Math.random() * 40, kind: 'smoke', s: 4, grow: 0.12 });
+  if (!HD) for (let i = 0; i < 6 * size; i++) addP({ x: cx + (Math.random() - 0.5) * 16, y: cy - Math.random() * 8, vx: (Math.random() - 0.5) * 0.6, vy: -0.3 - Math.random() * 0.6, drag: 0.97, life: 50 + Math.random() * 40, kind: 'smoke', s: 4, grow: 0.12 });
   for (let i = 0; i < 5 * size; i++) {
     const a = -Math.PI * Math.random();
     addP({ x: cx, y: cy, vx: Math.cos(a) * (1 + Math.random() * 3), vy: Math.sin(a) * (2 + Math.random() * 3), g: 0.25, life: 40, kind: 'debris', s: 2, c: pick(['#2a2622', '#4a4038', '#6b5f52']), ground: cy0 + (Math.random() - 0.5) * 12 });
@@ -31,9 +33,9 @@ function splashAt(x, y) {
   for (let i = 0; i < 30; i++) addP({ x: cx + (Math.random() - 0.5) * 30, y: cy - 4, vx: (Math.random() - 0.5) * 2.4, vy: -2 - Math.random() * 3.6, g: 0.18, life: 40, kind: 'p', s: 2 + (i % 2), c: i % 2 ? '#9cc7e0' : '#ffffff', ground: cy + 4 });
   AUDIO.splash();
 }
-function floatText(x, y, text, color, alt) {
+function floatText(x, y, text, color, alt, big) {
   const [cx, cy] = center(x, y);
-  FLOATS.push({ x: cx, y: cy - (alt || 0) - 34, text, color, life: 70, max: 70 });
+  FLOATS.push({ x: cx, y: cy - (alt || 0) - 34, text, color, life: big ? 100 : 70, max: big ? 100 : 70, big });
 }
 function fly(o) {
   // o: {x0,y0,x1,y1,dur,arc,kind,ctrl:[x,y]}
@@ -216,6 +218,22 @@ async function animLanding(e) {
   e.dead = true;
   B.units = B.units.filter(u => u !== e);
 }
+
+async function animSeaLanding(e) {
+  AUDIO.noiseBurst(1.2, 600, 200, 1, 0.3);
+  let n = 0;
+  for (const [dx, dy] of DIRS) {
+    if (n >= 2) break;
+    const x = e.x + dx, y = e.y + dy;
+    if (!inB(x, y) || unitAt(x, y) || !landable(x, y)) continue;
+    const v = mkUnit('vdv', x, y); v.face = [dx, dy];
+    B.units.push(v); n++;
+    await tween(260, k => { v.alpha = k; v.rx = lerp(e.x, x, k); v.ry = lerp(e.y, y, k); });
+  }
+  toast(n ? `登陆艇放下了 ${n} 个空降兵班` : '登陆艇找不到靠岸点，撤离', n ? 'bad' : 'good');
+  await tween(400, k => { e.alpha = 1 - k; });
+  B.units = B.units.filter(u => u !== e);
+}
 async function animArrive(n) {
   if (isAir(n)) { n.alpha = 0; await tween(500, k => { n.alpha = k; n.rz = (1 - k) * 60; }); return; }
   dust(n.x, n.y, 8);
@@ -231,6 +249,7 @@ const TCOL = {
   f:   ['#5f5e42', '#4a3d2d', '#5c4b37'],
   B:   ['#85827a', '#4a3d2d', '#5c4b37'],
   w:   ['#2f6a92', '#1a3a50', '#224860'],
+  k:   ['#7e8a90', '#1a3a50', '#224860'],
   o:   ['#24587d', '#15334a', '#1b4260'],
   s:   ['#c9b88a', '#4a3d2d', '#5c4b37'],
 };
@@ -391,15 +410,21 @@ function drawUnit(u, t) {
   g.globalAlpha = u.alpha;
   if (u.team !== 'civ') {
     const tw = u.max * 8 - 2, hx = sx - Math.floor(tw / 2), hy = Math.round(sy + top - 12);
-    R(hx - 2, hy - 2, tw + 4, 9, '#0b1210');
-    for (let i = 0; i < u.max; i++) {
-      R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
-      if (i < u.hp) R(hx + i * 8, hy, 6, 1, u.team === 'ua' ? '#b8f59a' : '#ffb3a3');
+    if (HD) {
+      rrect(hx - 2, hy - 2, tw + 4, 9, 3); g.fillStyle = 'rgba(11,18,16,.85)'; g.fill();
+      for (let i = 0; i < u.max; i++) { rrect(hx + i * 8, hy, 6, 5, 1.5); g.fillStyle = i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33'; g.fill(); }
+    } else {
+      R(hx - 2, hy - 2, tw + 4, 9, '#0b1210');
+      for (let i = 0; i < u.max; i++) {
+        R(hx + i * 8, hy, 6, 5, i < u.hp ? (u.team === 'ua' ? '#7bd650' : '#ff6b4f') : '#2a3a33');
+        if (i < u.hp) R(hx + i * 8, hy, 6, 1, u.team === 'ua' ? '#b8f59a' : '#ffb3a3');
+      }
     }
     const on = actionOrder(u);
     if (on) {
       const bw = on >= 10 ? txtW(on, 2) + 6 : 14, bx = hx - 6 - bw, by = hy - 5;
-      R(bx, by, bw, 14, '#c9d2d8'); R(bx + 1, by + 1, bw - 2, 12, '#0f1821');
+      if (HD) { rrect(bx, by, bw, 14, 3); g.fillStyle = '#c9d2d8'; g.fill(); rrect(bx + 1, by + 1, bw - 2, 12, 2.5); g.fillStyle = '#0f1821'; g.fill(); }
+      else { R(bx, by, bw, 14, '#c9d2d8'); R(bx + 1, by + 1, bw - 2, 12, '#0f1821'); }
       txt(on, bx + (bw - txtW(on, 2)) / 2, by + 2, '#ffffff', 2);
     }
   }
@@ -493,9 +518,9 @@ function renderBattle(now, opts) {
   // burning wrecks and damaged buildings keep smoking
   if (!reduced && Math.random() < 0.5) for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
     const tl = TILEAT(x, y), [cx, cy] = center(x, y);
-    if (tl.wreck && Math.random() < 0.12) addP({ x: cx + (Math.random() - 0.5) * 12, y: cy - 10, vx: 0.25, vy: -0.5, drag: 0.99, life: 90, kind: 'smoke', s: 3, grow: 0.08, c: '#2b2b2b' });
+    if (!HD && tl.wreck && Math.random() < 0.12) addP({ x: cx + (Math.random() - 0.5) * 12, y: cy - 10, vx: 0.25, vy: -0.5, drag: 0.99, life: 90, kind: 'smoke', s: 3, grow: 0.08, c: '#2b2b2b' });
     if (tl.wreck && Math.random() < 0.08) addP({ x: cx + (Math.random() - 0.5) * 10, y: cy - 8, vx: 0, vy: -0.6, life: 14, kind: 'fire', s: 2 });
-    if (BLD[tl.t] && tl.hp < tl.max && Math.random() < 0.1) addP({ x: cx + (Math.random() - 0.5) * 20, y: cy - (tl.hp > 0 ? (tl.t === 'b' ? 44 : 26) : 8), vx: 0.3, vy: -0.6, drag: 0.99, life: 90, kind: 'smoke', s: 4, grow: 0.08, c: '#303030' });
+    if (!HD && BLD[tl.t] && tl.hp < tl.max && Math.random() < 0.1) addP({ x: cx + (Math.random() - 0.5) * 20, y: cy - (tl.hp > 0 ? (tl.t === 'b' ? 44 : 26) : 8), vx: 0.3, vy: -0.6, drag: 0.99, life: 90, kind: 'smoke', s: 4, grow: 0.08, c: '#303030' });
   }
 }
 function drawIntents(pulse) {
@@ -508,10 +533,15 @@ function drawIntents(pulse) {
       if (a.land) { badge(tx, ty - 4, '!', '#3a1a06', '#ff8a3a', '#ffe0c0'); continue; }
       const w = WEAPONS[a.w];
       if (w.kind === 'grad') {
-        for (let i = 1; i < 20; i++) { const k = i / 20, x = ex + (tx - ex) * k, y = ey - 6 + (ty - ey) * k - Math.sin(k * Math.PI) * 80; if (i % 2) { R(x - 1, y - 1, 5, 5, '#0a0f14'); R(x, y, 3, 3, '#ff6a4a'); } }
+        for (let i = 1; i < 20; i++) { const k = i / 20, x = ex + (tx - ex) * k, y = ey - 6 + (ty - ey) * k - Math.sin(k * Math.PI) * 80; if (i % 2) { if (HD) { disc(x + 1.5, y + 1.5, 2.6, '#0a0f14'); disc(x + 1.5, y + 1.5, 1.6, '#ff6a4a'); } else { R(x - 1, y - 1, 5, 5, '#0a0f14'); R(x, y, 3, 3, '#ff6a4a'); } } }
       } else if (w.kind === 'line') {
         const n = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
-        for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); const lift = isAir(e) ? unitAlt(e) * (1 - i / n) : 0; R(px - 4, py - 4 - lift, 8, 8, '#0a0f14'); R(px - 3, py - 3 - lift, 6, 6, '#ff5a3a'); }
+        for (let i = 1; i < n; i++) { const [px, py] = center(e.x + e.aim.dir[0] * i, e.y + e.aim.dir[1] * i); const lift = isAir(e) ? unitAlt(e) * (1 - i / n) : 0; if (HD) { disc(px, py - lift, 4.2, '#0a0f14'); disc(px, py - lift, 3, '#ff5a3a'); } else { R(px - 4, py - 4 - lift, 8, 8, '#0a0f14'); R(px - 3, py - 3 - lift, 6, 6, '#ff5a3a'); } }
+      } else if (w.kind === 'aa') {
+        // 防空锁定：连线指向锁定的格子，玩家移开就落空
+        line(ex + 4, ey - 4, tx + 2, ty - 2, '#0a0f14', 5);
+        line(ex + 4, ey - 4, tx + 2, ty - 2, '#ff4a2b', 2);
+        if (HD) { disc(tx + 2, ty - 2, 3, '#ff6a4a'); }
       } else {
         const [vx, vy] = screenDir(e.aim.dir);
         line(ex + vx * 12, ey - 6 + vy * 12, ex + vx * 30, ey - 2 + vy * 30, '#0a0f14', 5);
@@ -531,7 +561,7 @@ function drawIntents(pulse) {
 }
 function drawFx(now) {
   for (const p of PROJ) {
-    if (p.kind === 'tb2') { blit(sprite('tb2', mTB2, [1, 0]), p.x, p.y); continue; }
+    if (p.kind === 'tb2') { if (!HD) blit(sprite('tb2', mTB2, [1, 0]), p.x, p.y); continue; }
     const [x, y] = projPos(p, p.k), [bx, by] = projPos(p, Math.max(0, p.k - 0.06));
     if (p.kind === 'shell') { line(bx, by, x, y, '#fff1b0', 2); R(x - 2, y - 2, 4, 4, '#ffffff'); }
     else if (p.kind === 'tracer') { line(bx, by, x, y, '#ffcf5a', 2); }
@@ -560,17 +590,18 @@ function drawFx(now) {
     if (p.kind === 'smoke') { g.globalAlpha = Math.min(0.75, k * 1.2); c = c || '#5a5a5a'; }
     else g.globalAlpha = Math.min(1, k * 2);
     const s = Math.round(p.s);
-    R(p.x - s / 2, p.y - s / 2, s, s, c);
+    if (HD) disc(p.x, p.y, p.kind === 'smoke' ? p.s * 0.75 : p.s * 0.55, c);
+    else R(p.x - s / 2, p.y - s / 2, s, s, c);
   }
   g.globalAlpha = 1;
-  g.font = 'bold 12px "Noto Sans SC", sans-serif';
   for (let i = FLOATS.length - 1; i >= 0; i--) {
     const f = FLOATS[i]; f.life--;
     if (f.life <= 0) { FLOATS.splice(i, 1); continue; }
     const k = 1 - f.life / f.max, y = f.y - EASE.out(Math.min(1, k * 2)) * 16;
-    g.globalAlpha = f.life < 20 ? f.life / 20 : 1;
-    if (/^[-+0-9]+$/.test(f.text)) { const w = txtW(f.text, 3); txt(f.text, f.x - w / 2 + 2, y + 2, '#0a0f14', 3); txt(f.text, f.x - w / 2, y, f.color, 3); }
-    else { g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - 12 + 1, y + 11); g.fillStyle = f.color; g.fillText(f.text, f.x - 12, y + 10); }
+    g.globalAlpha = f.life < (f.big ? 28 : 20) ? f.life / (f.big ? 28 : 20) : 1;
+    g.font = `bold ${f.big ? 19 : 12}px "Noto Sans SC", sans-serif`;
+    if (/^[-+0-9]+$/.test(f.text)) { const kk = f.big ? 5 : 3; const w = txtW(f.text, kk); txt(f.text, f.x - w / 2 + 3, y + 3, '#0a0f14', kk); txt(f.text, f.x - w / 2, y, f.color, kk); }
+    else { const tw = g.measureText(f.text).width / 2; g.fillStyle = '#0a0f14'; g.fillText(f.text, f.x - tw + 2, y + 13); g.fillStyle = f.color; g.fillText(f.text, f.x - tw, y + 10); }
     g.globalAlpha = 1;
   }
 }
@@ -579,5 +610,5 @@ function drawFx(now) {
 const flakes = Array.from({ length: 140 }, () => ({ x: Math.random() * 2000, y: Math.random() * 1200, s: 0.3 + Math.random() * 0.7, p: Math.random() * 6, z: Math.random() < 0.3 ? 2 : 1 }));
 function drawSnow(t) {
   if (reduced) return;
-  for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.25; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } if (f.x < W) R(f.x, f.y, f.z, f.z, 'rgba(235,242,248,.8)'); }
+  for (const f of flakes) { f.y += f.s; f.x += Math.sin(t + f.p) * 0.25; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } if (f.x < W) { if (HD) disc(f.x, f.y, f.z * 0.55, 'rgba(235,242,248,.75)'); else R(f.x, f.y, f.z, f.z, 'rgba(235,242,248,.8)'); } }
 }

@@ -74,6 +74,9 @@ const BARKS = {
   crater: [['ivanna', '跑道上又多了一个坑。']],
   evac: [['oksana', '又一批人过了河。继续守住那条路。']],
   cmd: [['oksana', '指挥车被摧毁，他们的无线电全乱了。']],
+  drown: [['mykola', '它掉进河里了。水比炮弹还凉。'], ['taras', '伊尔平河替我们收下了。']],
+  friendly: [['radio', '“……停火！停火！你们打到自己人了！……”'], ['oksana', '他们在打自己人。保持这个位置。']],
+  multi: [['mykola', '一发，两个。'], ['ivanna', '落点正中，两个目标。']],
   hurt: { t64: [['mykola', '装甲还扛得住……再挨一发就不行了。']], atgm: [['taras', '我们被压制了，快掩护我们！']], d30: [['ivanna', '炮位中弹！还能打，但撑不了多久。']] },
 };
 let radioT = null;
@@ -90,6 +93,7 @@ function bark(kind, u) {
   if (!pool) return;
   if (kind === 'turn' && Math.random() < 0.45) return;
   if (kind === 'crater') { if (B.said.crater) return; B.said.crater = 1; }
+  if (kind === 'drown' || kind === 'friendly' || kind === 'multi') { if (B.said[kind]) return; B.said[kind] = 1; }
   if (kind === 'hurt') { const k = 'hurt' + u.id; if (B.said[k]) return; B.said[k] = 1; }
   const [who, text] = pick(pool);
   radio(who, text);
@@ -146,11 +150,11 @@ const GEOS = {
   odesa: {
     border: [[0, 0.3], [0.12, 0.45], [0.2, 0.62], [0.24, 0.78], [0.27, 0.88]],
     water: [[[1, 0.33], [0.8, 0.4], [0.64, 0.46], [0.56, 0.56], [0.46, 0.66], [0.36, 0.76], [0.3, 0.86], [0.26, 1], [1, 1]]],
-    rivers: [[[[0.14, 0.2], [0.22, 0.4], [0.34, 0.6], [0.4, 0.66]], 3], [[[0.88, 0], [0.9, 0.18], [0.92, 0.32]], 4]],
+    rivers: [[[[0.14, 0.2], [0.22, 0.4], [0.34, 0.6], [0.4, 0.66]], 3], [[[0.8, 0], [0.86, 0.06], [0.9, 0.18], [0.92, 0.32]], 4]],
     labels: [['摩尔多瓦', 0.03, 0.2, '#9aa3a8'], ['乌克兰', 0.3, 0.12, '#7f8f84'], ['黑海', 0.72, 0.75, '#7fb0cc']],
     ticks: ['46°30′N', '30°45′E'],
-    cities: [['敖德萨', 0.56, 0.54, 3], ['尤日内', 0.65, 0.44, 1], ['米科拉伊夫', 0.9, 0.2, 2], ['比尔戈罗德', 0.4, 0.68, 1], ['蛇岛', 0.66, 0.9, 1]],
-    arrows: [[[1, 0.75], [0.8, 0.68], [0.66, 0.62]], [[1, 0.45], [0.96, 0.3], [0.92, 0.22]]],
+    cities: [['沃兹涅先斯克', 0.86, 0.05, 1], ['敖德萨', 0.56, 0.54, 3], ['尤日内', 0.65, 0.44, 1], ['米科拉伊夫', 0.9, 0.2, 2], ['比尔戈罗德', 0.4, 0.68, 1], ['蛇岛', 0.66, 0.9, 1]],
+    arrows: [[[1, 0.75], [0.8, 0.68], [0.66, 0.62]], [[1, 0.45], [0.96, 0.3], [0.92, 0.22]], [[1, 0.3], [0.94, 0.16], [0.88, 0.07]]],
     air: [],
   },
 };
@@ -228,7 +232,7 @@ function showCampaign() {
     <div class="mrow ${k < i ? 'done' : k === i ? 'cur' : 'locked'}">
       <span class="mcode">${m.code}</span>
       <span class="mname">${esc(m.name)}<small>${esc(m.date)}</small></span>
-      <span class="mstate">${k < i ? '已完成' : k === i ? '当前' : '未解锁'}</span>
+      <span class="mstate">${k < i ? '已完成' + (CAMP.best && CAMP.best[m.id] ? ' · ' + CAMP.best[m.id] : '') : k === i ? '当前' : '未解锁'}</span>
     </div>`).join('');
   $('cMission').innerHTML = M ? `
     <div class="mtitle"><span class="mcode big">${M.code}</span><div><h3>${esc(M.name)}</h3><small>${esc(M.date)} · ${esc(M.place)}</small></div></div>
@@ -283,7 +287,9 @@ function showMissionCard() {
     CAMP.roster.push({ rid: CAMP.nextRid++, type: 'tdf', wrecked: false, xp: 0 });
     toast('国土防卫部队补充了一个步兵班', 'good');
   }
-  picked = defaultPicks(M).slice();
+  picked = (M.loan || []).map((type, k) => ({ rid: -(k + 1), type, xp: 0, loan: true })).concat(defaultPicks(M).slice());
+  const freeTdf = CAMP.roster.find(r => r.type === 'tdf' && !r.wrecked && M.pool.includes(r.type));
+  if (freeTdf && !picked.includes(freeTdf) && picked.length < M.slots) picked.push(freeTdf);
   $('bObjs').innerHTML = M.objectives.map(o => `<li class="${o.kind}"><i></i>${esc(o.text)}${o.reward ? `<em>援助 +${o.reward}</em>` : ''}</li>`).join('');
   $('bTips').innerHTML = M.tips.map(t => `<li>${esc(t)}</li>`).join('');
   const enemy = {};
@@ -296,13 +302,17 @@ function showMissionCard() {
 let picked = [];
 function pickCost() {
   const free = picked.findIndex(r => r.type === 'tdf');
-  return picked.reduce((s, r, i) => s + (i === free ? 0 : UNITS[r.type].cost), 0);
+  return picked.reduce((s, r, i) => s + (r.loan || i === free ? 0 : UNITS[r.type].cost), 0);
 }
 function renderPick() {
   const M = MISSIONS[CAMP.mission];
   const free = picked.findIndex(r => r.type === 'tdf');
   $('pickInfo').textContent = `已选 ${picked.length} / ${M.slots} · 出动费 ${pickCost()} · 可用援助 ${CAMP.aid}`;
-  $('pickList').innerHTML = CAMP.roster.map(rec => {
+  $('pickList').innerHTML = (M.loan || []).map((type, k) => {
+    const d = UNITS[type];
+    return `<button type="button" class="rchip pick sel off" disabled>
+      <img class="pf" alt="" src="${pimg(d.pilot)}"><span>${esc(d.short)}</span><em>借调</em></button>`;
+  }).join('') + CAMP.roster.map(rec => {
     const d = UNITS[rec.type], i = picked.indexOf(rec);
     const off = rec.wrecked || !M.pool.includes(rec.type);
     const tag = rec.wrecked ? '损毁' : off ? '不适用' : i === free ? '免费' : d.cost;
@@ -372,7 +382,8 @@ function renderHud() {
         return `<button type="button" class="wep ${mode === 'target' && wsel === wid ? 'on' : ''}" data-wid="${wid}" ${su.acted || empty || B.phase !== 'player' ? 'disabled' : ''}>
           <span class="key">${i + 1}</span><span class="wn">${esc(w.name)}${ammo != null ? `<b class="ammo">${ammo}</b>` : ''}</span><span class="wd">${esc(w.desc)}</span></button>`;
       }).join('')}</div>
-      ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}`;
+      ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}
+      <div class="keys">1 / 2 选武器 · Z 撤销移动 · Tab 下一个单位 · 右键或 Esc 取消</div>`;
   } else card.hidden = true;
   renderTip();
 }
@@ -387,7 +398,7 @@ function renderTip() {
     const d = U(o);
     html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${o.move || d.move}${d.amph ? ' · 两栖' : ''}</p>`;
     if (o.team === 'civ') html += `<p>沿公路撤离，每回合 3 格。能穿过我方单位，会被敌人挡住。</p>`;
-    else if (d.atk === 'land') html += `<p class="threat">下回合：在此降落，放下空降兵</p>`;
+    else if (d.atk === 'land') html += `<p class="threat">${d.mob === 'sea' ? '下回合：靠岸，放下空降兵' : '下回合：在此降落，放下空降兵'}</p>`;
     else if (d.spotter) html += `<p class="threat">为俄军炮兵校射：敌方炮火 +1，并瞄准你的单位</p>`;
     else if (d.atk) { const w = WEAPONS[d.atk]; html += `<p>${esc(w.name)}</p>`; if (o.aim) { const tl = enemyAttackTiles(o); html += tl.length ? `<p class="threat">下回合攻击 ${tl.map(a => coord(a.x, a.y)).join('、')}</p>` : '<p>下回合没有可攻击的目标</p>'; } }
     const on = actionOrder(o);
@@ -509,12 +520,12 @@ document.addEventListener('keydown', ev => {
     renderHud();
   }
   else if (k === 'z') undoMove();
-  else if (k === 'e' && B.phase === 'player') { AUDIO.click(); enemyPhase(); }
+  else if (k === 'e' && B.phase === 'player') requestEndTurn();
   else if (k === 't' && B.phase === 'player' && B.tb2Left > 0) { mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); }
 });
 
 // ---------- debrief & upgrades ----------
-let lastResult = null;
+let lastResult = null, boughtHere = false;
 function showDebrief(res) {
   lastResult = res;
   const M = B.mission;
@@ -528,11 +539,21 @@ function showDebrief(res) {
     $('dbText').textContent = wiped ? '特遣队失去了全部作战单位。可以重新部署，再推演一次这场战斗。' : res.win ? M.outcome.win : M.outcome.partial;
     $('dbObjs').innerHTML = res.objectives.map(o => `<li class="${o.done ? 'ok' : 'bad'}"><i></i><span>${esc(o.text)}</span>${o.reward ? `<em>${o.done ? '援助 +' + o.reward : '—'}</em>` : ''}</li>`).join('');
     const s = res.stats;
+    const opsSum = (s.drown || 0) + (s.bump || 0) + (s.friendly || 0) + (s.multi || 0);
+    const opNote = [['落水', s.drown], ['撞毁', s.bump], ['误伤', s.friendly], ['一石二鸟', s.multi]].filter(([, n]) => n).map(([t, n]) => `${t} ${n}`).join(' · ');
+    const totalAid = M.objectives.reduce((a, o) => a + o.reward, 0) || 1;
+    let score = 60 * res.aid / totalAid + Math.max(0, 25 - 10 * (res.losses || 0));
+    if (s.bldHit === 0) score += 15;
+    score += Math.min(10, opsSum * 2);
+    const grade = res.win ? (score >= 90 ? 'S' : score >= 75 ? 'A' : score >= 55 ? 'B' : 'C') : 'C';
+    res.grade = grade;
+    $('dbTitle').innerHTML += `<span class="grade ${grade}">${grade}</span>`;
     $('dbStats').innerHTML = `
       <div><b class="num">${res.civilians}</b><span>守护的平民</span></div>
       <div><b class="num">${s.kills}</b><span>击毁敌军</span></div>
       <div><b class="num">${s.bldHit}</b><span>建筑被击中</span></div>
-      <div><b class="num">${s.evac}</b><span>平民撤离</span></div>`;
+      <div><b class="num">${s.evac}</b><span>平民撤离</span></div>
+      <div><b class="num">${opsSum}</b><span>精彩操作</span>${opNote ? `<small>${opNote}</small>` : ''}</div>`;
     const notes = [];
     if (res.promotions) for (const line of res.promotions) notes.push(line);
     if (res.consequence) notes.push(res.consequence.text);
@@ -540,8 +561,8 @@ function showDebrief(res) {
     $('dbConseq').textContent = notes.join(' ');
     $('dbConseq').classList.toggle('calm', !res.consequence);
     const retryable = !res.win;
+    boughtHere = false;
     $('btnRetry').hidden = !retryable;
-    $('btnRetry').textContent = '重新部署';
     $('btnNext').textContent = res.win ? (CAMP.mission + 1 >= MISSIONS.length ? '完成战区' : '返回战役地图') : '接受结果，继续';
     renderShop();
   }, 900 * SPEED);
@@ -566,19 +587,20 @@ function renderShop() {
       <span class="uname">${esc(d.name)} <small>#${r.rid}</small></span><span class="udesc">送回后方整修，恢复出战资格。</span><span class="ucost">援助 ${cost}</span></button>`;
   }).join('');
   $('shop').innerHTML = `<div class="shead">升级</div>${ups}<div class="shead">部队</div>${units}<div class="shead">维修</div>${fixes || '<div class="nonerep">没有需要维修的部队。</div>'}`;
+  $('btnRetry').textContent = boughtHere ? '重新部署（撤销本页购买）' : '重新部署';
 }
 function buy(id) {
   const up = UPGRADES.find(u => u.id === id);
   if (!up || CAMP.aid < up.cost) return;
   if ((CAMP.up[id] || 0) >= up.max) return;
   CAMP.up[id] = (CAMP.up[id] || 0) + 1;
-  CAMP.aid -= up.cost; AUDIO.select();
+  CAMP.aid -= up.cost; boughtHere = true; AUDIO.select();
   renderShop();
 }
 function buyUnit(type) {
   const d = UNITS[type];
   if (!d || CAMP.aid < d.price) return;
-  CAMP.aid -= d.price;
+  CAMP.aid -= d.price; boughtHere = true;
   CAMP.roster.push({ rid: CAMP.nextRid++, type, wrecked: false, xp: 0 });
   AUDIO.select();
   renderShop();
@@ -588,10 +610,15 @@ function fixUnit(rid) {
   if (!rec || !rec.wrecked) return;
   const cost = Math.ceil(UNITS[rec.type].price / 2);
   if (CAMP.aid < cost) return;
-  CAMP.aid -= cost; rec.wrecked = false; AUDIO.select();
+  CAMP.aid -= cost; rec.wrecked = false; boughtHere = true; AUDIO.select();
   renderShop();
 }
 function continueCampaign() {
+  CAMP.best = CAMP.best || {};
+  if (lastResult && lastResult.grade) {
+    const mid = MISSIONS[CAMP.mission].id, order = { C: 1, B: 2, A: 3, S: 4 };
+    if (!CAMP.best[mid] || order[lastResult.grade] > order[CAMP.best[mid]]) CAMP.best[mid] = lastResult.grade;
+  }
   // accept the result: units that died in this battle are marked wrecked in the roster
   for (const u of B.units) if (u.team === 'ua' && u.dead && u.rid) { const rec = CAMP.roster.find(r => r.rid === u.rid); if (rec) rec.wrecked = true; }
   for (const rid of B.deadRids || []) { const rec = CAMP.roster.find(r => r.rid === rid); if (rec) rec.wrecked = true; }
@@ -621,7 +648,7 @@ $('btnDeploy').onclick = () => {
   AUDIO.click();
   CAMP.pre = JSON.parse(JSON.stringify(Object.assign({}, CAMP, { pre: null })));
   const free = picked.findIndex(r => r.type === 'tdf');
-  picked.forEach((r, i) => { if (i !== free) CAMP.aid -= UNITS[r.type].cost; });
+  picked.forEach((r, i) => { if (i !== free && !r.loan) CAMP.aid -= UNITS[r.type].cost; });
   newBattle(CAMP.mission, picked);
   beginDeploy();
 };
@@ -632,7 +659,18 @@ $('pickList').addEventListener('click', ev => {
   if (rec) togglePick(rec);
 });
 $('btnStart').onclick = () => { AUDIO.click(); sel = null; mode = null; $('deploy').hidden = true; startBattle(); };
-$('btnEnd').onclick = () => { AUDIO.click(); enemyPhase(); };
+let lastEndPress = 0, endConfirmT = null;
+function requestEndTurn() {
+  AUDIO.click();
+  const N = ua().filter(u => !u.acted).length;
+  const now = performance.now();
+  if (!N || now - lastEndPress < 4000) { lastEndPress = 0; $('btnEnd').classList.remove('confirm'); enemyPhase(); return; }
+  lastEndPress = now;
+  hint(`还有 ${N} 个单位没有行动。再按一次“结束回合”确认。`);
+  $('btnEnd').classList.add('confirm');
+  clearTimeout(endConfirmT); endConfirmT = setTimeout(() => $('btnEnd').classList.remove('confirm'), 4000);
+}
+$('btnEnd').onclick = () => requestEndTurn();
 $('btnReset').onclick = () => { if (B.phase !== 'player' || busy || B.resetLeft <= 0) return; restoreSnapshot(B.snap); sel = null; mode = null; toast('启用作战预案：本回合重新部署', ''); renderHud(); };
 $('btnTB2').onclick = () => { if (B.phase !== 'player' || busy || B.tb2Left <= 0) return; mode = mode === 'support' ? null : 'support'; sel = null; AUDIO.click(); renderHud(); };
 $('roster').addEventListener('click', ev => { const b = ev.target.closest('[data-uid]'); if (!b || busy) return; const u = B.units.find(v => v.id === +b.dataset.uid); if (u) { selectUnit(u); renderHud(); } });

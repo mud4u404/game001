@@ -29,6 +29,8 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 .panel{background:var(--panel);border:2px solid var(--edge);box-shadow:inset 0 0 0 2px var(--ink),0 6px 0 rgba(0,0,0,.35);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));position:relative}
 .panel h4,.ph{margin:0;font-size:11px;letter-spacing:.2em;color:var(--dim);font-weight:500}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;background:#1c2a36;border:2px solid var(--edge);box-shadow:inset 0 0 0 2px var(--ink),0 4px 0 #05080b;font-weight:700;letter-spacing:.06em;transition:transform .08s,background .12s}
+.btn.confirm{border-color:#ff8a2a;box-shadow:inset 0 0 0 2px #ffb066,0 4px 0 #05080b}
+.keys{font-size:11px;color:var(--dim);margin-top:6px}
 .btn:hover:not(:disabled){background:#243747;border-color:#6d8aa2}
 .btn:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 0 0 2px var(--ink),0 2px 0 #05080b}
 .btn:disabled{opacity:.4;cursor:not-allowed}
@@ -212,10 +214,13 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 #dbTitle small{color:var(--dim)}
 #dbTitle .good{color:var(--ok)} #dbTitle .mid{color:var(--sun)} #dbTitle .bad{color:var(--red)}
 #dbText{margin:0;line-height:1.8;color:#d6dee5;font-size:14px}
-#dbStats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#dbStats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 #dbStats div{background:#111b24;border:1px solid var(--edge2);padding:10px;display:grid;gap:2px}
 #dbStats b{font-size:20px;color:var(--sun)}
 #dbStats span{font-size:11px;color:var(--dim)}
+#dbStats small{font-size:10px;color:var(--dim)}
+.grade{font-family:var(--f-disp);font-weight:400;font-size:56px;line-height:1;margin-left:auto}
+.grade.S{color:#f2c230}.grade.A{color:#7bd650}.grade.B{color:#7d8c99}.grade.C{color:#6f7485}
 #dbConseq{margin:0;color:#ff9a7a;font-size:13px;border-left:3px solid var(--red);padding-left:10px}
 #dbConseq.calm{color:#c8f5b0;border-color:var(--ok)}
 .shophead{display:flex;justify-content:space-between;align-items:center}
@@ -311,9 +316,9 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
   <div id="hBottom">
     <div id="unitCard" class="panel" hidden></div>
     <div class="hbr">
-      <button class="btn" id="btnTB2" type="button"></button>
-      <button class="btn" id="btnReset" type="button"></button>
-      <button class="btn primary" id="btnEnd" type="button">结束回合</button>
+      <button class="btn" id="btnTB2" type="button" title="TB2 无人机打击：对任意一格造成 2 点伤害。快捷键 T。"></button>
+      <button class="btn" id="btnReset" type="button" title="作战预案：本回合所有单位回到回合开始时的位置和状态。每场任务 1 次。"></button>
+      <button class="btn primary" id="btnEnd" type="button" title="结束回合，敌军开始行动。快捷键 E。">结束回合</button>
     </div>
   </div>
   <div id="deploy" class="panel" hidden>

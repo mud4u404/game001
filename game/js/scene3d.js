@@ -17,7 +17,7 @@ function init3D() {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(1);
     renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.94;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const scene = new THREE.Scene();
     // soft sky gradient for reflections and fill light
@@ -27,7 +27,7 @@ function init3D() {
     eg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     env.add(new THREE.Mesh(eg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
     scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
-    scene.add(new THREE.HemisphereLight(lin('#dce9f7'), lin('#40362a'), 0.35));
+    scene.add(new THREE.HemisphereLight(lin('#dce9f7'), lin('#40362a'), 0.42));
     // light from the upper left of the screen, as in the old voxel shading
     const sun = new THREE.DirectionalLight(lin('#ffeed8'), 2.3);
     sun.position.set(-40, 90, 50); sun.target.position.set(70, 0, 70);
@@ -46,6 +46,10 @@ function init3D() {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(8 * TS, 8 * TS), new THREE.MeshBasicMaterial({ map: floorTex, transparent: true, depthWrite: false, toneMapped: false }));
     floor.rotation.x = -HALF_PI; floor.position.set(3.5 * TS, 0.12, 3.5 * TS); floor.renderOrder = 2;
     scene.add(floor);
+    // fixed pool of point lights for explosions and burning wrecks (a constant light count avoids shader recompiles)
+    const flashes = [];
+    for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(lin('#ffb257'), 0, 90, 2); scene.add(l); flashes.push({ l, t0: 0, dur: 1, peak: 0 }); }
+    Object.assign(V3, { flashes, fires: [] });
     Object.assign(V3, { on: true, canvas, renderer, scene, cam, sun, bgTex, board, units, floorC, fg, floorTex, tiles: new Map(), objs: new Map(), battle: null, decals: 0 });
   } catch (e) {
     console.warn('3D renderer unavailable, using 2D', e);
@@ -108,7 +112,13 @@ function modelFor(key, build3, buildVox) {
   if (!src) { src = build3 ? build3() : voxGroup('v:' + key, buildVox); MODELCACHE.set(key, src); }
   return src.clone(true);
 }
-function unitModel(type) { return modelFor('u:' + type, MODEL3D[type], UNIT_MODEL[type]); }
+// Hand-built infantry is drawn 1.3x life size so squads stay readable next to vehicles (voxel fallbacks are already oversized).
+const INF_SCALE = 1.3;
+function unitModel(type) {
+  const o = modelFor('u:' + type, MODEL3D[type], UNIT_MODEL[type]);
+  if (MODEL3D[type] && UNITS[type] && UNITS[type].cls === 'inf') o.scale.multiplyScalar(INF_SCALE);
+  return o;
+}
 // Height of a unit model in art px, for placing the HP bar.
 const TOPPX = new Map();
 function unitTopPx(type) {
@@ -161,12 +171,122 @@ function buildingModel(tile, seed) {
 
 // ---------- tiles ----------
 const TILE3 = {
-  '.': '#8c7a55', r: '#6f6e69', R: '#76766f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a',
+  '.': '#8c7a55', r: '#6a6964', R: '#66665f', f: '#5f5e42', w: '#2d6592', o: '#245a82', s: '#c9b88a', d: '#2d6592', B: '#85827a', k: '#6f6a60',
 };
 function tileSig(x, y) {
   const t = TILEAT(x, y);
   return `${t.t}|${t.hp}|${t.crater ? 1 : 0}|${t.wreck ? t.wreck.type + t.wreck.face : ''}`;
 }
+// T-34: ground details per tile type, all deterministic via hash, max 15 meshes per tile.
+function tileDetails(g, x, y, t, seed) {
+  const SNOW = mat3('#edf1f3', 0.75), DKS = mat3('#2d302a', 0.6, 0.3), GLS = mat3('#223044', 0.1, 0.3);
+  const SH = mat3('#55544f', 0.9), POT = mat3('#3c3b37', 1), DSN = mat3('#c9ccc8', 0.85);
+  const FUR = mat3('#6d5c40', 0.95), TUFT = mat3('#8a7a4a', 0.9), LOG = mat3('#5a4632', 0.9), BUSH = mat3('#2f4a33', 0.9);
+  const RIP = mat3('#d6c79c', 0.95), PEB = mat3('#8d8a80', 0.9), DRIFT = mat3('#7a6a58', 0.9), LAMP = mat3('#f2c230', 0.4, 0, { emissive: lin('#f0ad3a'), emissiveIntensity: 0.7 });
+  const NOSEA = (tx, ty) => {
+    if (!inB(tx, ty)) return false;
+    const nt = TILEAT(tx, ty);
+    return !isWater(nt) && nt.t !== 'd';
+  };
+  const flat = (geo, m, px, py, pz, rx, ry, rz) => { const o = part(g, geo, m, px, py, pz, rx, ry, rz); o.castShadow = false; return o; };
+  const edges = [];
+  // grid x is world x, grid y is world z
+  if (NOSEA(x, y - 1)) edges.push([0, -9.3]);
+  if (NOSEA(x, y + 1)) edges.push([0, 9.3]);
+  if (NOSEA(x - 1, y)) edges.push([-9.3, 0]);
+  if (NOSEA(x + 1, y)) edges.push([9.3, 0]);
+  if (isWater(t) || t.t === 'd') {
+    // foam along every land edge, plus a tilted mud bank hiding the seam
+    for (const [ex, ez] of edges) {
+      // an edge at x = +-9.3 runs along z, one at z = +-9.3 along x; the bank rises toward the land side
+      const alongZ = ex !== 0;
+      flat(new THREE.BoxGeometry(alongZ ? 1.2 : 19, 0.12, alongZ ? 19 : 1.2), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.75 }), ex * 0.97, -1.72, ez * 0.97);
+      flat(new THREE.BoxGeometry(alongZ ? 2.2 : 19.4, 0.25, alongZ ? 19.4 : 2.2), mat3('#5a4a36', 0.95), ex * 1.02, -1.55, ez * 1.02, alongZ ? 0 : (ez > 0 ? -0.6 : 0.6), 0, alongZ ? (ex > 0 ? 0.6 : -0.6) : 0);
+    }
+    if (t.t === 'w') for (let k = 0; k < 2 + Math.floor(hash(x, y, 31) * 3); k++) {
+      const ice = flat(cyl(0.8 + hash(x, y, 40 + k) * 1.0, 0.8 + hash(x, y, 41 + k) * 0.8, 0.14, 9), mat3('#dfe9ee', 0.5), -7 + hash(x, y, 42 + k) * 14, -1.75, -7 + hash(y, x, 43 + k) * 14);
+      ice.rotation.y = hash(x, y, 44 + k) * 3;
+    }
+    if (t.t === 'o') for (let k = 0; k < 2 + Math.floor(hash(x, y, 45) * 2); k++)
+      flat(new THREE.BoxGeometry(3 + hash(x, y, 46 + k) * 3, 0.08, 0.4), mat3('#e6eef2', 0.6, 0, { transparent: true, opacity: 0.6 }), -6 + hash(x, y, 50 + k) * 12, -1.7, -6 + hash(y, x, 51 + k) * 12);
+    return;
+  }
+  if (t.t === 'r') {
+    const alongX = isRoadT(x - 1, y) || isRoadT(x + 1, y), alongY = isRoadT(x, y - 1) || isRoadT(x, y + 1);
+    const SH = mat3('#55544f', 0.9), POT = mat3('#3c3b37', 1), DSN = mat3('#c9ccc8', 0.85);
+    if (alongX || !alongY) for (const ez of [-8.8, 8.8]) {
+      flat(new THREE.BoxGeometry(19.6, 0.06, 1.4), SH, 0, 0.04, ez);
+      for (let k = 0; k < 2 + Math.floor(hash(x, y, 60 + ez) * 3); k++) flat(sph(0.5 + hash(x, ez, 61 + k) * 0.45, 10, 6), DSN, -8 + hash(ez, x, 62 + k) * 16, 0.12, ez + (hash(x, y, 63 + k) - 0.5) * 1.4).scale.y = 0.45;
+    }
+    if (alongY || !alongX) for (const ex of [-8.8, 8.8]) {
+      flat(new THREE.BoxGeometry(1.4, 0.06, 19.6), SH, ex, 0.04, 0);
+      for (let k = 0; k < 2 + Math.floor(hash(x, y, 64 + ex) * 3); k++) flat(sph(0.5 + hash(ex, x, 65 + k) * 0.45, 10, 6), DSN, ex + (hash(x, y, 66 + k) - 0.5) * 1.4, 0.12, -8 + hash(ex, y, 67 + k) * 16).scale.y = 0.45;
+    }
+    for (let k = 0; k < Math.floor(hash(x, y, 70) * 3); k++)
+      flat(cyl(0.5 + hash(x, y, 71 + k) * 0.4, 0.6 + hash(x, y, 72 + k) * 0.4, 0.06, 10), POT, -7 + hash(x, y, 73 + k) * 14, 0.05, -7 + hash(y, x, 74 + k) * 14);
+    return;
+  }
+  if (t.t === 'R') {
+    const up = inB(x, y - 1) && TILEAT(x, y - 1).t === 'R', dn = inB(x, y + 1) && TILEAT(x, y + 1).t === 'R';
+    for (const [ez, has] of [[-9.3, !up], [9.3, !dn]]) {
+      if (!has) continue;
+      for (let k = 0; k < 3; k++) {
+        const lx = -6.5 + k * 6.5;
+        flat(cyl(0.09, 0.11, 0.5, 8), DKS, lx, 0.25, ez);
+        part(g, sph(0.16, 10, 8), LAMP, lx, 0.58, ez).castShadow = false;
+      }
+    }
+    return;
+  }
+  if (t.t === '.') {
+    const alongX = hash(x, y, 80) < 0.5, FUR = mat3('#6d5c40', 0.95), TUFT = mat3('#8a7a4a', 0.9);
+    for (let k = 0; k < 3; k++) {
+      const off = -6.5 + k * 6.5 + hash(x, y, 81 + k) * 2;
+      if (alongX) flat(new THREE.BoxGeometry(19, 0.05, 0.9), FUR, 0, 0.03, off);
+      else flat(new THREE.BoxGeometry(0.9, 0.05, 19), FUR, off, 0.03, 0);
+    }
+    for (let k = 0; k < 10; k++) {
+      const tx = -8.5 + hash(x, y, 85 + k) * 17, tz = -8.5 + hash(y, x, 95 + k) * 17;
+      flat(cyl(0.045, 0.14, 0.6 + hash(x, y, 105 + k) * 0.6, 6), TUFT, tx, 0.3 + hash(x, y, 115 + k) * 0.1, tz, (hash(x, y, 116 + k) - 0.5) * 0.3, 0, (hash(y, x, 117 + k) - 0.5) * 0.3);
+    }
+    return;
+  }
+  if (t.t === 'f') {
+    const LOG = mat3('#5a4632', 0.9), BUSH = mat3('#2f4a33', 0.9);
+    const la = hash(x, y, 120) * Math.PI;
+    const log = flat(cyl(0.32, 0.38, 4 + hash(x, y, 121) * 2, 10), LOG, -5 + hash(x, y, 122) * 6, 0.35, -5 + hash(y, x, 123) * 6, 0, 0, HALF_PI);
+    log.rotation.y = la;
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 124) * 2); k++) {
+      const bu = flat(sph(0.55 + hash(x, y, 125 + k) * 0.4, 10, 6), BUSH, -7 + hash(x, y, 130 + k) * 14, 0.3, -7 + hash(y, x, 135 + k) * 14).scale.y = 0.6;
+      if (k < 2) flat(sph(0.4, 8, 6), SNOW, -7 + hash(x, y, 140 + k) * 14, 0.62, -7 + hash(y, x, 141 + k) * 14).scale.y = 0.4;
+    }
+    return;
+  }
+  if (t.t === 'k') {
+    const RK1 = mat3('#7a746a', 0.9), RK2 = mat3('#5f5a52', 0.9);
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 180) * 3); k++) {
+      const rx = -7 + hash(x, y, 181 + k) * 14, rz = -7 + hash(y, x, 182 + k) * 14, rr = 0.5 + hash(x, y, 183 + k) * 0.7;
+      const rk = part(g, sph(rr, 10, 6), k % 2 ? RK1 : RK2, rx, rr * 0.35, rz); rk.scale.y = 0.45; rk.rotation.y = hash(x, y, 184 + k) * 3;
+    }
+    for (let k = 0; k < 2; k++) flat(cyl(0.04, 0.12, 0.5 + hash(x, y, 185 + k) * 0.3, 6), TUFT, -6 + hash(x, y, 186 + k) * 12, 0.25, -6 + hash(y, x, 187 + k) * 12, (hash(x, y, 188 + k) - 0.5) * 0.4, 0, (hash(y, x, 189 + k) - 0.5) * 0.4);
+    return;
+  }
+  if (t.t === 's') {
+    const RIP = mat3('#d6c79c', 0.95), PEB = mat3('#8d8a80', 0.9), DRIFT = mat3('#7a6a58', 0.9);
+    for (let k = 0; k < 3 + Math.floor(hash(x, y, 150) * 2); k++) {
+      const off = -6 + k * 3.4 + hash(x, y, 151 + k) * 1.2;
+      if (hash(x, y, 155) < 0.5) flat(new THREE.BoxGeometry(19, 0.05, 0.8), RIP, 0, 0.03, off);
+      else flat(new THREE.BoxGeometry(0.8, 0.05, 19), RIP, off, 0.03, 0);
+    }
+    for (let k = 0; k < 5 + Math.floor(hash(x, y, 160) * 4); k++)
+      flat(sph(0.22 + hash(x, y, 161 + k) * 0.2, 8, 6), mat3('#8d8a80', 0.9), -8 + hash(x, y, 162 + k) * 16, 0.1, -8 + hash(y, x, 163 + k) * 16).scale.y = 0.55;
+    if (hash(x, y, 170) < 0.5) {
+      const dr = flat(cyl(0.22, 0.26, 4.6, 10), DRIFT, -6 + hash(x, y, 171) * 8, 0.24, -5 + hash(y, x, 172) * 7, 0, 0, HALF_PI);
+      dr.rotation.y = hash(x, y, 173) * Math.PI;
+    }
+  }
+}
+
 function buildTile(x, y) {
   const g = new THREE.Group(), t = TILEAT(x, y), seed = x * 8 + y + B.mi * 64;
   g.position.set(x * TS, 0, y * TS);
@@ -177,7 +297,9 @@ function buildTile(x, y) {
     const wm = part(g, new THREE.BoxGeometry(TS, 1, TS), mat3(t.t === 'o' ? '#245a82' : '#2d6592', 0.12, 0.1), 0, -2.3, 0);
     wm.castShadow = false;
   } else {
-    part(g, rbox(TS - 0.3, TS - 0.3, 1.2, 0.5), mat3(topC, t.t === 'r' || t.t === 'R' ? 0.85 : 0.95), 0, -0.6, 0, HALF_PI);
+    // slight per-tile tint so fields and roads are not one flat colour (three steps keep materials shared)
+    const tint = ['#000000', '#101010', '#ffffff'][Math.floor(hash(x, y, 17) * 3)];
+    part(g, rbox(TS - 0.3, TS - 0.3, 1.2, 0.5), mat3(tint === '#000000' ? topC : shade(topC, tint === '#ffffff' ? 0.05 : -0.05), t.t === 'r' || t.t === 'R' ? 0.85 : 0.95), 0, -0.6, 0, HALF_PI);
     part(g, rbox(TS - 0.3, TS - 0.3, 6, 0.3), mat3('#3f3427', 1), 0, -4.2, 0, HALF_PI);
     const SNOW = mat3('#edf1f3', 0.75);
     if (t.t === '.' || t.t === 'f') for (let i = 0; i < 6; i++) part(g, sph(0.8 + hash(x, y, i) * 1.5, 12, 6), SNOW, -8 + hash(i, x, y) * 16, -0.1, -8 + hash(y, i, x) * 16).scale.y = 0.2;
@@ -202,6 +324,7 @@ function buildTile(x, y) {
       for (let i = 0; i < 8; i++) { const a = hash(seed, i, 3) * 6.28, r = 5 + hash(seed, i, 4) * 2; part(g, sph(0.5 + hash(i, seed, 5) * 0.5, 8, 5), mat3('#3b3228', 1), c.position.x + Math.cos(a) * r, 0.1, c.position.z + Math.sin(a) * r).scale.y = 0.5; }
     }
   }
+  tileDetails(g, x, y, t, seed);
   // props on the tile
   if (t.t === 'f') g.add(modelFor('forest' + seed, MODEL3D['prop:forest'] && (() => MODEL3D['prop:forest'](seed)), () => mForest(seed)));
   else if (t.t === 'd') g.add(modelFor('bridgeRuin', MODEL3D['prop:bridge'], () => mBridgeRuin(true)));
@@ -290,11 +413,136 @@ function floorHatch(x, y, c) {
   g.restore();
 }
 
+// ---------- fly-overs ----------
+// The TB2 of an air strike: the rules keep it as a 2D projectile (art-space x, y); here it gets a 3D body
+// flying about 60 units above the ground point under that art position.
+const TB2_ALT = 60;
+function syncPlanes() {
+  V3.planes = V3.planes || new Map();
+  const seen = new Set();
+  for (const p of PROJ) {
+    if (p.kind !== 'tb2') continue;
+    seen.add(p);
+    let o = V3.planes.get(p);
+    if (!o) { o = m3TB2(); o.traverse(q => { if (q.name === 'rotorX') o.userData.prop = q; }); V3.planes.set(p, o); V3.units.add(o); }
+    const d = (p.x - OX) / TW, s = (p.y + TB2_ALT * KY - OY - TH) / TH;
+    o.position.set((s + d) / 2 * TS, TB2_ALT, (s - d) / 2 * TS);
+    o.rotation.y = Math.PI / 4;
+    o.userData.prop.rotation.x = performance.now() * 0.05;
+  }
+  for (const [p, o] of V3.planes) if (!seen.has(p)) { V3.units.remove(o); V3.planes.delete(p); }
+}
+
+// ---------- lights ----------
+// Explosion flash at tile (x, y), size 1..3, alt in art px.
+function flash3D(x, y, size, alt) {
+  if (!V3.on || !V3.flashes) return;
+  const f = V3.flashes.reduce((a, b) => (a.t0 + a.dur < b.t0 + b.dur ? a : b));
+  f.l.position.set(x * TS, 3 + (alt || 0) / KY + size, y * TS);
+  f.t0 = performance.now(); f.dur = (260 + size * 140) * Math.max(SPEED, 0.2); f.peak = 2.2 + size * 1.4;
+}
+function stepLights(now) {
+  for (const f of V3.flashes) {
+    const k = (now - f.t0) / f.dur;
+    f.l.intensity = k >= 0 && k < 1 ? f.peak * (1 - k) * (1 - k) : 0;
+  }
+  // burning wrecks flicker: reuse an idle light for up to two of them
+  let n = 0;
+  for (let y = 0; y < 8 && n < 2; y++) for (let x = 0; x < 8 && n < 2; x++) {
+    if (!TILEAT(x, y).wreck) continue;
+    const f = V3.flashes.find(q => q.l.intensity === 0 && !q.used);
+    if (!f) break;
+    f.used = true; n++;
+    f.l.position.set(x * TS, 3, y * TS);
+    f.l.intensity = 0.9 + Math.sin(now / 70 + x * 3) * 0.25 + Math.sin(now / 23 + y) * 0.15;
+  }
+  for (const f of V3.flashes) f.used = false;
+}
+
 // ---------- frame ----------
+// ---------- smoke ----------
+const SMOKE_TEX = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g2 = c.getContext('2d');
+  const gr = g2.createRadialGradient(32, 32, 2, 32, 32, 31);
+  gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const SMOKE = [];
+let smokeReady = false, smokeAcc = [0, 0, 0], smokeLast = 0;
+const SMOKE_KIND = {
+  fire: { c: '#2a2a2a', s0: 3, s1: 12, op: 0.75, rise: 5, life: 4 },
+  dust: { c: '#8a8680', s0: 4, s1: 12, op: 0.5, rise: 3, life: 5 },
+  blast: { c: '#5a5650', s0: 2, s1: 9, op: 0.7, rise: 4, life: 2.5 },
+};
+function smokeInit() {
+  V3.smoke = new THREE.Group(); V3.scene.add(V3.smoke);
+  for (let k = 0; k < 80; k++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: SMOKE_TEX, transparent: true, depthWrite: false }));
+    sp.visible = false; V3.smoke.add(sp);
+    SMOKE.push({ sp, t: 0, life: 0, size0: 0, size1: 0, op0: 0, rise: 0, vx: 0, vz: 0 });
+  }
+  smokeReady = true;
+}
+function smoke3D(wx, wy, wz, kind) {
+  if (!smokeReady) return;
+  const K = SMOKE_KIND[kind] || SMOKE_KIND.dust;
+  const s = SMOKE.find(e => e.life <= 0);
+  if (!s) return;
+  s.life = K.life; s.t = 0; s.size0 = K.s0; s.size1 = K.s1; s.op0 = K.op; s.rise = K.rise;
+  s.sp.position.set(wx + (Math.random() - 0.5) * 1.2, wy, wz + (Math.random() - 0.5) * 1.2);
+  s.sp.material.color.set(K.c); s.sp.material.opacity = K.op;
+  s.sp.scale.set(K.s0, K.s0, 1); s.sp.visible = true;
+  const spread = kind === 'blast' ? 3 : 0.8;
+  s.vx = (Math.random() - 0.5) * spread; s.vz = (Math.random() - 0.5) * spread;
+}
+function smokeBurst3D(x, y, size) {
+  for (let k = 0; k < 4 * size; k++) smoke3D(x * 20, 1.5 + Math.random() * 2, y * 20, 'blast');
+}
+function smokeStep(dt) {
+  for (const s of SMOKE) if (s.life > 0) {
+    s.t += dt;
+    if (s.t >= s.life) { s.life = 0; s.sp.visible = false; continue; }
+    const k = s.t / s.life;
+    s.sp.position.y += s.rise * dt;
+    s.sp.position.x += (1.5 + s.vx) * dt;
+    s.sp.position.z += s.vz * dt;
+    const sz = s.size0 + (s.size1 - s.size0) * k;
+    s.sp.scale.set(sz, sz, 1);
+    s.sp.material.opacity = s.op0 * (1 - k);
+  }
+}
+function smokeEmit(dt) {
+  if (!B) return;
+  const wrecks = [], blds = [], ruins = [];
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const tl = TILEAT(x, y);
+    if (tl.wreck) wrecks.push([x, y]);
+    else if (BLD[tl.t] && tl.hp > 0 && tl.hp < tl.max) blds.push([x, y, tl.t === 'b' ? 16 : 9]);
+    else if (BLD[tl.t] && tl.hp === 0) ruins.push([x, y]);
+  }
+  // each kind has one emission budget per second, spread over its tiles at random; nothing builds up
+  // while there is nothing to smoke
+  const emit = (i, list, rate, fn) => {
+    if (!list.length) { smokeAcc[i] = 0; return; }
+    smokeAcc[i] += dt * rate * list.length;
+    while (smokeAcc[i] >= 1) { fn(pick(list)); smokeAcc[i] -= 1; }
+  };
+  emit(0, wrecks, 5, ([x, y]) => smoke3D(x * 20, 3, y * 20, 'fire'));
+  emit(1, blds, 2, ([x, y, top]) => smoke3D(x * 20, top, y * 20, 'dust'));
+  emit(2, ruins, 1, ([x, y]) => smoke3D(x * 20, 3, y * 20, 'dust'));
+}
 function render3D(sx, sy) {
   if (!V3.on) return;
+  if (!smokeReady) smokeInit();
   syncBoard();
   syncUnits();
+  syncPlanes();
+  stepLights(performance.now());
+  const nowS = performance.now(), dt = Math.min(0.1, (nowS - smokeLast) / 1000 || 0.016);
+  smokeLast = nowS;
+  smokeStep(dt); smokeEmit(dt);
   V3.floorTex.needsUpdate = true;
   place3D();
   V3.canvas.style.transform = sx || sy ? `translate(${sx * PX / (window.devicePixelRatio || 1)}px,${sy * PX / (window.devicePixelRatio || 1)}px)` : '';

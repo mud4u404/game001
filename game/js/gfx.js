@@ -8,6 +8,10 @@ const stage = document.getElementById('stage');
 const dg = stage.getContext('2d');
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w || W; c.height = h || H; return c; };
 const artC = mkCanvas(), layC = mkCanvas(), tintC = mkCanvas(), bgC = mkCanvas();
+// HD overlay: with the 3D renderer the 2D layer (HUD over units, intents, particles) is drawn at device
+// resolution in art coordinates (scaled by PX), and the primitives below switch to smooth vector drawing.
+const hdC = mkCanvas(), hdg = hdC.getContext('2d');
+let HD = false;
 const ag = artC.getContext('2d'), lg = layC.getContext('2d'), tg = tintC.getContext('2d');
 let g = ag;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -20,6 +24,7 @@ function fitStage() {
   PX = k;
   W = Math.ceil(vw * dpr / k); H = Math.ceil(vh * dpr / k);
   for (const c of [artC, layC, tintC, bgC]) { c.width = W; c.height = H; }
+  hdC.width = W * k; hdC.height = H * k;
   stage.width = W * k; stage.height = H * k;
   stage.style.width = (W * k / dpr) + 'px';
   stage.style.height = (H * k / dpr) + 'px';
@@ -35,18 +40,22 @@ function cssToArt(x, y) { const dpr = window.devicePixelRatio || 1; return [x * 
 
 // ---------- pixel primitives ----------
 const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.floor(x), Math.floor(y), w, h); };
+function diaPath(cx, cy, hw) { g.beginPath(); g.moveTo(cx, cy - hw / 2); g.lineTo(cx + hw, cy); g.lineTo(cx, cy + hw / 2); g.lineTo(cx - hw, cy); g.closePath(); }
 function fillDia(cx, cy, hw, c) {
+  if (HD) { diaPath(cx, cy, hw); g.fillStyle = c; g.fill(); return; }
   g.fillStyle = c; cx = Math.floor(cx); cy = Math.floor(cy);
   const top = cy - hw / 2;
   for (let r = 0; r < hw; r++) { const w = r < hw / 2 ? 2 * (r + 1) : 2 * (hw - r); g.fillRect(cx - w, top + r, 2 * w, 1); }
 }
 function outlineDia(cx, cy, hw, c, th) {
-  th = th || 2; g.fillStyle = c; cx = Math.floor(cx); cy = Math.floor(cy);
+  th = th || 2;
+  if (HD) { diaPath(cx, cy, hw - th / 2); g.strokeStyle = c; g.lineWidth = th; g.stroke(); return; } g.fillStyle = c; cx = Math.floor(cx); cy = Math.floor(cy);
   const top = cy - hw / 2;
   for (let r = 0; r < hw; r++) { const w = r < hw / 2 ? 2 * (r + 1) : 2 * (hw - r); g.fillRect(cx - w, top + r, th, 1); g.fillRect(cx + w - th, top + r, th, 1); }
 }
 function line(x0, y0, x1, y1, c, sz) {
   sz = sz || 1;
+  if (HD) { g.strokeStyle = c; g.lineWidth = sz; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0 + sz / 2, y0 + sz / 2); g.lineTo(x1 + sz / 2, y1 + sz / 2); g.stroke(); return; }
   x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
   const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
   let err = dx + dy; g.fillStyle = c;
@@ -59,10 +68,12 @@ function line(x0, y0, x1, y1, c, sz) {
   }
 }
 function disc(cx, cy, r, c) {
+  if (HD) { g.fillStyle = c; g.beginPath(); g.arc(cx, cy, Math.max(0.5, r), 0, Math.PI * 2); g.fill(); return; }
   g.fillStyle = c; cx = Math.round(cx); cy = Math.round(cy);
   for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(r * r - y * y)); g.fillRect(cx - w, cy + y, 2 * w + 1, 1); }
 }
 function ellipse(cx, cy, rx, ry, c) {
+  if (HD) { g.fillStyle = c; g.beginPath(); g.ellipse(cx, cy, Math.max(0.5, rx), Math.max(0.5, ry), 0, 0, Math.PI * 2); g.fill(); return; }
   g.fillStyle = c; cx = Math.round(cx); cy = Math.round(cy);
   for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry)))); g.fillRect(cx - w, cy + y, 2 * w + 1, 1); }
 }
@@ -71,12 +82,23 @@ const GLYPH = {
   5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111',
   '!': '010010010000010', '-': '000000111000000', '+': '000010111010000', '?': '111001011000010',
 };
+const HDFONT = k => `800 ${Math.round(k * 5.6)}px "Noto Sans SC", system-ui, sans-serif`;
 function txt(s, x, y, c, k) {
-  k = k || 2; g.fillStyle = c; let ox = Math.floor(x);
+  k = k || 2;
+  if (HD) { g.font = HDFONT(k); g.textBaseline = 'top'; g.fillStyle = c; g.fillText(String(s), x, y - k * 0.4); return; } g.fillStyle = c; let ox = Math.floor(x);
   for (const ch of String(s)) { const b = GLYPH[ch]; if (b) for (let i = 0; i < 15; i++) if (b[i] === '1') g.fillRect(ox + (i % 3) * k, Math.floor(y) + Math.floor(i / 3) * k, k, k); ox += 4 * k; }
 }
-const txtW = (s, k) => String(s).length * 4 * (k || 2) - (k || 2);
+const txtW = (s, k) => { if (HD) { g.font = HDFONT(k || 2); return g.measureText(String(s)).width; } return String(s).length * 4 * (k || 2) - (k || 2); };
+function rrect(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 function badge(cx, cy, n, bg, border, fg) {
+  if (HD) {
+    const w = Math.max(17, txtW(n) + 10);
+    rrect(cx - w / 2 - 1, cy - 9, w + 2, 18, 5); g.fillStyle = '#0a0f14'; g.fill();
+    rrect(cx - w / 2, cy - 8, w, 16, 4); g.fillStyle = border; g.fill();
+    rrect(cx - w / 2 + 2, cy - 6, w - 4, 12, 3); g.fillStyle = bg; g.fill();
+    g.font = HDFONT(2); g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillStyle = fg; g.fillText(String(n), cx, cy + 0.5); g.textAlign = 'left';
+    return;
+  }
   cx = Math.round(cx); cy = Math.round(cy);
   const w = Math.max(17, txtW(n) + 10);
   R(cx - w / 2 - 1, cy - 9, w + 2, 18, '#0a0f14'); R(cx - w / 2, cy - 8, w, 16, border); R(cx - w / 2 + 2, cy - 6, w - 4, 12, bg);

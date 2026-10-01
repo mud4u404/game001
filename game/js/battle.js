@@ -24,6 +24,7 @@ function mkUnit(type, x, y, xp = 0) {
   if (type === 't64') { u.hp = u.max = d.hp + CAMP.up.t64hp; }
   if (type === 'atgm') { u.ammo.jav = 2 + CAMP.up.jav; u.ammo.sting = 1 + CAMP.up.sting; }
   if (type === 'neptune') u.ammo.nep = 2;
+  if (type === 'tb2u') u.ammo.maml = 2;
   if (type === 'bmp2') { u.ammo.kon = 1; }
   u.xp = xp;
   const rank = rankOf(xp);
@@ -52,7 +53,7 @@ function newBattle(mi, picks) {
   if (!picks) picks = defaultPicks(M);
   B = {
     mission: M, mi, squad: picks.slice(), turn: 1, maxTurn: M.turns, phase: 'deploy', tiles: [], units: [], marks: [], barrage: [],
-    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0 },
+    stats: { kills: 0, heli: 0, orlan: 0, naval: 0, armor: 0, cmd: 0, escaped: 0, evac: 0, civLost: 0, bldHit: 0, dmgTaken: 0, drown: 0, bump: 0, friendly: 0, multi: 0, killed: {} },
     nextId: 1, resetLeft: 1, tb2Left: 1 + CAMP.up.tb2, decals: [], debris: [], civNext: 0, snap: null, said: {}, deadRids: [],
   };
   for (let y = 0; y < 8; y++) {
@@ -151,7 +152,7 @@ function weaponTargets(u, wid) {
   else if (w.kind === 'arc') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
     const d = Math.abs(x - u.x) + Math.abs(y - u.y);
     if (d < w.min || d > w.range) continue;
-    if (!spotted(x, y, u)) continue;
+    if (!w.noSpot && !spotted(x, y, u)) continue;
     out.push({ x, y });
   }
   else if (w.kind === 'melee') for (const [dx, dy] of DIRS) { const x = u.x + dx, y = u.y + dy; if (inB(x, y)) out.push({ x, y, dir: [dx, dy] }); }
@@ -165,7 +166,7 @@ function weaponEffects(u, wid, t) {
   if (w.kind === 'line') { const h = lineHit(u.x, u.y, t.dir, w, u); return h ? [{ x: h.x, y: h.y, w: wid, push: w.push ? t.dir : null }] : []; }
   if (w.kind === 'arc') {
     const e = [{ x: t.x, y: t.y, w: wid }];
-    for (const dir of DIRS) { const x = t.x + dir[0], y = t.y + dir[1]; if (inB(x, y)) e.push({ x, y, w: null, push: dir }); }
+    if (w.blast) for (const dir of DIRS) { const x = t.x + dir[0], y = t.y + dir[1]; if (inB(x, y)) e.push({ x, y, w: null, push: dir }); }
     return e;
   }
   return [{ x: t.x, y: t.y, w: wid }];
@@ -188,6 +189,7 @@ function enemyAttackTiles(e) {
   if (!e.aim) return [];
   const d = U(e);
   if (d.atk === 'land') return [{ x: e.x, y: e.y, land: true }];
+  if (d.atk && WEAPONS[d.atk].kind === 'aa') return e.aim.tgt ? [{ x: e.aim.tgt.x, y: e.aim.tgt.y, w: d.atk, dir: [Math.sign(e.aim.tgt.x - e.x) || 1, Math.sign(e.aim.tgt.y - e.y)] }] : [];
   const w = WEAPONS[d.atk], [dx, dy] = e.aim.dir;
   if (w.kind === 'line') { const h = lineHit(e.x, e.y, e.aim.dir, w, e); return h ? [{ x: h.x, y: h.y, w: d.atk }] : []; }
   if (w.kind === 'melee') { const x = e.x + dx, y = e.y + dy; return inB(x, y) ? [{ x, y, w: d.atk }] : []; }
@@ -201,7 +203,7 @@ function threats() {
   for (const b of B.barrage) out.push({ x: b.x, y: b.y, w: 'msta', barrage: true });
   return out;
 }
-function landable(x, y) { const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R'].includes(t.t); }
+function landable(x, y) { if (!inB(x, y)) return false; const t = TILEAT(x, y); return !bldAlive(t) && !t.wreck && ['.', 'r', 'R', 'k'].includes(t.t); }
 
 function scoreAttack(e, tiles) {
   let s = 0;
@@ -209,7 +211,7 @@ function scoreAttack(e, tiles) {
     if (a.land) continue;
     const v = unitAt(a.x, a.y), t = TILEAT(a.x, a.y), dmg = dmgAgainst(a.w, a.x, a.y);
     if (v && v !== e) { if (v.team === 'ua') s += 7 + dmg * 1.5; else if (v.team === 'ru') s -= 10; }
-    else if (bldAlive(t) && BLD[t.t].civil) s += 9;
+    else if (bldAlive(t) && BLD[t.t].civil) s += B.mission.convoy ? 3 : 9;
   }
   return s;
 }
@@ -218,7 +220,23 @@ async function aiPlan() {
   for (const e of list) {
     if (e.dead) continue;
     const d = U(e), opts = [];
-    if (d.atk === 'land') opts.push({ land: true });
+    if (d.atk === 'land' && d.mob === 'sea') {
+      // 舰艇登陆：候选必须在水上且靠得住岸，靠近可登陆地形优先
+      for (const p of reach(e).values()) {
+        if (p.x === e.x && p.y === e.y) continue;
+        if (!isWater(TILEAT(p.x, p.y))) continue;
+        let shores = 0;
+        for (const [dx, dy] of DIRS) if (landable(p.x + dx, p.y + dy)) shores++;
+        if (!shores) continue;
+        let dk = 99;
+        for (let yy = 0; yy < 8; yy++) for (let xx = 0; xx < 8; xx++) { const tt = TILEAT(xx, yy); if (tt.t === 'k' || tt.t === '.') dk = Math.min(dk, Math.abs(xx - p.x) + Math.abs(yy - p.y)); }
+        opts.push({ sea: true, x: p.x, y: p.y, s: shores * 6 - dk });
+      }
+    }
+    else if (d.atk === 'land') opts.push({ land: true });
+    else if (d.atk && WEAPONS[d.atk].kind === 'aa') {
+      for (const o of ua()) if (isAir(o)) opts.push({ tgt: { x: o.x, y: o.y } });
+    }
     else if (d.atk) {
       const w = WEAPONS[d.atk];
       for (const dir of DIRS) {
@@ -226,20 +244,35 @@ async function aiPlan() {
         else opts.push({ dir });
       }
     }
-    const map = reach(e, B.mission.convoy && isVehicle(e) ? Math.min(2, d.move) : undefined), ox = e.x, oy = e.y;
-    let best = null, bs = -1e9;
+    const map = reach(e, B.mission.convoy && isVehicle(e) ? Math.min(d.mob === 'wheel' ? 3 : 2, d.move) : undefined), ox = e.x, oy = e.y;
+    let best = null, bs = -1e9, idle = null, is = -1e9;
     for (const p of map.values()) {
       e.x = p.x; e.y = p.y;
       let base = Math.random() * 2;
       if (B.barrage.some(b => b.x === p.x && b.y === p.y)) base -= 4;
       if (B.marks.some(m => m.x === p.x && m.y === p.y)) base -= 3;
       if (B.mission.civ && B.mission.civ.path.some(([x, y]) => x === p.x && y === p.y)) base -= 4;
-      if (B.mission.convoy && isVehicle(e)) base += (7 - p.x) * 3 + (p.x === 0 ? 30 : 0);
+      if (B.mission.exit && !isAir(e) && (B.mission.exitWho !== 'vehicle' || isVehicle(e))) {
+        const dmin = Math.min(...B.mission.exit.map(([ex, ey]) => Math.abs(ex - p.x) + Math.abs(ey - p.y)));
+        base += (14 - dmin) * (B.mission.exitPull || 2) + (dmin === 0 ? 60 : 0);
+      }
       if (d.spotter) base += ua().filter(o => dist(o, p) <= 2).length * 5 - (ua().some(o => o.type === 't64' && (o.x === p.x || o.y === p.y) && dist(o, p) <= 3) ? 4 : 0);
-      if (!opts.length) { if (base > bs) { bs = base; best = { x: p.x, y: p.y, aim: null }; } continue; }
+      // fallback when no option is usable from any reachable tile: move without aiming
+      if (base > is) { is = base; idle = { x: p.x, y: p.y, aim: null }; }
+      if (!opts.length) continue;
       for (const o of opts) {
         let s = base;
-        if (o.land) {
+        if (o.sea) {
+          // a sea landing option belongs to one shoreline tile
+          if (p.x !== o.x || p.y !== o.y) continue;
+          s += o.s;
+        } else if (o.tgt) {
+          // lock-on range counts from where the launcher ends its move
+          const dd = Math.abs(o.tgt.x - p.x) + Math.abs(o.tgt.y - p.y), wa = WEAPONS[d.atk];
+          if (dd < wa.min || dd > wa.range) continue;
+          e.aim = o;
+          s += scoreAttack(e, enemyAttackTiles(e));
+        } else if (o.land) {
           if (!landable(p.x, p.y)) continue;
           let dmin = 99;
           for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const t = TILEAT(x, y); if (bldAlive(t) && BLD[t.t].civil) dmin = Math.min(dmin, Math.abs(x - p.x) + Math.abs(y - p.y)); }
@@ -252,6 +285,7 @@ async function aiPlan() {
       }
     }
     e.x = ox; e.y = oy; e.aim = null;
+    if (!best) best = idle;
     if (!best) continue;
     if (best.x !== e.x || best.y !== e.y) {
       const path = pathFrom(map, best.x, best.y);
@@ -267,7 +301,7 @@ async function aiPlan() {
 async function applyEffects(list, src) {
   for (const e of list) {
     if (e.w) await hitTile(e.x, e.y, e.w, src);
-    if (e.push) { const v = unitAt(e.x, e.y); if (v) await pushUnit(v, e.push); }
+    if (e.push) { const v = unitAt(e.x, e.y); if (v) await pushUnit(v, e.push, src); }
   }
 }
 async function hitTile(x, y, wid, src) {
@@ -282,6 +316,7 @@ async function hitTile(x, y, wid, src) {
     const d = dmgAgainst(wid, x, y);
     if (d > 0) await damageUnit(o, d, src);
     else floatText(x, y, '无效', '#c9d2d8', o && isAir(o) ? U(o).alt : 0);
+    if (src && src.team === 'ru' && o.team === 'ru' && o !== src) { B.stats.friendly++; floatText(x, y, '误伤', '#ffd34d', 0, true); bark('friendly'); }
   } else if (bldAlive(t)) {
     const d = w.dmg.bld || 0;
     if (d > 0) damageBuilding(x, y, d);
@@ -312,6 +347,7 @@ async function killUnit(o, src, how) {
   const d = U(o);
   if (o.team === 'ru') {
     B.stats.kills++;
+    B.stats.killed[o.type] = (B.stats.killed[o.type] || 0) + 1;
     if (o.type === 'ka52' || o.type === 'mi8') { B.stats.heli++; bark('heli'); }
     if (o.type === 'orlan') { B.stats.orlan++; bark('orlan'); }
     if (U(o).mob === 'sea') B.stats.naval++;
@@ -319,6 +355,9 @@ async function killUnit(o, src, how) {
     if (o.type === 'cmd') { B.stats.cmd++; bark('cmd'); }
     if (src && src.team === 'ua' && src.xp !== undefined) src.xp++;
     toast(`${d.name} 被摧毁`, 'good');
+    if (isVehicle(o)) { shake(7); await sleep(110); }
+    else if (d.cls === 'air') { shake(6); await sleep(90); }
+    else shake(3);
     if (!B.said.firstKill) { B.said.firstKill = 1; bark('kill', src); }
   } else if (o.team === 'civ') {
     B.stats.civLost++;
@@ -332,7 +371,7 @@ async function killUnit(o, src, how) {
   B.units = B.units.filter(u => u !== o);
   if (sel === o.id) { sel = null; mode = null; }
 }
-async function pushUnit(v, dir) {
+async function pushUnit(v, dir, src) {
   if (U(v).stable) return;
   const nx = v.x + dir[0], ny = v.y + dir[1];
   if (!inB(nx, ny)) return;
@@ -341,16 +380,23 @@ async function pushUnit(v, dir) {
   if (o || bldAlive(t) || (!air && (t.wreck || (t.t === 'f' && isVehicle(v)))) || U(v).mob === 'sea' && !isWater(t)) {
     await animBump(v, dir);
     AUDIO.hit(); shake(2);
-    if (o) { await damageUnit(o, 1); if (!v.dead) await damageUnit(v, 1); }
-    else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1); }
-    else await damageUnit(v, 1);
+    if (o) {
+      await damageUnit(o, 1, src);
+      if (!v.dead) await damageUnit(v, 1, src);
+      // either side of the collision can be the enemy destroyed by it
+      const wreckedRu = [v, o].filter(q => q.dead && q.team === 'ru');
+      if (wreckedRu.length) { B.stats.bump += wreckedRu.length; floatText(nx, ny, '撞毁', '#ffd34d', 0, true); }
+    }
+    else if (bldAlive(t)) { damageBuilding(nx, ny, 1); await damageUnit(v, 1, src); }
+    else await damageUnit(v, 1, src);
     return;
   }
   v.x = nx; v.y = ny;
   await tween(170, k => { v.rx = lerp(nx - dir[0], nx, k); v.ry = lerp(ny - dir[1], ny, k); }, EASE.out);
   if (isWater(t) && !air && !U(v).amph && U(v).mob !== 'sea') {
     toast(`${U(v).name} 落水沉没`, v.team === 'ru' ? 'good' : 'bad');
-    await killUnit(v, null, 'drown');
+    if (v.team === 'ru') { B.stats.drown++; floatText(nx, ny, '落水', '#ffd34d', 0, true); bark('drown'); }
+    await killUnit(v, src, 'drown');
   }
 }
 
@@ -378,8 +424,10 @@ async function playerFire(u, wid, t) {
   renderHud();
   await animAttack(u, wid, t, eff);
   const xpBefore = u.xp;
+  const kills0 = B.stats.kills;
   await applyEffects(eff, u);
   if (w.selfDestruct) u.xp = xpBefore; // 撞击自毁的无人艇不计经验
+  if (B.stats.kills - kills0 >= 2) { B.stats.multi++; floatText(t.x, t.y, '一石二鸟', '#ffd34d', 0, true); bark('multi'); }
   if (w.selfDestruct && !u.dead) await killUnit(u, null, 'expend');
   busy = false;
   afterAction();
@@ -388,7 +436,9 @@ async function supportStrike(t) {
   busy = true; B.tb2Left--; mode = null;
   renderHud();
   await animTB2(t);
+  const kills0 = B.stats.kills;
   await applyEffects([{ x: t.x, y: t.y, w: 'tb2' }], null);
+  if (B.stats.kills - kills0 >= 2) { B.stats.multi++; floatText(t.x, t.y, '一石二鸟', '#ffd34d', 0, true); bark('multi'); }
   busy = false;
   afterAction();
 }
@@ -451,7 +501,7 @@ async function enemyPhase() {
   for (const e of ru().sort((a, b) => a.id - b.id)) {
     if (e.dead || !e.aim) continue;
     const d = U(e), tiles = enemyAttackTiles(e);
-    if (d.atk === 'land') { await animLanding(e); e.aim = null; renderHud(); continue; }
+    if (d.atk === 'land') { if (d.mob === 'sea') await animSeaLanding(e); else await animLanding(e); e.aim = null; renderHud(); continue; }
     if (!tiles.length) { e.aim = null; continue; }
     await animAttack(e, d.atk, tiles[0], tiles);
     for (const tt of tiles) { await hitTile(tt.x, tt.y, tt.w, e); if (checkDefeat()) return; }
@@ -461,8 +511,11 @@ async function enemyPhase() {
   }
   // 3. civilians move along the evacuation route
   if (B.mission.civ) await moveCivilians();
-  // 4. convoy vehicles on the west edge break through
-  if (B.mission.convoy) for (const e of ru()) if (isVehicle(e) && e.x === 0) {
+  // 4. breakout: enemies standing on the mission's exit tiles slip away
+  const M40 = B.mission;
+  if (M40.exit) for (const e of ru()) {
+    if (isAir(e) || (M40.exitWho === 'vehicle' && !isVehicle(e))) continue;
+    if (!M40.exit.some(([ex, ey]) => ex === e.x && ey === e.y)) continue;
     B.stats.escaped++;
     toast(`${U(e).name} 冲出了伏击圈`, 'bad');
     await tween(400, k => { e.rx = -k * 1.2; e.alpha = 1 - k; });
@@ -478,14 +531,16 @@ async function enemyPhase() {
       continue;
     }
     let x = m.x, y = m.y;
-    if (o) { const alt = freeNear(x, y); if (!alt) continue; x = alt.x; y = alt.y; }
+    if (o || !canStand(m.type, x, y)) { const alt = freeNear(x, y, m.type); if (!alt) { toast('敌军增援受阻', 'good'); continue; } x = alt.x; y = alt.y; }
     const n = mkUnit(m.type, x, y);
     B.units.push(n);
     await animArrive(n);
   }
   B.marks = [];
   if (checkDefeat()) return;
-  if (B.turn >= B.maxTurn || (!ru().length && !B.waves.some(w => w.turn > B.turn))) { await sleep(400); endMission('done'); return; }
+  const cleared = !ru().length && !B.waves.some(w => w.turn > B.turn);
+  if (cleared && !B.said.cleared) { B.said.cleared = 1; hint(`敌军已肃清。完成主要目标后任务结束，最晚到第 ${B.maxTurn} 回合。`); }
+  if (B.turn >= B.maxTurn || cleared && primaryDone() && civDone()) { await sleep(400); endMission('done'); return; }
   // 6. enemies move and aim for next turn
   await aiPlan();
   B.turn++;
@@ -498,8 +553,26 @@ async function enemyPhase() {
   renderHud();
   bark('turn');
 }
-function freeNear(x, y) {
-  for (const [dx, dy] of DIRS.concat([[1, 1], [-1, -1], [1, -1], [-1, 1]])) { const nx = x + dx, ny = y + dy; if (inB(nx, ny) && !unitAt(nx, ny) && !bldAlive(TILEAT(nx, ny))) return { x: nx, y: ny }; }
+function primaryDone() {
+  for (const o of B.mission.objectives) {
+    if (o.kind !== 'primary') continue;
+    const r = o.eval(B);
+    if (!(r.inverse ? r.cur <= r.max : r.cur >= r.max)) return false;
+  }
+  return true;
+}
+function civDone() {
+  const cv = B.mission.civ;
+  if (!cv) return true;
+  return B.civNext >= cv.groups.length && !B.units.some(u => u.team === 'civ' && !u.dead);
+}
+function canStand(type, x, y) {
+  if (!inB(x, y) || unitAt(x, y)) return false;
+  if (UNITS[type].cls === 'air') return true;
+  return moveCost({ type }, x, y) !== Infinity;
+}
+function freeNear(x, y, type) {
+  for (const [dx, dy] of DIRS.concat([[1, 1], [-1, -1], [1, -1], [-1, 1]])) { const nx = x + dx, ny = y + dy; if (type ? canStand(type, nx, ny) : inB(nx, ny) && !unitAt(nx, ny) && !bldAlive(TILEAT(nx, ny))) return { x: nx, y: ny }; }
   return null;
 }
 function markWaves() {
@@ -511,7 +584,7 @@ function markBarrage() {
   B.barrage = [];
   if (!br || B.turn < br.from || B.turn > B.maxTurn) return;
   const orlan = ru().some(e => U(e).spotter);
-  const n = br.count + (orlan ? 1 : 0), used = new Set();
+  const n = br.count + (orlan ? (br.spotBonus || 1) : 0), used = new Set();
   const us = ua();
   for (let i = 0; i < n && us.length; i++) {
     let tgt = null;
@@ -591,10 +664,16 @@ function endMission(reason) {
   res.civilians = 0;
   for (const row of B.tiles) for (const t of row) if (bldAlive(t)) res.civilians += BLD[t.t].pop;
   res.civilians += B.stats.evac * 40;
-  res.stats = Object.assign({}, B.stats);
+  res.stats = Object.assign({}, B.stats, { killed: Object.assign({}, B.stats.killed) });
+  res.losses = B.squad.filter(rec => {
+    const u = B.units.find(v => v.rid === rec.rid);
+    return !u || u.dead;
+  }).length;
+  res.ops = { drown: B.stats.drown || 0, bump: B.stats.bump || 0, friendly: B.stats.friendly || 0, multi: B.stats.multi || 0 };
   // promotions: compare each surviving unit's rank against its record's rank at battle start
   res.promotions = [];
   for (const rec of B.squad) {
+    if (rec.loan) continue;
     const u = B.units.find(v => v.rid === rec.rid);
     if (!u || u.dead) continue;
     const r0 = rankOf(rec.xp || 0), r1 = rankOf(u.xp || 0);
@@ -605,6 +684,7 @@ function endMission(reason) {
     }
   }
   for (const rec of B.squad) {
+    if (rec.loan) continue;
     const u = B.units.find(v => v.rid === rec.rid);
     if (u && !u.dead) rec.xp = u.xp || 0;
   }

@@ -17,7 +17,9 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForFunction(() => window.MODEL_READY === true, null, { timeout: 60000 }).catch(() => errs.push('model3d.html did not finish'));
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${out}/${key.replace(/[^\w-]/g, '_')}${dmg ? '-dmg' : ''}.png` });
+  const floating = await page.evaluate(() => window.FLOATING || []);
   await browser.close();
+  if (floating.length) console.log(`WARNING 悬空零件 ${floating.length} 个，中心位置：${floating.join(' ')}（检视图里用红框标出，确认是否该贴到别的零件上）`);
   if (errs.length) { console.log('ERRORS\n' + errs.join('\n')); process.exit(1); }
   console.log('MODEL OK');
 })();
