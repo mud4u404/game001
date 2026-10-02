@@ -475,7 +475,11 @@ function renderBattle(now, opts) {
     if (su && mode === 'target' && wsel && B.phase === 'player') {
       const w = WEAPONS[wsel];
       if (w.kind === 'arc') { const r = spotRange(); for (const o of ua()) { if (o === su) continue; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (Math.abs(x - o.x) + Math.abs(y - o.y) <= r) tFill(x, y, 'rgba(120,200,255,.06)'); } }
-      for (const p of weaponTargets(su, wsel)) { tFill(p.x, p.y, 'rgba(242,194,48,.16)'); tLine(p.x, p.y, 'rgba(242,194,48,.85)'); }
+      for (const p of weaponTargets(su, wsel)) {
+        const bad = fireBlocked(su, wsel, p);
+        tFill(p.x, p.y, bad ? 'rgba(255,74,43,.30)' : 'rgba(242,194,48,.16)');
+        tLine(p.x, p.y, bad ? 'rgba(255,74,43,.95)' : 'rgba(242,194,48,.85)');
+      }
     }
     if (mode === 'support' && B.phase === 'player') for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) tLine(x, y, 'rgba(242,194,48,.35)');
     const pv = currentPreview();

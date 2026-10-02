@@ -171,6 +171,26 @@ function weaponEffects(u, wid, t) {
   }
   return [{ x: t.x, y: t.y, w: wid }];
 }
+// Would firing at tile t hurt our own side? Returns a reason string or null.
+// Blocks damage to friendly/civilian units, and pushes that drown or collide friendlies.
+function fireBlocked(u, wid, t) {
+  for (const e of weaponEffects(u, wid, t)) {
+    if (e.w) {
+      const v = unitAt(e.x, e.y);
+      if (v && (v.team === 'ua' || v.team === 'civ') && dmgAgainst(e.w, e.x, e.y) > 0) return v.team === 'ua' ? '会误伤友军' : '会击中平民';
+    } else if (e.push) {
+      const v = unitAt(e.x, e.y);
+      if (!v) continue;
+      const nx = e.x + e.push[0], ny = e.y + e.push[1], t2 = inB(nx, ny) ? TILEAT(nx, ny) : null;
+      const intoWater = inB(nx, ny) && isWater(t2) && !isAir(v) && !U(v).amph && U(v).mob !== 'sea';
+      const intoUnit = inB(nx, ny) && (unitAt(nx, ny) || bldAlive(t2));
+      if (v.team === 'ua' && (intoWater || intoUnit)) return '友军会被震入险地';
+      if (v.team !== 'ua' && intoUnit && unitAt(nx, ny) && unitAt(nx, ny).team === 'ua') return '敌军会撞上友军';
+      if (v.team !== 'ua' && intoWater && false) continue;
+    }
+  }
+  return null;
+}
 function dmgAgainst(wid, x, y) {
   const w = WEAPONS[wid], o = unitAt(x, y), t = TILEAT(x, y);
   if (o) {

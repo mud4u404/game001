@@ -515,6 +515,8 @@ async function onBoardClick(ev) {
   }
   if (B.phase !== 'player') return;
   if (mode === 'support') {
+    const v = unitAt(h.x, h.y);
+    if (v && (v.team === 'ua' || v.team === 'civ')) { toast(`会误伤${v.team === 'ua' ? '友军' : '平民'}，不能打击`, 'bad'); AUDIO.click(); return; }
     if (COARSE && confirmTile && confirmTile.x === h.x && confirmTile.y === h.y) { confirmTile = null; await supportStrike(h); renderHud(); return; }
     if (COARSE) { confirmTile = { x: h.x, y: h.y }; renderTip(); toast('再点一次确认 TB2 打击', ''); return; }
     await supportStrike(h); renderHud(); return;
@@ -522,6 +524,8 @@ async function onBoardClick(ev) {
   if (su && mode === 'target' && wsel) {
     const t = weaponTargets(su, wsel).find(p => p.x === h.x && p.y === h.y);
     if (t) {
+      const blocked = fireBlocked(su, wsel, t);
+      if (blocked) { toast(blocked + '，不能开火', 'bad'); AUDIO.click(); confirmTile = null; return; }
       if (COARSE && confirmTile && confirmTile.x === h.x && confirmTile.y === h.y) { confirmTile = null; await playerFire(su, wsel, t); renderHud(); return; }
       if (COARSE) { confirmTile = { x: h.x, y: h.y }; renderTip(); toast('再点一次确认开火', ''); return; }
       await playerFire(su, wsel, t); renderHud(); return;
