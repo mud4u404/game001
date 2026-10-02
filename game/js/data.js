@@ -244,8 +244,8 @@ const MISSIONS = [
     enemies: [['raptor', 2, 6], ['raptor', 5, 7], ['btr', 6, 6], ['ka52', 7, 5]],
     waves: [
       { turn: 1, units: [['btr', 1, 7]] },
-      { turn: 2, units: [['raptor', 7, 7]] },
-      { turn: 3, units: [['btr', 3, 7], ['btr', 6, 7]] },
+      { turn: 2, units: [['raptor', 7, 7], ['serna', 5, 6]] },
+      { turn: 3, units: [['btr', 3, 7], ['btr', 6, 7], ['serna', 2, 6]] },
     ],
     barrage: null,
     objectives: [
