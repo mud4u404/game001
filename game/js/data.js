@@ -34,7 +34,7 @@ const WEAPONS = {
   nsvt:    { name: 'NSVT 高射机枪', kind: 'line', range: 3, hitsAir: true, dmg: { inf: 1, soft: 1, la: 1, air: 1, ha: 0, bld: 0 }, fx: 'mg', desc: '射程 3。能打到直升机和无人机，对重装甲无效。' },
   javelin: { name: 'FGM-148 标枪', kind: 'lock', min: 2, range: 5, ammo: 'jav', dmg: { ha: 3, la: 3, soft: 2, inf: 1 }, fx: 'javelin', desc: '攻顶攻击：越过障碍，锁定 2–5 格内的车辆。' },
   stinger: { name: 'FIM-92 毒刺', kind: 'aa', min: 1, range: 5, ammo: 'sting', dmg: { air: 3 }, fx: 'stinger', desc: '锁定 5 格内的空中目标。' },
-  how122:  { name: '122毫米榴弹', kind: 'arc', min: 2, range: 6, spot: 3, dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, blast: true, crater: true, fx: 'artillery', desc: '曲射 2–6 格。落点必须在其他友军的观察范围内。落点四周的单位被震退 1 格。' },
+  how122:  { name: '122毫米榴弹', kind: 'arc', min: 2, range: 6, spot: 3, dmg: { ha: 1, la: 2, soft: 2, inf: 2, bld: 1 }, blast: true, crater: true, fx: 'artillery', desc: '曲射 2–6 格。落点必须在其他友军的观察范围内。只有落点中心受到伤害；四周的单位只被冲击波震退 1 格，不受伤。' },
   tb2:     { name: 'TB2 无人机打击', kind: 'any', dmg: { ha: 2, la: 2, soft: 2, inf: 2, bld: 1 }, crater: true, fx: 'tb2', desc: 'MAM-L 制导炸弹，对任意地面目标造成 2 点伤害。' },
   seaRam:  { name: '撞击引爆', kind: 'melee', dmg: { la: 4, ha: 4, soft: 4, inf: 2, bld: 1 }, selfDestruct: true, fx: 'rpg', desc: '撞击相邻目标并引爆，4 点伤害。无人艇随之损失。' },
   neptune: { name: 'R-360 反舰导弹', kind: 'naval', min: 2, range: 8, ammo: 'nep', dmg: { la: 4, ha: 4, soft: 3 }, fx: 'atgm', desc: '锁定 2–8 格内的水面舰艇，4 点伤害。每场任务 2 发。' },

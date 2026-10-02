@@ -380,7 +380,7 @@ function renderHud() {
       <div class="weps">${d.weapons.map((wid, i) => {
         const w = WEAPONS[wid], ammo = w.ammo ? su.ammo[w.ammo] : null, empty = ammo === 0;
         return `<button type="button" class="wep ${mode === 'target' && wsel === wid ? 'on' : ''}" data-wid="${wid}" ${su.acted || empty || B.phase !== 'player' ? 'disabled' : ''}>
-          <span class="key">${i + 1}</span><span class="wn">${esc(w.name)}${ammo != null ? `<b class="ammo">${ammo}</b>` : ''}</span><span class="wd">${esc(w.desc)}</span></button>`;
+          <span class="key">${i + 1}</span><span class="wn">${esc(w.name)}${(w.dmg.air || 0) > 0 ? '<b class="airok">✈ 对空</b>' : ''}${ammo != null ? `<b class="ammo">${ammo}</b>` : ''}</span><span class="wd">${esc(w.desc)}</span></button>`;
       }).join('')}</div>
       ${su.prev && !su.acted && B.phase === 'player' ? '<button type="button" class="btn small" id="btnUndo">撤销移动</button>' : ''}
       <div class="ucTouch"><button type="button" class="btn" id="btnTbCancel">取消</button><button type="button" class="btn" id="btnTbNext">下一单位</button></div>
@@ -392,9 +392,43 @@ function pipsHtml(hp, max, enemy) { let s = ''; for (let i = 0; i < max; i++) s 
 function rankStars(xp) { const lvl = RANKS.indexOf(rankOf(xp)); return lvl ? `<span class="stars">${'★'.repeat(lvl)}</span>` : ''; }
 function renderTip() {
   const tip = $('tip');
-  if (!hover || !B || SCENE !== 'battle') { tip.hidden = true; return; }
-  const { x, y } = hover, t = TILEAT(x, y), o = unitAt(x, y);
+  if (!B || SCENE !== 'battle') { tip.hidden = true; return; }
+  const fsu0 = sel != null ? B.units.find(u => u.id === sel && !u.dead) : null;
+  const pv = confirmTile && fsu0 && mode === 'target' && wsel ? confirmTile : hover;
+  if (!pv) { tip.hidden = true; return; }
+  const { x, y } = pv, t = TILEAT(x, y), o = unitAt(x, y);
   let html = '';
+  const fsu = fsu0;
+  if (fsu && mode === 'target' && wsel) {
+    const aim = weaponTargets(fsu, wsel).find(p => p.x === x && p.y === y);
+    if (aim) {
+      html += `<h5>开火预览 · ${esc(WEAPONS[wsel].name)}</h5>`;
+      for (const e of weaponEffects(fsu, wsel, aim)) {
+        if (e.w) {
+          const v = unitAt(e.x, e.y), d = dmgAgainst(e.w, e.x, e.y);
+          if (v) {
+            const own = v.team === 'ua', civ = v.team === 'civ';
+            html += `<p class="${own ? 'threat' : ''}">${own ? '误伤！' : civ ? '平民！' : '命中'}${esc(U(v).name)} −${d} 伤害</p>`;
+            if (d === 0) html += `<p>${esc(U(v).name)} 不受这种武器的伤害</p>`;
+          } else {
+            const t2 = TILEAT(e.x, e.y);
+            if (bldAlive(t2)) html += `<p class="${BLD[t2.t].civil ? 'threat' : ''}">命中${esc(BLD[t2.t].name)} −${d}${BLD[t2.t].civil ? '（民用建筑！）' : ''}</p>`;
+            else html += `<p>落点无单位${WEAPONS[wsel].crater ? '，留下弹坑' : ''}</p>`;
+          }
+        } else if (e.push) {
+          const v = unitAt(e.x, e.y);
+          if (v && !U(v).stable) {
+            const nx = e.x + e.push[0], ny = e.y + e.push[1], t2 = inB(nx, ny) ? TILEAT(nx, ny) : null;
+            let warn = '';
+            if (!inB(nx, ny)) warn = '（在地图边缘，不会动）';
+            else if (isWater(t2) && !isAir(v) && !U(v).amph && U(v).mob !== 'sea') warn = ' → <b>落水沉没！</b>';
+            else if (unitAt(nx, ny) || bldAlive(t2) || (!isAir(v) && (t2.wreck || (t2.t === 'f' && isVehicle(v))))) warn = ' → 撞击，双方 −1 伤害';
+            html += `<p class="threat">冲击波：${esc(U(v).name)} 被震退 1 格${warn}</p>`;
+          }
+        }
+      }
+    }
+  }
   if (o && o.team !== 'ua') {
     const d = U(o);
     html += `<h5>${esc(d.name)} ${pipsHtml(o.hp, o.max, o.team === 'ru')}</h5><p>${CLASS_NAME[d.cls]} · 移动 ${o.move || d.move}${d.amph ? ' · 两栖' : ''}</p>`;
@@ -402,6 +436,13 @@ function renderTip() {
     else if (d.atk === 'land') html += `<p class="threat">${d.mob === 'sea' ? '下回合：靠岸，放下空降兵' : '下回合：在此降落，放下空降兵'}</p>`;
     else if (d.spotter) html += `<p class="threat">为俄军炮兵校射：敌方炮火 +1，并瞄准你的单位</p>`;
     else if (d.atk) { const w = WEAPONS[d.atk]; html += `<p>${esc(w.name)}</p>`; if (o.aim) { const tl = enemyAttackTiles(o); html += tl.length ? `<p class="threat">下回合攻击 ${tl.map(a => coord(a.x, a.y)).join('、')}</p>` : '<p>下回合没有可攻击的目标</p>'; } }
+    if (d.cls === 'air') {
+      const caps = ua().map(q => ({ q, ws: U(q).weapons.filter(wid => (WEAPONS[wid].dmg.air || 0) > 0) })).filter(c => c.ws.length);
+      if (caps.length) {
+        const inr = caps.filter(c => c.ws.some(wid => dist(c.q, o) <= (WEAPONS[wid].range || 0)));
+        html += `<p>我方可对空：${caps.map(c => esc(U(c.q).short || U(c.q).name)).join('、')}${inr.length ? '（有单位已在射程）' : '（都还不在射程）'}</p>`;
+      }
+    }
     const on = actionOrder(o);
     if (on) html += `<p>行动顺序：第 ${on} 个${B.barrage.length ? '（场外炮火最先落下）' : ''}</p>`;
   }
@@ -450,11 +491,14 @@ function armWeapon(wid) {
   if (!u || u.acted || B.phase !== 'player' || busy) return;
   const w = WEAPONS[wid];
   if (w.ammo && !(u.ammo[w.ammo] > 0)) return;
+  confirmTile = null;
   if (mode === 'target' && wsel === wid) { mode = u.moved ? null : 'move'; }
   else { wsel = wid; mode = 'target'; }
   AUDIO.click();
   renderHud();
 }
+const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
+let confirmTile = null;
 async function onBoardClick(ev) {
   AUDIO.init();
   if (SCENE !== 'battle' || busy) return;
@@ -470,10 +514,18 @@ async function onBoardClick(ev) {
     renderHud(); return;
   }
   if (B.phase !== 'player') return;
-  if (mode === 'support') { await supportStrike(h); renderHud(); return; }
+  if (mode === 'support') {
+    if (COARSE && confirmTile && confirmTile.x === h.x && confirmTile.y === h.y) { confirmTile = null; await supportStrike(h); renderHud(); return; }
+    if (COARSE) { confirmTile = { x: h.x, y: h.y }; renderTip(); toast('再点一次确认 TB2 打击', ''); return; }
+    await supportStrike(h); renderHud(); return;
+  }
   if (su && mode === 'target' && wsel) {
     const t = weaponTargets(su, wsel).find(p => p.x === h.x && p.y === h.y);
-    if (t) { await playerFire(su, wsel, t); renderHud(); return; }
+    if (t) {
+      if (COARSE && confirmTile && confirmTile.x === h.x && confirmTile.y === h.y) { confirmTile = null; await playerFire(su, wsel, t); renderHud(); return; }
+      if (COARSE) { confirmTile = { x: h.x, y: h.y }; renderTip(); toast('再点一次确认开火', ''); return; }
+      await playerFire(su, wsel, t); renderHud(); return;
+    }
   }
   if (o && o.team === 'ua') { selectUnit(o); renderHud(); return; }
   if (su && mode === 'move' && !o) {
@@ -497,6 +549,7 @@ function cycleUnit(back) {
   renderHud();
 }
 function cancel() {
+  confirmTile = null;
   if (mode === 'support') mode = null;
   else if (mode === 'target') { const u = B.units.find(v => v.id === sel); mode = u && !u.moved ? 'move' : null; }
   else { sel = null; mode = null; }
